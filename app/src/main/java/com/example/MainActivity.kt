@@ -513,6 +513,7 @@ private fun TagDeckRoot(
                     viewModel.saveSidebar(sb.copy(pinned = pinned))
                 }
             },
+            onSaveSidebar = { viewModel.saveSidebar(it) },
             windowElementRenderer = { el, _, _ ->
                 HomeElementBody(
                     element = el,
