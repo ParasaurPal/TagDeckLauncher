@@ -1079,6 +1079,7 @@ fun GenericSidebarContent(
                             }
                         }
                     }
+                }
                 Spacer(Modifier.height(10.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(10.dp))
