@@ -464,38 +464,7 @@ fun HomeScreen(
                     }
                 }
 
-                if (state.settings.showTagStripOnHome && state.allTags.isNotEmpty()) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(state.allTags, key = { it.tagId }) { tag ->
-                            val color = Color(tag.colorHex)
-                            val count = state.tagsWithApps.find { it.tag.tagId == tag.tagId }
-                                ?.apps?.count { it.isInstalled && !it.hidden } ?: 0
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
-                                border = BorderStroke(1.dp, color.copy(alpha = 0.5f)),
-                                modifier = Modifier
-                                    .testTag("home_tag_chip_${tag.tagId}")
-                                    .clickable { onOpenTagSidebar(tag.tagId) },
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 20.dp, circular = true)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(text = tag.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-                                    Spacer(Modifier.width(5.dp))
-                                    Text(text = "$count", style = MaterialTheme.typography.labelMedium, color = color)
-                                }
-                            }
-                        }
-                    }
-                }
+                
 
                 if (state.settings.showDockBar) {
                     Surface(
