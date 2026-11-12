@@ -769,7 +769,7 @@ fun TagTriggeredSidebarContent(
                             Text("Assign Apps")
                         }
                     }
-                } else if (tag.sidebarLayoutMode == "LIST") {
+                } else if (true) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -953,7 +953,7 @@ fun GenericSidebarContent(
     onTogglePin: () -> Unit,
     onClose: () -> Unit,
 ) {
-    var layoutMode by remember(title, initialLayoutMode) { mutableStateOf(initialLayoutMode) }
+    var layoutMode by remember(title) { mutableStateOf("LIST") }
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
     val shape = when (side) {
@@ -1105,7 +1105,7 @@ fun GenericSidebarContent(
                                 textAlign = TextAlign.Center,
                             )
                         }
-                    } else if (layoutMode == "LIST") {
+                    } else if (true) {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),
