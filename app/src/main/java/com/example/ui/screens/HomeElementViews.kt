@@ -1,0 +1,1485 @@
+package com.example.ui.screens
+
+import android.net.Uri
+import android.os.Build
+import android.widget.FrameLayout
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ViewSidebar
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.ContentCut
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FlipToBack
+import androidx.compose.material.icons.rounded.FlipToFront
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.LocalOffer
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.SmartButton
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import com.example.data.db.AppEntity
+import com.example.data.db.HomeElementEntity
+import com.example.data.db.HomePageEntity
+import com.example.data.db.LayoutSnapshotEntity
+import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.LauncherWidgetHost
+import com.example.ui.components.AppIconView
+import com.example.ui.components.CategoryBadgeIcon
+import com.example.ui.components.ObjectImageAndTransformDialog
+import com.example.ui.components.TagBadgeIcon
+import com.example.ui.components.buildElementColorFilter
+import com.example.ui.state.LauncherUiState
+import com.example.ui.theme.TagPresetColors
+import kotlinx.coroutines.launch
+import org.json.JSONArray
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.roundToInt
+
+private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
+    "CIRCLE" -> CircleShape
+    "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
+    "DIAMOND" -> GenericShape { size, _ ->
+        moveTo(size.width / 2f, 0f)
+        lineTo(size.width, size.height / 2f)
+        lineTo(size.width / 2f, size.height)
+        lineTo(0f, size.height / 2f)
+        close()
+    }
+    "HEXAGON" -> GenericShape { size, _ ->
+        val w = size.width
+        val h = size.height
+        moveTo(w * 0.5f, 0f)
+        lineTo(w, h * 0.25f)
+        lineTo(w, h * 0.75f)
+        lineTo(w * 0.5f, h)
+        lineTo(0f, h * 0.75f)
+        lineTo(0f, h * 0.25f)
+        close()
+    }
+    else -> RoundedCornerShape(element.cornerRadiusDp.coerceIn(0f, 74f).dp)
+}
+
+@Composable
+fun HomeElementBody(
+    element: HomeElementEntity,
+    state: LauncherUiState,
+    appDiscovery: AppDiscoveryManager,
+    widgetHost: LauncherWidgetHost,
+    onLaunchApp: (AppEntity) -> Unit,
+    onOpenTagSidebar: (Long) -> Unit,
+    onOpenCategorySidebar: (Long) -> Unit,
+    onOpenRuleSidebar: (Long) -> Unit,
+    onOpenSidebar: (Long) -> Unit,
+    onOpenWindow: (Long) -> Unit,
+    onOpenFolder: (Long) -> Unit,
+    onElementTrigger: (HomeElementEntity, String) -> Boolean,
+) {
+    val context = LocalContext.current
+    val shape = resolveMaskShape(element)
+    val bg = Color(element.backgroundColorHex)
+    val borderColor = Color(element.borderColorHex)
+    val border = if (element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
+    val colorFilter = remember(
+        element.imageBrightness, element.imageContrast, element.imageSaturation,
+        element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
+    ) { buildElementColorFilter(element) }
+
+    val blurMod = if (element.imageBlurDp > 0.5f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.blur(element.imageBlurDp.dp)
+    } else Modifier
+
+    val extraLayers = remember(element.extraImageLayersJson) {
+        if (element.extraImageLayersJson.isBlank()) emptyList()
+        else try {
+            val arr = JSONArray(element.extraImageLayersJson)
+            (0 until arr.length()).map { arr.getString(it) }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    val gestureMod = if (!state.isEditMode && element.actionsConfigJson.isNotBlank()) {
+        Modifier.pointerInput(element.elementId, element.actionsConfigJson) {
+            detectTapGestures(
+                onDoubleTap = { onElementTrigger(element, "DOUBLE_TAP") },
+                onLongPress = { onElementTrigger(element, "LONG_PRESS") },
+                onTap = {
+                    if (!onElementTrigger(element, "TAP")) {
+                        // Fall through handled below via default action
+                    }
+                },
+            )
+        }
+    } else Modifier
+
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(gestureMod),
+        shape = shape,
+        color = bg,
+        border = border,
+        shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Optional element custom background image
+            if (element.type != "IMAGE" && !element.imagePath.isNullOrBlank() && File(element.imagePath).exists()) {
+                AsyncImage(
+                    model = File(element.imagePath),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    colorFilter = colorFilter,
+                    alpha = 0.45f,
+                    modifier = Modifier.fillMaxSize().then(blurMod),
+                )
+            }
+
+            when (element.type) {
+                "CLOCK_WIDGET", "DIGITAL_CLOCK" -> LiveClockWidgetContent(element)
+                "ANALOG_CLOCK" -> AnalogClockWidgetContent(element)
+                "CALENDAR_WIDGET" -> CalendarWidgetContent(element)
+                "BATTERY_WIDGET" -> BatteryWidgetContent(element)
+                "STORAGE_RAM_WIDGET" -> StorageRamWidgetContent(element)
+                "COMPASS_WIDGET" -> CompassWidgetContent(element)
+                "MEDIA_WIDGET" -> MediaWidgetContent(element)
+                "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
+
+                "TEXT_LABEL" -> {
+                    val resolvedText = resolveDynamicTokens(element.label.ifBlank { "Label" }, context)
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = resolvedText,
+                            color = Color(element.textColorHex),
+                            fontSize = element.fontSizeSp.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                "SHAPE" -> {
+                    if (element.showLabel && element.label.isNotBlank()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = resolveDynamicTokens(element.label, context),
+                                color = Color(element.textColorHex),
+                                fontSize = element.fontSizeSp.sp,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
+                "CUSTOM_BUTTON" -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode) {
+                                onElementTrigger(element, "TAP")
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Rounded.TouchApp, null, tint = Color(element.textColorHex), modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
+                            color = Color(element.textColorHex),
+                            fontSize = element.fontSizeSp.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                "IMAGE" -> {
+                    val file = element.imagePath?.let { File(it) }?.takeIf { it.exists() }
+                    val scaleMode = when (element.imageScaleType) {
+                        "FIT" -> ContentScale.Fit
+                        "FILL_XY" -> ContentScale.FillBounds
+                        "ORIGINAL" -> ContentScale.None
+                        else -> ContentScale.Crop
+                    }
+                    if (file != null) {
+                        AsyncImage(
+                            model = file,
+                            contentDescription = element.label.ifBlank { "Custom image" },
+                            contentScale = scaleMode,
+                            colorFilter = colorFilter,
+                            modifier = Modifier.fillMaxSize().then(blurMod),
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Image, contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
+                        }
+                    }
+                }
+
+                "APP_SHORTCUT" -> {
+                    val app = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && app != null) {
+                                if (!onElementTrigger(element, "TAP")) {
+                                    app?.let(onLaunchApp)
+                                }
+                            }
+                            .padding(element.paddingDp.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (app != null) {
+                            AppIconView(
+                                app = app,
+                                appDiscovery = appDiscovery,
+                                size = element.iconSizeDp.coerceIn(28f, 96f).dp,
+                                iconShapeKey = state.settings.globalIconShape,
+                            )
+                            if (element.showLabel) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = element.label.ifBlank { app.displayName },
+                                    color = Color(element.textColorHex),
+                                    fontSize = element.fontSizeSp.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        } else {
+                            Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                            Text("Missing app", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                "TAG_SHORTCUT" -> {
+                    val tag = state.allTags.find { it.tagId == element.targetTagId }
+                    val count = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
+                        ?.apps?.count { it.isInstalled && !it.hidden } ?: 0
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && tag != null) {
+                                tag?.let { onOpenTagSidebar(it.tagId) }
+                            }
+                            .padding(8.dp)
+                            .testTag("home_tag_shortcut_${element.targetTagId}"),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (tag != null) {
+                            TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 38.dp)
+                            if (element.showLabel) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = tag.name,
+                                    color = Color(element.textColorHex),
+                                    fontSize = element.fontSizeSp.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "$count",
+                                    color = Color(tag.colorHex),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        } else {
+                            Text("Tag removed", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                "CATEGORY_SHORTCUT" -> {
+                    val cat = state.categories.find { it.categoryId == element.targetCategoryId }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && cat != null) {
+                                cat?.let { onOpenCategorySidebar(it.categoryId) }
+                            }
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (cat != null) {
+                            CategoryBadgeIcon(cat, size = 36.dp)
+                            if (element.showLabel) {
+                                Spacer(Modifier.height(5.dp))
+                                Text(
+                                    text = element.label.ifBlank { cat.name },
+                                    color = Color(element.textColorHex),
+                                    fontSize = element.fontSizeSp.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        } else {
+                            Icon(Icons.Rounded.Category, null, tint = Color.White)
+                        }
+                    }
+                }
+
+                "WINDOW_SHORTCUT" -> {
+                    val win = state.windows.find { it.windowId == element.targetWindowId }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && win != null) {
+                                win?.let { onOpenWindow(it.windowId) }
+                            }
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Rounded.Layers, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = win?.title ?: element.label.ifBlank { "Window" },
+                            color = Color(element.textColorHex),
+                            fontSize = element.fontSizeSp.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                "SAVED_RULE_SHORTCUT" -> {
+                    val rule = state.savedRules.find { it.ruleId == element.targetRuleId }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && rule != null) {
+                                rule?.let { onOpenRuleSidebar(it.ruleId) }
+                            }
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        TagBadgeIcon(rule?.iconKey ?: "filter", null, rule?.colorHex ?: 0xFF6366F1L, 36.dp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = rule?.name ?: element.label.ifBlank { "Rule" },
+                            color = Color(element.textColorHex),
+                            fontSize = element.fontSizeSp.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                "SIDEBAR_SHORTCUT" -> {
+                    val sb = state.sidebars.find { it.sidebarId == element.targetSidebarId }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode && sb != null) {
+                                sb?.let { onOpenSidebar(it.sidebarId) }
+                            }
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.ViewSidebar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = sb?.title ?: element.label.ifBlank { "Sidebar" },
+                            color = Color(element.textColorHex),
+                            fontSize = element.fontSizeSp.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                "FOLDER" -> {
+                    val pkgSet = element.folderPackages().toSet()
+                    val previewApps = state.appsWithTags.map { it.app }.filter { it.packageName in pkgSet }.take(4)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !state.isEditMode) { onOpenFolder(element.elementId) }
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            previewApps.take(2).forEach { app ->
+                                AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
+                            }
+                        }
+                        if (previewApps.size > 2) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                previewApps.drop(2).forEach { app ->
+                                    AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
+                                }
+                            }
+                        } else if (previewApps.isEmpty()) {
+                            Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color.White)
+                        }
+                        if (element.showLabel) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = element.label.ifBlank { "Folder" },
+                                color = Color(element.textColorHex),
+                                fontSize = element.fontSizeSp.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+
+                "TAG_COLLECTION_WIDGET" -> {
+                    val tag = state.allTags.find { it.tagId == element.targetTagId }
+                    val apps = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
+                        ?.apps?.filter { it.isInstalled && !it.hidden }
+                        ?.sortedBy { it.displayName.lowercase() }
+                        .orEmpty()
+                    Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !state.isEditMode && tag != null) {
+                                    tag?.let { onOpenTagSidebar(it.tagId) }
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (tag != null) {
+                                TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 28.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = tag.name,
+                                    color = Color(element.textColorHex),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = "${apps.size} apps",
+                                    color = Color(tag.colorHex),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            items(apps, key = { it.packageName }) { app ->
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable(enabled = !state.isEditMode) { onLaunchApp(app) }
+                                        .padding(2.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    AppIconView(app, appDiscovery, 38.dp, state.settings.globalIconShape)
+                                    Text(
+                                        text = app.displayName,
+                                        color = Color(element.textColorHex),
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                "APP_WIDGET" -> {
+                    val widgetId = element.appWidgetId
+                    if (widgetId != null) {
+                        AndroidView(
+                            factory = { ctx ->
+                                widgetHost.createHostView(ctx, widgetId) ?: FrameLayout(ctx)
+                            },
+                            update = {
+                                widgetHost.updateWidgetSize(widgetId, element.widthDp.roundToInt(), element.heightDp.roundToInt())
+                            },
+                            modifier = Modifier.fillMaxSize().padding(4.dp),
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Widgets, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                        }
+                    }
+                }
+            }
+
+            // Extra overlaid image layers
+            extraLayers.forEach { layerPath ->
+                if (File(layerPath).exists()) {
+                    AsyncImage(
+                        model = File(layerPath),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddHomeElementDialog(
+    pageId: Long,
+    ownerWindowId: Long? = null,
+    state: LauncherUiState,
+    appDiscovery: AppDiscoveryManager,
+    onImportImage: suspend (Uri) -> String?,
+    onAddElement: (HomeElementEntity) -> Unit,
+    onOpenWidgetPicker: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var step by remember { mutableStateOf("TYPE") }
+    var textLabelInput by remember { mutableStateOf("{TIME} • {DAY}") }
+    var buttonLabelInput by remember { mutableStateOf("Quick Action") }
+    var folderNameInput by remember { mutableStateOf("Quick Folder") }
+    var selectedFolderPackages by remember { mutableStateOf(emptySet<String>()) }
+
+    val ownerType = if (ownerWindowId != null) "WINDOW" else "PAGE"
+
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val path = onImportImage(uri)
+                if (path != null) {
+                    onAddElement(
+                        HomeElementEntity(
+                            pageId = pageId,
+                            ownerType = ownerType,
+                            ownerWindowId = ownerWindowId,
+                            type = "IMAGE",
+                            xFraction = 0.15f,
+                            yFraction = 0.2f,
+                            widthDp = 160f,
+                            heightDp = 160f,
+                            imagePath = path,
+                            backgroundColorHex = 0x00000000L,
+                            borderWidthDp = 0f,
+                            cornerRadiusDp = 22f,
+                        )
+                    )
+                    onDismiss()
+                }
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                when (step) {
+                    "APP" -> "Pick App Shortcut"
+                    "TAG" -> "Pick Tag Shortcut"
+                    "CATEGORY" -> "Pick Category Shortcut"
+                    "WINDOW" -> "Pick Window Trigger"
+                    "RULE" -> "Pick Smart Collection"
+                    "SIDEBAR" -> "Pick Sidebar Trigger"
+                    "TEXT" -> "New Dynamic Text Label"
+                    "BUTTON" -> "New Custom Button"
+                    "FOLDER" -> "Create Folder"
+                    else -> "Add Object to Canvas"
+                }
+            )
+        },
+        text = {
+            when (step) {
+                "TYPE" -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    ) {
+                        AddTypeRow(Icons.Rounded.LocalOffer, "Tag Shortcut", "Tapping opens this tag's sidebar") { step = "TAG" }
+                        AddTypeRow(Icons.Rounded.Category, "Category / Game Shortcut", "Tapping opens Play category sidebar") { step = "CATEGORY" }
+                        AddTypeRow(Icons.Rounded.Apps, "App Shortcut", "Freely positioned app launcher") { step = "APP" }
+                        AddTypeRow(Icons.Rounded.Folder, "Custom Folder", "Group apps & nested folders") { step = "FOLDER" }
+                        AddTypeRow(Icons.Rounded.Widgets, "Widgets (System & Built-in)", "Clocks, Battery, RAM, Compass, Android Widgets") {
+                            onDismiss()
+                            onOpenWidgetPicker()
+                        }
+                        AddTypeRow(Icons.Rounded.Layers, "Window Trigger", "Open a Total Launcher overlay window") { step = "WINDOW" }
+                        AddTypeRow(Icons.Rounded.Bolt, "Dynamic Tag Rule", "Shortcut to AND/OR/EXCLUDE collection") { step = "RULE" }
+                        AddTypeRow(Icons.AutoMirrored.Rounded.ViewSidebar, "Sidebar Trigger", "Button that opens a configured drawer") { step = "SIDEBAR" }
+                        AddTypeRow(Icons.Rounded.SmartButton, "Custom Interactive Button", "Multi-gesture / macro button") { step = "BUTTON" }
+                        AddTypeRow(Icons.Rounded.TextFields, "Dynamic Text Label", "Supports {TIME}, {DATE}, {RAM}, {STORAGE}") { step = "TEXT" }
+                        AddTypeRow(Icons.Rounded.Category, "Decorative Shape / Panel", "Resizable glass/colored geometric layer") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    ownerType = ownerType,
+                                    ownerWindowId = ownerWindowId,
+                                    type = "SHAPE",
+                                    xFraction = 0.15f,
+                                    yFraction = 0.25f,
+                                    widthDp = 180f,
+                                    heightDp = 120f,
+                                    label = "",
+                                    showLabel = false,
+                                    backgroundColorHex = 0x5538BDF8L,
+                                    borderColorHex = 0x9938BDF8L,
+                                    cornerRadiusDp = 28f,
+                                )
+                            )
+                            onDismiss()
+                        }
+                        AddTypeRow(Icons.Rounded.Image, "Image Object", "Import PNG/JPG/WEBP/SVG (transforms available)") {
+                            photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                    }
+                }
+                "TAG" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                        items(state.allTags, key = { it.tagId }) { tag ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "TAG_SHORTCUT",
+                                            xFraction = 0.2f,
+                                            yFraction = 0.25f,
+                                            widthDp = 110f,
+                                            heightDp = 92f,
+                                            label = tag.name,
+                                            targetTagId = tag.tagId,
+                                            backgroundColorHex = (0x38000000L or (tag.colorHex and 0x00FFFFFFL)),
+                                            borderColorHex = (0x99000000L or (tag.colorHex and 0x00FFFFFFL)),
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 32.dp)
+                                Spacer(Modifier.width(10.dp))
+                                Text(tag.name, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+                "CATEGORY" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                        items(state.categories, key = { it.categoryId }) { cat ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "CATEGORY_SHORTCUT",
+                                            xFraction = 0.2f,
+                                            yFraction = 0.25f,
+                                            widthDp = 114f,
+                                            heightDp = 92f,
+                                            label = cat.name,
+                                            targetCategoryId = cat.categoryId,
+                                            backgroundColorHex = (0x38000000L or (cat.colorHex and 0x00FFFFFFL)),
+                                            borderColorHex = (0x99000000L or (cat.colorHex and 0x00FFFFFFL)),
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CategoryBadgeIcon(cat, size = 30.dp)
+                                Spacer(Modifier.width(10.dp))
+                                Text(if (cat.categoryType == "GAME_SUB") "Games • ${cat.name}" else cat.name)
+                            }
+                        }
+                    }
+                }
+                "WINDOW" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                        items(state.windows, key = { it.windowId }) { w ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "WINDOW_SHORTCUT",
+                                            xFraction = 0.2f,
+                                            yFraction = 0.25f,
+                                            widthDp = 120f,
+                                            heightDp = 88f,
+                                            label = w.title,
+                                            targetWindowId = w.windowId,
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Rounded.Layers, null)
+                                Spacer(Modifier.width(10.dp))
+                                Text(w.title, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+                "APP" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                        items(state.appsWithTags.filter { it.app.isInstalled }, key = { it.app.packageName }) { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "APP_SHORTCUT",
+                                            xFraction = 0.25f,
+                                            yFraction = 0.3f,
+                                            widthDp = 84f,
+                                            heightDp = 96f,
+                                            label = item.app.displayName,
+                                            targetPackageName = item.app.packageName,
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                AppIconView(item.app, appDiscovery, 36.dp)
+                                Spacer(Modifier.width(10.dp))
+                                Text(item.app.displayName, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+                "RULE" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                        items(state.savedRules, key = { it.ruleId }) { rule ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "SAVED_RULE_SHORTCUT",
+                                            xFraction = 0.2f,
+                                            yFraction = 0.25f,
+                                            widthDp = 128f,
+                                            heightDp = 88f,
+                                            label = rule.name,
+                                            targetRuleId = rule.ruleId,
+                                            backgroundColorHex = (0x38000000L or (rule.colorHex and 0x00FFFFFFL)),
+                                            borderColorHex = (0x99000000L or (rule.colorHex and 0x00FFFFFFL)),
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TagBadgeIcon(rule.iconKey, null, rule.colorHex, 30.dp)
+                                Spacer(Modifier.width(10.dp))
+                                Text(rule.name, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+                "SIDEBAR" -> {
+                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                        items(state.sidebars, key = { it.sidebarId }) { sb ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onAddElement(
+                                        HomeElementEntity(
+                                            pageId = pageId,
+                                            ownerType = ownerType,
+                                            ownerWindowId = ownerWindowId,
+                                            type = "SIDEBAR_SHORTCUT",
+                                            xFraction = 0.2f,
+                                            yFraction = 0.25f,
+                                            widthDp = 120f,
+                                            heightDp = 84f,
+                                            label = sb.title,
+                                            targetSidebarId = sb.sidebarId,
+                                        )
+                                    )
+                                    onDismiss()
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.ViewSidebar, contentDescription = null)
+                                Spacer(Modifier.width(10.dp))
+                                Text("${sb.title} (${sb.side})", style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+                "TEXT" -> {
+                    OutlinedTextField(
+                        value = textLabelInput,
+                        onValueChange = { textLabelInput = it },
+                        label = { Text("Text ({TIME}, {DATE}, {RAM}, {STORAGE})") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                "BUTTON" -> {
+                    OutlinedTextField(
+                        value = buttonLabelInput,
+                        onValueChange = { buttonLabelInput = it },
+                        label = { Text("Button Label (configure action in Inspector)") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                "FOLDER" -> {
+                    Column(modifier = Modifier.heightIn(max = 360.dp)) {
+                        OutlinedTextField(
+                            value = folderNameInput,
+                            onValueChange = { folderNameInput = it },
+                            label = { Text("Folder Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(state.appsWithTags.filter { it.app.isInstalled }, key = { it.app.packageName }) { item ->
+                                val checked = item.app.packageName in selectedFolderPackages
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clickable {
+                                        selectedFolderPackages = if (checked) selectedFolderPackages - item.app.packageName
+                                        else selectedFolderPackages + item.app.packageName
+                                    }.padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = {
+                                            selectedFolderPackages = if (it) selectedFolderPackages + item.app.packageName
+                                            else selectedFolderPackages - item.app.packageName
+                                        },
+                                    )
+                                    AppIconView(item.app, appDiscovery, 30.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(item.app.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (step == "TEXT") {
+                Button(onClick = {
+                    onAddElement(
+                        HomeElementEntity(
+                            pageId = pageId,
+                            ownerType = ownerType,
+                            ownerWindowId = ownerWindowId,
+                            type = "TEXT_LABEL",
+                            xFraction = 0.1f,
+                            yFraction = 0.18f,
+                            widthDp = 240f,
+                            heightDp = 72f,
+                            label = textLabelInput,
+                            fontSizeSp = 18f,
+                        )
+                    )
+                    onDismiss()
+                }) { Text("Add Label") }
+            } else if (step == "BUTTON") {
+                Button(onClick = {
+                    onAddElement(
+                        HomeElementEntity(
+                            pageId = pageId,
+                            ownerType = ownerType,
+                            ownerWindowId = ownerWindowId,
+                            type = "CUSTOM_BUTTON",
+                            xFraction = 0.2f,
+                            yFraction = 0.35f,
+                            widthDp = 160f,
+                            heightDp = 56f,
+                            label = buttonLabelInput,
+                            backgroundColorHex = 0xCC38BDF8L,
+                            textColorHex = 0xFF000000L,
+                            cornerRadiusDp = 18f,
+                        )
+                    )
+                    onDismiss()
+                }) { Text("Add Button") }
+            } else if (step == "FOLDER") {
+                Button(onClick = {
+                    onAddElement(
+                        HomeElementEntity(
+                            pageId = pageId,
+                            ownerType = ownerType,
+                            ownerWindowId = ownerWindowId,
+                            type = "FOLDER",
+                            xFraction = 0.2f,
+                            yFraction = 0.3f,
+                            widthDp = 96f,
+                            heightDp = 104f,
+                            label = folderNameInput.ifBlank { "Folder" },
+                            folderAppPackagesCsv = selectedFolderPackages.joinToString(","),
+                        )
+                    )
+                    onDismiss()
+                }) { Text("Create Folder") }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { if (step == "TYPE") onDismiss() else step = "TYPE" }) {
+                Text(if (step == "TYPE") "Close" else "Back")
+            }
+        },
+    )
+}
+
+@Composable
+private fun AddTypeRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+fun ElementInspectorDialog(
+    element: HomeElementEntity,
+    state: LauncherUiState,
+    onImportImage: suspend (Uri, String, String?) -> String?,
+    onUpdate: (HomeElementEntity) -> Unit,
+    onDuplicate: () -> Unit,
+    onCopy: () -> Unit,
+    onCut: () -> Unit,
+    onBringForward: () -> Unit,
+    onSendBackward: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var edited by remember(element.elementId) { mutableStateOf(element) }
+    var showFullTransform by remember { mutableStateOf(false) }
+
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val path = onImportImage(uri, "Objects", null)
+                if (path != null) {
+                    edited = edited.copy(imagePath = path)
+                    onUpdate(edited)
+                }
+            }
+        }
+    }
+
+    if (showFullTransform) {
+        ObjectImageAndTransformDialog(
+            element = edited,
+            imageResources = state.imageResources,
+            allApps = state.appsWithTags,
+            allTags = state.allTags,
+            categories = state.categories,
+            sidebars = state.sidebars,
+            windows = state.windows,
+            onImportUri = onImportImage,
+            onSave = {
+                edited = it
+                onUpdate(it)
+                showFullTransform = false
+            },
+            onDismiss = { showFullTransform = false },
+        )
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Customize Object") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 460.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    IconButton(onClick = {
+                        edited = edited.copy(locked = !edited.locked)
+                        onUpdate(edited)
+                    }) {
+                        Icon(
+                            if (edited.locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+                            contentDescription = "Lock/Unlock",
+                            tint = if (edited.locked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    IconButton(onClick = onDuplicate) {
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = "Duplicate")
+                    }
+                    IconButton(onClick = onCopy) {
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy")
+                    }
+                    IconButton(onClick = onCut) {
+                        Icon(Icons.Rounded.ContentCut, contentDescription = "Cut")
+                    }
+                    IconButton(onClick = onBringForward) {
+                        Icon(Icons.Rounded.FlipToFront, contentDescription = "Bring forward")
+                    }
+                    IconButton(onClick = onSendBackward) {
+                        Icon(Icons.Rounded.FlipToBack, contentDescription = "Send backward")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+
+                Button(
+                    onClick = { showFullTransform = true },
+                    modifier = Modifier.fillMaxWidth().testTag("inspector_open_transform"),
+                ) {
+                    Icon(Icons.Rounded.Tune, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Image FX, Skew/Flip/Crop & Gesture Actions")
+                }
+
+                if (edited.type != "APP_WIDGET") {
+                    OutlinedTextField(
+                        value = edited.label,
+                        onValueChange = { edited = edited.copy(label = it) },
+                        label = { Text("Label (supports {TIME}, {DATE}, {RAM})") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Show Label")
+                    Switch(checked = edited.showLabel, onCheckedChange = { edited = edited.copy(showLabel = it) })
+                }
+
+                Text("Width: ${edited.widthDp.roundToInt()}dp")
+                Slider(value = edited.widthDp, onValueChange = { edited = edited.copy(widthDp = it) }, valueRange = 48f..380f)
+                Text("Height: ${edited.heightDp.roundToInt()}dp")
+                Slider(value = edited.heightDp, onValueChange = { edited = edited.copy(heightDp = it) }, valueRange = 48f..440f)
+                Text("Rotation: ${edited.rotationDeg.roundToInt()}°")
+                Slider(value = edited.rotationDeg, onValueChange = { edited = edited.copy(rotationDeg = it) }, valueRange = -180f..180f)
+                Text("Transparency: ${(edited.alpha * 100).roundToInt()}%")
+                Slider(value = edited.alpha, onValueChange = { edited = edited.copy(alpha = it) }, valueRange = 0.1f..1f)
+                Text("Corner Radius: ${edited.cornerRadiusDp.roundToInt()}dp")
+                Slider(value = edited.cornerRadiusDp, onValueChange = { edited = edited.copy(cornerRadiusDp = it) }, valueRange = 0f..74f)
+
+                Text("Background Tint", style = MaterialTheme.typography.labelLarge)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Transparent,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            modifier = Modifier.size(32.dp).clickable {
+                                edited = edited.copy(backgroundColorHex = 0x00000000L)
+                            },
+                        ) {
+                            Box(contentAlignment = Alignment.Center) { Text("0", fontSize = 11.sp) }
+                        }
+                    }
+                    items(TagPresetColors) { c ->
+                        val tinted = (0x55000000L or (c and 0x00FFFFFFL))
+                        Box(
+                            modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(tinted)).clickable {
+                                edited = edited.copy(
+                                    backgroundColorHex = tinted,
+                                    borderColorHex = (0xAA000000L or (c and 0x00FFFFFFL)),
+                                )
+                            },
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = {
+                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) {
+                        Text("Pick Background Image")
+                    }
+                    if (edited.imagePath != null) {
+                        TextButton(onClick = { edited = edited.copy(imagePath = null) }) {
+                            Text("Clear Image")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onUpdate(edited)
+                onDismiss()
+            }) { Text("Apply") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+fun PagesAndSnapshotsDialog(
+    pages: List<HomePageEntity>,
+    snapshots: List<LayoutSnapshotEntity>,
+    onImportImage: suspend (Uri, String, String?) -> String?,
+    onAddPage: (String) -> Unit,
+    onSavePage: (HomePageEntity) -> Unit,
+    onDuplicatePage: (HomePageEntity) -> Unit,
+    onReorderPages: (List<Long>) -> Unit,
+    onDeletePage: (Long) -> Unit,
+    onSaveSnapshot: (String) -> Unit,
+    onRestoreSnapshot: (LayoutSnapshotEntity) -> Unit,
+    onDeleteSnapshot: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var newPageName by remember { mutableStateOf("") }
+    var snapshotName by remember { mutableStateOf("") }
+    var editingPage by remember { mutableStateOf<HomePageEntity?>(null) }
+
+    editingPage?.let { page ->
+        var working by remember(page.pageId) { mutableStateOf(page) }
+        val portraitPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    val path = onImportImage(uri, "Wallpapers", null)
+                    if (path != null) working = working.copy(backgroundType = "IMAGE", backgroundImagePath = path)
+                }
+            }
+        }
+        val landscapePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    val path = onImportImage(uri, "Wallpapers", null)
+                    if (path != null) working = working.copy(backgroundType = "IMAGE", landscapeBackgroundImagePath = path)
+                }
+            }
+        }
+        AlertDialog(
+            onDismissRequest = { editingPage = null },
+            title = { Text("Edit Page: ${page.title}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(value = working.title, onValueChange = { working = working.copy(title = it) }, label = { Text("Page Title") }, singleLine = true)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Lock Page Objects")
+                        Switch(checked = working.isLocked, onCheckedChange = { working = working.copy(isLocked = it) })
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Hide Page from Swipe")
+                        Switch(checked = working.isHidden, onCheckedChange = { working = working.copy(isHidden = it) })
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Vertically Scrollable Canvas")
+                        Switch(checked = working.verticallyScrollable, onCheckedChange = { working = working.copy(verticallyScrollable = it) })
+                    }
+                    Text("Page Background Mode", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("INHERIT", "SOLID", "GRADIENT", "IMAGE").forEach { mode ->
+                            FilterChip(
+                                selected = working.backgroundType == mode,
+                                onClick = { working = working.copy(backgroundType = mode) },
+                                label = { Text(mode) },
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { portraitPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+                            Text("Portrait Img")
+                        }
+                        OutlinedButton(onClick = { landscapePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+                            Text("Landscape Img")
+                        }
+                    }
+                    Text("Background Opacity: ${(working.backgroundAlpha * 100).roundToInt()}%")
+                    Slider(value = working.backgroundAlpha, onValueChange = { working = working.copy(backgroundAlpha = it) }, valueRange = 0.1f..1f)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    onSavePage(working)
+                    editingPage = null
+                }) { Text("Save Page") }
+            },
+            dismissButton = { TextButton(onClick = { editingPage = null }) { Text("Cancel") } },
+        )
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Layers, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text("Pages & Themes / Snapshots")
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 460.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Home Pages (${pages.size})", style = MaterialTheme.typography.titleMedium)
+                pages.forEachIndexed { idx, p ->
+                    Surface(shape = RoundedCornerShape(12.dp), tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("${idx + 1}. ${p.title}", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    listOfNotNull(
+                                        p.backgroundType,
+                                        if (p.isHidden) "Hidden" else null,
+                                        if (p.isLocked) "Locked" else null,
+                                        if (p.verticallyScrollable) "Scrollable" else null,
+                                    ).joinToString(" • "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (idx > 0) {
+                                IconButton(onClick = {
+                                    val ids = pages.map { it.pageId }.toMutableList()
+                                    val moved = ids.removeAt(idx)
+                                    ids.add(idx - 1, moved)
+                                    onReorderPages(ids)
+                                }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Rounded.ArrowUpward, "Move up", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            if (idx < pages.lastIndex) {
+                                IconButton(onClick = {
+                                    val ids = pages.map { it.pageId }.toMutableList()
+                                    val moved = ids.removeAt(idx)
+                                    ids.add(idx + 1, moved)
+                                    onReorderPages(ids)
+                                }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Rounded.ArrowDownward, "Move down", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            IconButton(onClick = { onDuplicatePage(p) }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Rounded.ContentCopy, "Duplicate page", modifier = Modifier.size(16.dp))
+                            }
+                            IconButton(onClick = { editingPage = p }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Rounded.Tune, "Edit page", modifier = Modifier.size(16.dp))
+                            }
+                            if (pages.size > 1) {
+                                IconButton(onClick = { onDeletePage(p.pageId) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Rounded.Delete, "Delete page", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = newPageName,
+                        onValueChange = { newPageName = it },
+                        label = { Text("New page title") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        enabled = newPageName.isNotBlank(),
+                        onClick = {
+                            onAddPage(newPageName.trim())
+                            newPageName = ""
+                        },
+                    ) { Icon(Icons.Rounded.Add, contentDescription = "Add page") }
+                }
+
+                HorizontalDivider()
+                Text("Layout Snapshots (Save & Restore)", style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = snapshotName,
+                        onValueChange = { snapshotName = it },
+                        label = { Text("Snapshot name") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        enabled = snapshotName.isNotBlank(),
+                        onClick = {
+                            onSaveSnapshot(snapshotName.trim())
+                            snapshotName = ""
+                        },
+                    ) { Icon(Icons.Rounded.Save, contentDescription = "Save snapshot") }
+                }
+
+                snapshots.forEach { snap ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(snap.name, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(snap.createdAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            IconButton(onClick = { onRestoreSnapshot(snap) }) {
+                                Icon(Icons.Rounded.Restore, contentDescription = "Restore layout")
+                            }
+                            IconButton(onClick = { onDeleteSnapshot(snap.snapshotId) }) {
+                                Icon(Icons.Rounded.Delete, contentDescription = "Delete snapshot")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Done") }
+        },
+    )
+}

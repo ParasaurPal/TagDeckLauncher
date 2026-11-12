@@ -1,0 +1,601 @@
+package com.example
+
+import android.app.Activity
+import android.appwidget.AppWidgetManager
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.data.db.AppEntity
+import com.example.data.db.HomeElementEntity
+import com.example.data.db.TagEntity
+import com.example.data.system.InstalledWidgetProvider
+import com.example.ui.components.ActiveOverlayHost
+import com.example.ui.components.AppActionAndCustomizeDialog
+import com.example.ui.components.AppDrawerOverlay
+import com.example.ui.components.BulkAssignAppsToTagDialog
+import com.example.ui.components.TagEditorDialog
+import com.example.ui.components.UniversalSearchOverlay
+import com.example.ui.screens.AppManagerScreen
+import com.example.ui.screens.HomeElementBody
+import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.SidebarManagerScreen
+import com.example.ui.screens.TagManagerScreen
+import com.example.ui.state.LauncherRoute
+import com.example.ui.state.LauncherViewModel
+import com.example.ui.theme.TagDeckTheme
+
+class MainActivity : ComponentActivity() {
+
+    private val appContainer: TagDeckApplication
+        get() = application as TagDeckApplication
+
+    private val viewModel: LauncherViewModel by viewModels {
+        LauncherViewModel.Factory(
+            repository = appContainer.launcherRepository,
+            appDiscovery = appContainer.appDiscoveryManager,
+            imageStorage = appContainer.imageStorageManager,
+            widgetHost = appContainer.widgetHost,
+        )
+    }
+
+    private var navControllerRef: NavHostController? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+            val navController = rememberNavController()
+            navControllerRef = navController
+
+            val view = LocalView.current
+            LaunchedEffect(state.settings.showStatusBar, state.settings.showNavBar) {
+                val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
+                val controller = WindowCompat.getInsetsController(window, view)
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (state.settings.showStatusBar) {
+                    controller.show(WindowInsetsCompat.Type.statusBars())
+                } else {
+                    controller.hide(WindowInsetsCompat.Type.statusBars())
+                }
+                if (state.settings.showNavBar) {
+                    controller.show(WindowInsetsCompat.Type.navigationBars())
+                } else {
+                    controller.hide(WindowInsetsCompat.Type.navigationBars())
+                }
+            }
+
+            TagDeckTheme(
+                themeMode = state.settings.themeMode,
+                accentColorHex = state.settings.accentColorHex,
+                cornerRadiusDp = state.settings.globalCornerRadiusDp,
+            ) {
+                TagDeckRoot(
+                    viewModel = viewModel,
+                    navController = navController,
+                )
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        appContainer.widgetHost.startListening()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshDefaultLauncherStatus()
+        viewModel.refreshInstalledApps()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        appContainer.widgetHost.stopListening()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) {
+            viewModel.closeOverlay()
+            viewModel.setDrawerOpen(false)
+            viewModel.setUniversalSearchOpen(false)
+            viewModel.setEditMode(false)
+            navControllerRef?.popBackStack(LauncherRoute.Home.route, inclusive = false)
+        }
+    }
+}
+
+@Composable
+private fun TagDeckRoot(
+    viewModel: LauncherViewModel,
+    navController: NavHostController,
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.snackbarMessage) {
+        val msg = state.snackbarMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearMessage()
+        }
+    }
+
+    var pendingWidgetInfo by remember { mutableStateOf<Pair<InstalledWidgetProvider, Long>?>(null) }
+    var pendingWidgetId by remember { mutableStateOf<Int?>(null) }
+
+    val defaultHomeLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.refreshDefaultLauncherStatus()
+    }
+
+    val configureWidgetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val widgetId = pendingWidgetId
+        val infoPair = pendingWidgetInfo
+        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoPair != null) {
+            val (provider, pageId) = infoPair
+            viewModel.saveHomeElement(
+                HomeElementEntity(
+                    pageId = pageId,
+                    type = "APP_WIDGET",
+                    xFraction = 0.06f,
+                    yFraction = 0.12f,
+                    widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
+                    heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
+                    label = provider.label,
+                    appWidgetId = widgetId,
+                    backgroundColorHex = 0x220F172AL,
+                    cornerRadiusDp = 22f,
+                ),
+                selectAfter = true,
+            )
+        } else if (widgetId != null) {
+            viewModel.widgetHost.deleteAppWidgetId(widgetId)
+        }
+        pendingWidgetId = null
+        pendingWidgetInfo = null
+    }
+
+    val bindWidgetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val widgetId = pendingWidgetId
+        val infoPair = pendingWidgetInfo
+        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoPair != null) {
+            val (provider, pageId) = infoPair
+            val configComp = provider.info.configure
+            if (configComp != null) {
+                val cfgIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                    component = configComp
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                }
+                try {
+                    configureWidgetLauncher.launch(cfgIntent)
+                } catch (_: Exception) {
+                    viewModel.saveHomeElement(
+                        HomeElementEntity(
+                            pageId = pageId,
+                            type = "APP_WIDGET",
+                            xFraction = 0.06f,
+                            yFraction = 0.12f,
+                            widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
+                            heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
+                            label = provider.label,
+                            appWidgetId = widgetId,
+                        ),
+                        selectAfter = true,
+                    )
+                    pendingWidgetId = null
+                    pendingWidgetInfo = null
+                }
+            } else {
+                viewModel.saveHomeElement(
+                    HomeElementEntity(
+                        pageId = pageId,
+                        type = "APP_WIDGET",
+                        xFraction = 0.06f,
+                        yFraction = 0.12f,
+                        widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
+                        heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
+                        label = provider.label,
+                        appWidgetId = widgetId,
+                    ),
+                    selectAfter = true,
+                )
+                pendingWidgetId = null
+                pendingWidgetInfo = null
+            }
+        } else if (widgetId != null) {
+            viewModel.widgetHost.deleteAppWidgetId(widgetId)
+            pendingWidgetId = null
+            pendingWidgetInfo = null
+        }
+    }
+
+    var inlineEditTag by remember { mutableStateOf<TagEntity?>(null) }
+    var inlineAssignAppsTag by remember { mutableStateOf<TagEntity?>(null) }
+    var inlineCustomizeApp by remember { mutableStateOf<AppEntity?>(null) }
+
+    val navigateTo: (LauncherRoute) -> Unit = { route ->
+        if (navController.currentDestination?.route != route.route) {
+            navController.navigate(route.route) {
+                launchSingleTop = true
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = LauncherRoute.Home.route,
+        ) {
+            composable(LauncherRoute.Home.route) {
+                HomeScreen(
+                    state = state,
+                    appDiscovery = viewModel.appDiscovery,
+                    widgetHost = viewModel.widgetHost,
+                    onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+                    onLaunchApp = { viewModel.launchApp(it) },
+                    onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+                    onOpenCategorySidebar = { viewModel.openCategorySidebar(it) },
+                    onOpenConfiguredSidebar = { viewModel.openConfiguredSidebar(it) },
+                    onOpenRuleSidebar = { viewModel.openRuleSidebar(it) },
+                    onOpenWindow = { viewModel.openWindow(it) },
+                    onOpenFolder = { viewModel.openFolder(it) },
+                    onOpenDrawer = { viewModel.setDrawerOpen(true) },
+                    onOpenSearch = { viewModel.setUniversalSearchOpen(true) },
+                    onNavigate = navigateTo,
+                    onToggleEditMode = { viewModel.setEditMode(it) },
+                    onSelectElement = { viewModel.selectElement(it) },
+                    onToggleMultiSelect = { viewModel.toggleMultiSelectElement(it) },
+                    onDeleteMultiSelected = { viewModel.deleteMultiSelected() },
+                    onLockMultiSelected = { viewModel.setMultiSelectedLocked(true) },
+                    onUndo = { viewModel.undoLayout() },
+                    onRedo = { viewModel.redoLayout() },
+                    onToggleGridSnap = { viewModel.updateSettings { it.copy(gridSnapEnabled = !it.gridSnapEnabled) } },
+                    onSaveElement = { elem, sel -> viewModel.saveHomeElement(elem, sel) },
+                    onDuplicateElement = { viewModel.duplicateElement(it) },
+                    onCopyElement = { viewModel.copyElementToClipboard(it) },
+                    onCutElement = { viewModel.cutElementToClipboard(it) },
+                    onPasteElement = { pageId -> viewModel.pasteElementFromClipboard(pageId) },
+                    onBringForward = { viewModel.bringElementForward(it) },
+                    onSendBackward = { viewModel.sendElementBackward(it) },
+                    onDeleteElement = { viewModel.deleteHomeElement(it) },
+                    onExecuteElementAction = { el, trig, onScrollPage ->
+                        viewModel.executeElementActions(el.actionsConfigJson, trig, navigateTo, onScrollPage)
+                    },
+                    onAddPage = { viewModel.addHomePage(it) },
+                    onSavePage = { viewModel.saveHomePage(it) },
+                    onDuplicatePage = { viewModel.duplicateHomePage(it) },
+                    onReorderPages = { viewModel.reorderHomePages(it) },
+                    onDeletePage = { viewModel.deleteHomePage(it) },
+                    onSaveSnapshot = { viewModel.saveLayoutSnapshot(it) },
+                    onRestoreSnapshot = { viewModel.restoreLayoutSnapshot(it) },
+                    onDeleteSnapshot = { viewModel.deleteSnapshot(it) },
+                    onPageChanged = { viewModel.setCurrentPageIndex(it) },
+                    onTriggerGesture = { gestureType, onScrollPage ->
+                        viewModel.triggerGesture(gestureType, navigateTo, onScrollPage)
+                    },
+                    onRequestSetDefaultHome = {
+                        try {
+                            defaultHomeLauncher.launch(viewModel.appDiscovery.buildRequestDefaultLauncherIntent())
+                        } catch (_: Exception) {
+                            viewModel.showMessage("Open device Settings -> Default Apps to select TagDeck")
+                        }
+                    },
+                    onDismissDefaultBanner = {
+                        viewModel.updateSettings { it.copy(showDefaultHomeBanner = false) }
+                    },
+                    onStartSystemWidgetBind = { provider, pageId ->
+                        val allocatedId = viewModel.widgetHost.allocateAppWidgetId()
+                        if (allocatedId == null) {
+                            viewModel.showMessage("Widget host unavailable")
+                        } else {
+                            pendingWidgetId = allocatedId
+                            pendingWidgetInfo = provider to pageId
+                            if (viewModel.widgetHost.bindIfAllowed(allocatedId, provider.info.provider)) {
+                                viewModel.saveHomeElement(
+                                    HomeElementEntity(
+                                        pageId = pageId,
+                                        type = "APP_WIDGET",
+                                        xFraction = 0.06f,
+                                        yFraction = 0.12f,
+                                        widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
+                                        heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
+                                        label = provider.label,
+                                        appWidgetId = allocatedId,
+                                    ),
+                                    selectAfter = true,
+                                )
+                                pendingWidgetId = null
+                                pendingWidgetInfo = null
+                            } else {
+                                bindWidgetLauncher.launch(
+                                    viewModel.widgetHost.createBindIntent(allocatedId, provider.info.provider)
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(LauncherRoute.Tags.route) {
+                TagManagerScreen(
+                    state = state,
+                    appDiscovery = viewModel.appDiscovery,
+                    onBack = { navController.popBackStack() },
+                    onOpenAppsManager = { navigateTo(LauncherRoute.Apps) },
+                    onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+                    onOpenCategorySidebar = { viewModel.openCategorySidebar(it) },
+                    onOpenRuleSidebar = { viewModel.openRuleSidebar(it) },
+                    onLaunchApp = { viewModel.launchApp(it) },
+                    onSaveTag = { viewModel.saveTag(it) },
+                    onDeleteTag = { viewModel.deleteTag(it) },
+                    onDuplicateTag = { viewModel.duplicateTag(it) },
+                    onMergeTags = { src, dst -> viewModel.mergeTags(src, dst) },
+                    onMoveTagOrder = { id, delta -> viewModel.moveTagOrder(id, delta) },
+                    onReplaceAppsForTag = { id, pkgs -> viewModel.replaceAppsForTag(id, pkgs) },
+                    onSaveRule = { viewModel.saveRule(it) },
+                    onDeleteRule = { viewModel.deleteRule(it) },
+                    onSaveCategory = { viewModel.saveCategory(it) },
+                    onDeleteCustomCategory = { viewModel.deleteCustomCategory(it) },
+                    onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+                )
+            }
+
+            composable(LauncherRoute.Apps.route) {
+                AppManagerScreen(
+                    state = state,
+                    appDiscovery = viewModel.appDiscovery,
+                    onBack = { navController.popBackStack() },
+                    onLaunchApp = { viewModel.launchApp(it) },
+                    onToggleFavorite = { pkg, fav -> viewModel.setAppFavorite(pkg, fav) },
+                    onToggleHidden = { pkg, hid -> viewModel.setAppHidden(pkg, hid) },
+                    onSaveCustomName = { pkg, name -> viewModel.setAppCustomName(pkg, name) },
+                    onSaveCustomIcon = { pkg, path, s, ox, oy, a -> viewModel.setAppCustomIcon(pkg, path, s, ox, oy, a) },
+                    onSaveTagsForApp = { pkg, tagIds -> viewModel.replaceTagsForApp(pkg, tagIds) },
+                    onBulkAssignTags = { pkgs, tagIds -> viewModel.bulkAssignTagsToApps(pkgs, tagIds) },
+                    onSaveCategoriesForApp = { pkg, prim, all, excl ->
+                        viewModel.setManualCategoriesForApp(pkg, prim, all, excl)
+                    },
+                    onRestoreAutomaticCategory = { viewModel.restoreAutomaticCategoryForApp(it) },
+                    onBulkSetCategory = { pkgs, cid -> viewModel.bulkSetCategoryForApps(pkgs, cid) },
+                    onMoveAppOrder = { pkg, delta -> viewModel.moveAppManualOrder(pkg, delta) },
+                    onChangeSortOrder = { sort -> viewModel.updateSettings { it.copy(drawerSortOrder = sort) } },
+                    onOpenAppInfo = { viewModel.openAppInfo(it) },
+                    onUninstallApp = { viewModel.requestUninstall(it) },
+                    onImportImage = { uri -> viewModel.importImagePreservingOriginal(uri, "Icons") },
+                )
+            }
+
+            composable(LauncherRoute.Sidebars.route) {
+                SidebarManagerScreen(
+                    state = state,
+                    appDiscovery = viewModel.appDiscovery,
+                    onBack = { navController.popBackStack() },
+                    onOpenSidebar = { viewModel.openConfiguredSidebar(it) },
+                    onSaveSidebar = { viewModel.saveSidebar(it) },
+                    onDeleteSidebar = { viewModel.deleteSidebar(it) },
+                    onOpenWindow = { viewModel.openWindow(it) },
+                    onSaveWindow = { viewModel.saveWindow(it) },
+                    onDeleteWindow = { viewModel.deleteWindow(it) },
+                    onAddWindowElement = { viewModel.saveHomeElement(it, selectAfter = false) },
+                    onDeleteWindowElement = { viewModel.deleteHomeElement(it) },
+                    onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+                )
+            }
+
+            composable(LauncherRoute.Settings.route) {
+                SettingsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onRequestDefaultLauncher = {
+                        try {
+                            defaultHomeLauncher.launch(viewModel.appDiscovery.buildRequestDefaultLauncherIntent())
+                        } catch (_: Exception) {
+                            viewModel.showMessage("Open device Settings -> Default Apps to select TagDeck")
+                        }
+                    },
+                    onUpdateSettings = { viewModel.updateSettings(it) },
+                    onSaveGesture = { viewModel.saveGestureBinding(it) },
+                    onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+                    onRenameImageResource = { res, name, folder -> viewModel.renameImageResource(res, name, folder) },
+                    onDeleteImageResource = { res -> viewModel.deleteImageResource(res) },
+                    onSaveBackgroundPreset = { preset -> viewModel.saveBackgroundPreset(preset) },
+                    onDeleteBackgroundPreset = { id -> viewModel.deleteBackgroundPreset(id) },
+                    onExportBackupJson = { viewModel.exportFullBackupJson() },
+                    onImportBackupJson = { viewModel.importFullBackupJson(it) },
+                    onShowMessage = { viewModel.showMessage(it) },
+                )
+            }
+        }
+
+        // Universal All-Apps Sidebar / Drawer with Niagara Wave Index & Bottom Category Dock
+        AppDrawerOverlay(
+            visible = state.isDrawerOpen,
+            state = state,
+            appDiscovery = viewModel.appDiscovery,
+            onClose = { viewModel.setDrawerOpen(false) },
+            onLaunchApp = { viewModel.launchApp(it) },
+            onAppLongPress = { inlineCustomizeApp = it },
+            onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+            onToggleLayout = {
+                val next = if (state.settings.drawerLayoutMode == "GRID") "LIST" else "GRID"
+                viewModel.updateSettings { it.copy(drawerLayoutMode = next) }
+            },
+            onCycleSort = {
+                val next = when (state.settings.drawerSortOrder) {
+                    "ALPHABETICAL" -> "MOST_USED"
+                    "MOST_USED" -> "RECENTLY_INSTALLED"
+                    "RECENTLY_INSTALLED" -> "MANUAL"
+                    else -> "ALPHABETICAL"
+                }
+                viewModel.updateSettings { it.copy(drawerSortOrder = next) }
+                viewModel.showMessage("Sort: $next")
+            },
+            onUpdateSettings = { viewModel.updateSettings(it) },
+        )
+
+        // Universal Search Overlay
+        UniversalSearchOverlay(
+            visible = state.isUniversalSearchOpen,
+            state = state,
+            appDiscovery = viewModel.appDiscovery,
+            onClose = { viewModel.setUniversalSearchOpen(false) },
+            onLaunchApp = { viewModel.launchApp(it) },
+            onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+            onOpenCategorySidebar = { viewModel.openCategorySidebar(it) },
+            onOpenRuleSidebar = { viewModel.openRuleSidebar(it) },
+            onOpenFolder = { viewModel.openFolder(it) },
+            onJumpToPage = { idx ->
+                viewModel.setCurrentPageIndex(idx)
+                viewModel.setUniversalSearchOpen(false)
+            },
+            onAddHistory = { viewModel.addSearchHistory(it) },
+            onClearHistory = { viewModel.clearSearchHistory() },
+        )
+
+        // Tag, Play Category, 4-Edge Configured Sidebars, Nested Folders & Independent Windows
+        ActiveOverlayHost(
+            state = state,
+            appDiscovery = viewModel.appDiscovery,
+            onDismiss = { viewModel.closeOverlay() },
+            onSwitchToTag = { tagId -> viewModel.openTagSidebar(tagId) },
+            onSwitchToCategory = { catId -> viewModel.openCategorySidebar(catId) },
+            onOpenNestedFolder = { folderId -> viewModel.openFolder(folderId) },
+            onLaunchApp = { viewModel.launchApp(it) },
+            onEditTag = { inlineEditTag = it },
+            onAssignAppsToTag = { inlineAssignAppsTag = it },
+            onUpdateTagLayout = { viewModel.saveTag(it) },
+            onAppLongPress = { inlineCustomizeApp = it },
+            onToggleSidebarPin = { sbId, pinned ->
+                state.sidebars.find { it.sidebarId == sbId }?.let { sb ->
+                    viewModel.saveSidebar(sb.copy(pinned = pinned))
+                }
+            },
+            windowElementRenderer = { el, _, _ ->
+                HomeElementBody(
+                    element = el,
+                    state = state,
+                    appDiscovery = viewModel.appDiscovery,
+                    widgetHost = viewModel.widgetHost,
+                    onLaunchApp = { viewModel.launchApp(it) },
+                    onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+                    onOpenCategorySidebar = { viewModel.openCategorySidebar(it) },
+                    onOpenRuleSidebar = { viewModel.openRuleSidebar(it) },
+                    onOpenSidebar = { viewModel.openConfiguredSidebar(it) },
+                    onOpenWindow = { viewModel.openWindow(it) },
+                    onOpenFolder = { viewModel.openFolder(it) },
+                    onElementTrigger = { targetEl, trig ->
+                        viewModel.executeElementActions(targetEl.actionsConfigJson, trig, navigateTo) { idx ->
+                            viewModel.setCurrentPageIndex(idx)
+                        }
+                    },
+                )
+            },
+        )
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
+        )
+    }
+
+    // Inline dialogs triggered directly from Tag Sidebars or Drawer
+    inlineEditTag?.let { t ->
+        val freshTag = state.allTags.find { it.tagId == t.tagId } ?: t
+        TagEditorDialog(
+            initialTag = freshTag,
+            allTags = state.allTags,
+            onImportImage = { viewModel.importImagePreservingOriginal(it, "Tags") },
+            onSave = {
+                viewModel.saveTag(it)
+                inlineEditTag = null
+            },
+            onDelete = {
+                viewModel.deleteTag(it)
+                inlineEditTag = null
+            },
+            onDismiss = { inlineEditTag = null },
+        )
+    }
+
+    inlineAssignAppsTag?.let { t ->
+        BulkAssignAppsToTagDialog(
+            tag = t,
+            allApps = state.appsWithTags,
+            appDiscovery = viewModel.appDiscovery,
+            onSave = { pkgList ->
+                viewModel.replaceAppsForTag(t.tagId, pkgList)
+                inlineAssignAppsTag = null
+            },
+            onDismiss = { inlineAssignAppsTag = null },
+        )
+    }
+
+    inlineCustomizeApp?.let { app ->
+        val fresh = state.appsWithTags.find { it.app.packageName == app.packageName }
+        if (fresh != null) {
+            AppActionAndCustomizeDialog(
+                appWithTags = fresh,
+                allTags = state.allTags,
+                allCategories = state.categories,
+                appCategoryRefs = state.appCategories,
+                appDiscovery = viewModel.appDiscovery,
+                onImportImage = { viewModel.importImagePreservingOriginal(it, "Icons") },
+                onSaveCustomizations = { name, path, scale, ox, oy, alpha ->
+                    viewModel.setAppCustomName(fresh.app.packageName, name)
+                    viewModel.setAppCustomIcon(fresh.app.packageName, path, scale, ox, oy, alpha)
+                },
+                onSaveTags = { tagIds -> viewModel.replaceTagsForApp(fresh.app.packageName, tagIds) },
+                onSaveCategories = { prim, all, excl ->
+                    viewModel.setManualCategoriesForApp(fresh.app.packageName, prim, all, excl)
+                },
+                onRestoreAutoCategory = { viewModel.restoreAutomaticCategoryForApp(fresh.app) },
+                onToggleFavorite = { viewModel.setAppFavorite(fresh.app.packageName, !fresh.app.favorite) },
+                onToggleHidden = { viewModel.setAppHidden(fresh.app.packageName, !fresh.app.hidden) },
+                onOpenAppInfo = { viewModel.openAppInfo(fresh.app.packageName) },
+                onUninstall = { viewModel.requestUninstall(fresh.app.packageName) },
+                onDismiss = { inlineCustomizeApp = null },
+            )
+        }
+    }
+}

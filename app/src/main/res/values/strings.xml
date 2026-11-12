@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">TagDeck</string>
+    <string name="launcher_subtitle">Tag-First Home Launcher</string>
+    <string name="empty_tag_title">No apps tagged yet</string>
+    <string name="empty_tag_subtitle">Tap Assign Apps below to add installed applications to this tag.</string>
+    <string name="set_default_home">Set as Default Launcher</string>
+    <string name="default_home_active">TagDeck is your default launcher</string>
+</resources>

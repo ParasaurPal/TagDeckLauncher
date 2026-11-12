@@ -1,0 +1,1448 @@
+MASTER BUILD PROMPT — COMPLETE ANDROID LAUNCHER
+
+PROJECT: TOTAL LAUNCHER REIMAGINED
+
+Build a complete, production-quality Android home screen replacement that reproduces the functionality, customization depth, flexibility, and feature set of Total Launcher, while adding a significantly more advanced application organization, categorization, tagging, drawer, and navigation system.
+
+This is a full application development assignment, NOT a prototype, demonstration, landing page, web app, or simplified launcher.
+
+The objective is to create an independent Android launcher that can replace the device's default home screen and provide everything Total Launcher provides, plus the additional capabilities specified below.
+
+Do not implement a simplified interpretation. Do not omit features. Do not defer features to future development. Do not create a staged development plan. Implement the complete application and all requested systems in this build.
+
+1. PLATFORM AND TECHNICAL FOUNDATION
+
+Target platform:
+
+- Android phones and tablets.
+- Primary test device: Google Pixel 9.
+- Android 17 compatibility.
+- Responsive portrait and landscape layouts.
+- Foldable-device compatibility where supported.
+
+Preferred technology:
+
+- Kotlin.
+- Jetpack Compose.
+- Native Android APIs.
+- Room database.
+- DataStore.
+- Android AppWidget framework.
+- Android PackageManager.
+- Android Storage Access Framework.
+
+The application must:
+
+- Function as a real Android launcher.
+- Register as an available default Home application.
+- Display and launch installed applications.
+- Support Android system navigation and lifecycle.
+- Support third-party Android widgets.
+- Operate without root.
+- Work offline.
+- Require no account.
+- Require no subscription.
+- Avoid unnecessary background processes.
+- Persist all user configurations.
+
+Do not build a browser-based imitation.
+
+Do not use a website inside a WebView as the primary launcher interface.
+
+Do not use simulated applications, fake widgets, placeholder functionality, or hardcoded app lists.
+
+Use actual Android installed-application data.
+
+2. COMPLETE TOTAL LAUNCHER FEATURE PARITY
+
+Reproduce the full customization capabilities and functionality of Total Launcher.
+
+The following feature groups must be implemented.
+
+A. Multiple customizable pages
+
+- Unlimited horizontal home screen pages.
+- Independently vertically scrollable pages.
+- User-selectable default home page.
+- Add, delete, duplicate, hide, and reorder pages.
+- Drag-and-drop page arrangement.
+- Page transition animations.
+- Independent page backgrounds and wallpapers.
+- Independent page layouts.
+- Different layouts for portrait and landscape.
+- Configurable page margins and padding.
+- Screen ratio and scaling controls.
+- Page locking.
+- Page-specific gestures.
+- Page indicators.
+- Page-specific visibility settings.
+- Ability to open a particular page through an action or shortcut.
+- Independent wallpaper per page.
+- Ability to assign separate wallpapers for portrait and landscape.
+
+B. Freely customizable objects
+
+Everything on the home screen must be treated as a customizable object.
+
+Support:
+
+- Application icons.
+- Application shortcuts.
+- Text.
+- Images.
+- Shapes.
+- Clocks.
+- Dates.
+- Calendars.
+- Widgets.
+- App drawers.
+- App groups.
+- Folders.
+- Sliding drawers.
+- Windows.
+- Containers.
+- Layouts.
+- Decorative elements.
+- Custom interactive buttons.
+- Dynamic images.
+- Resource-based objects.
+
+Each object must support:
+
+- Free positioning.
+- Resizing.
+- Rotation.
+- Scaling.
+- Skewing and transformation.
+- Layer ordering.
+- Transparency.
+- Background customization.
+- Margins.
+- Padding.
+- Alignment.
+- Custom borders.
+- Rounded corners.
+- Shadows.
+- Blur effects.
+- Visibility settings.
+- Touch interaction settings.
+- Locking.
+- Duplication.
+- Copy, cut, and paste.
+- Multi-object selection.
+- Grouping.
+- Reusable saved objects.
+
+Objects must not be restricted to a fixed grid.
+
+Allow objects to overlap and extend beyond normal screen boundaries where appropriate.
+
+Provide optional grid snapping, alignment guides, and magnetic positioning, all of which can be disabled.
+
+C. Advanced object actions
+
+Every interactive object must support configurable actions.
+
+Support:
+
+- Single tap.
+- Double tap.
+- Long press.
+- Swipe up.
+- Swipe down.
+- Swipe left.
+- Swipe right.
+- Multiple configurable actions where appropriate.
+
+Actions must include:
+
+- Launch application.
+- Open tag.
+- Open folder.
+- Open sidebar.
+- Open sliding drawer.
+- Open window.
+- Switch page.
+- Open app drawer.
+- Open settings.
+- Toggle edit mode.
+- Change wallpaper.
+- Open a specific collection.
+- Execute a sequence of actions.
+- Launch an Android shortcut.
+- Open a supported system setting.
+- Open a website.
+
+Support user-defined action sequences and macros, including ordered actions and configurable delays.
+
+D. Layout systems
+
+Implement:
+
+- Grid layouts.
+- Circular layouts.
+- Custom arrangements.
+- Adjustable row and column counts.
+- Adjustable item spacing.
+- Adjustable icon size.
+- Adjustable label size.
+- Adjustable item alignment.
+- Scrollable layouts.
+- Custom launch animations.
+- Custom item backgrounds.
+
+E. Windows and panels
+
+Implement Total Launcher-style independent windows and panels.
+
+Windows must support:
+
+- Full-screen or partial-screen display.
+- Transparent backgrounds.
+- Custom backgrounds.
+- Independent content.
+- Independent object positioning.
+- Custom opening and closing animations.
+- Gesture activation.
+- Shortcut activation.
+- Overlay presentation.
+- Configurable placement.
+- Custom dimensions.
+- Blur-behind effects where supported.
+- Transition animations between matching objects.
+- Multiple independently configured windows.
+- Independent wallpapers and background images.
+
+Windows must be able to contain the same customizable objects available on home pages.
+
+F. Sliding drawers
+
+Implement independent sliding drawers that can open from:
+
+- Left.
+- Right.
+- Top.
+- Bottom.
+
+Support:
+
+- Custom drawer handles.
+- Custom drawer backgrounds.
+- Custom opening direction.
+- Custom animation.
+- Adjustable width and height.
+- Gesture activation.
+- App collections.
+- Custom objects.
+- Widgets.
+- Folders.
+- Scrollable content.
+- Nested content.
+- Multiple independent drawers.
+- Independent wallpaper per drawer.
+- Independent image layers and background styling.
+
+G. Folder system
+
+Folders must support:
+
+- Custom names.
+- Custom icons.
+- Custom images.
+- Custom backgrounds.
+- Adjustable size.
+- Adjustable icon arrangement.
+- Grid and list layouts.
+- Custom opening animations.
+- Nested folders.
+- Application shortcuts.
+- Tags.
+- Drag-and-drop organization.
+- Folder-specific gestures.
+- Custom folder labels.
+- Custom folder covers.
+- Independent folder backgrounds.
+
+H. Built-in widgets and components
+
+Implement native or equivalent versions of:
+
+- App drawer.
+- App groups.
+- Analog clock.
+- Digital clock.
+- Calendar.
+- Date and time.
+- Page indicators.
+- Drawer handles.
+- Contact groups.
+- Media controller.
+- Battery indicator.
+- RAM indicator where available.
+- Storage indicators.
+- Compass.
+- Sliders.
+- Photo slideshow.
+- RSS/news reader where supported.
+
+Support third-party Android AppWidgets using the actual Android widget framework.
+
+Third-party widgets must be addable, movable, resizable, and configurable.
+
+Do not substitute static images for working widgets.
+
+I. Dynamic graphics and resources
+
+Implement:
+
+- Static images.
+- Dynamic images.
+- Text graphics.
+- Mixed image and text objects.
+- Dynamic date and time.
+- Calendar event information.
+- Battery information.
+- System information.
+- User-defined variables.
+- Reusable shapes.
+- Custom shadows.
+- Custom typefaces.
+- Custom sounds.
+- Resource management.
+
+Allow images and other resources to be imported, reused, replaced, and managed centrally.
+
+J. Themes and backups
+
+Implement:
+
+- Complete theme export.
+- Complete theme import.
+- Theme duplication.
+- Theme switching.
+- Theme restoration.
+- Reusable object collections.
+- Backup and restore.
+- Local backup files.
+- User-selected backup destinations.
+- Configuration versioning.
+- Recovery from interrupted imports.
+
+Backups must preserve layouts, images, fonts, tags, categories, objects, folders, widgets, gestures, and settings.
+
+K. Edit mode
+
+Provide a dedicated launcher edit mode.
+
+Users must be able to:
+
+- Long-press objects to edit.
+- Select multiple objects.
+- Move and resize objects.
+- Edit object properties.
+- Change page properties.
+- Add new objects.
+- Delete objects.
+- Duplicate objects.
+- Copy and paste objects.
+- Lock and unlock objects.
+- Preview changes.
+- Undo and redo changes.
+
+Provide an obvious edit-mode indicator and a way to lock the finished layout against accidental changes.
+
+3. INTELLIGENT APP DISCOVERY AND GOOGLE PLAY CATEGORIZATION
+
+Automatically discover all installed applications and organize them using Google Play's application category system.
+
+Use Google Play's established category taxonomy as the default categorization model.
+
+Where authoritative Play Store category metadata is available, use it. Where Android does not expose that metadata, use a maintainable category mapping or classification system, with a clear indication of uncertain assignments.
+
+Do not pretend Android's PackageManager directly exposes Google Play category metadata.
+
+Do not scrape Google Play or require a paid API.
+
+A. Default app categories
+
+Use these Google Play-style application categories:
+
+- Art & Design
+- Auto & Vehicles
+- Beauty
+- Books & Reference
+- Business
+- Comics
+- Communication
+- Dating
+- Education
+- Entertainment
+- Events
+- Finance
+- Food & Drink
+- Health & Fitness
+- House & Home
+- Libraries & Demo
+- Lifestyle
+- Maps & Navigation
+- Medical
+- Music & Audio
+- News & Magazines
+- Parenting
+- Personalization
+- Photography
+- Productivity
+- Shopping
+- Social
+- Sports
+- Tools
+- Travel & Local
+- Video Players & Editors
+- Weather
+
+B. Games are a separate primary category
+
+Games must NOT be mixed into ordinary application categories.
+
+Create a dedicated GAMES category.
+
+Divide games into Google Play-style game categories:
+
+- Action
+- Adventure
+- Arcade
+- Board
+- Card
+- Casino
+- Casual
+- Educational
+- Music
+- Puzzle
+- Racing
+- Role Playing
+- Simulation
+- Sports
+- Strategy
+- Trivia
+- Word
+
+Each game belongs to the Games parent category and can have one or more game subcategories.
+
+For example:
+
+GAMES
+
+- Action
+- Adventure
+- Arcade
+- Puzzle
+- Racing
+- Role Playing
+- Simulation
+- Strategy
+
+Opening Games displays the games collection, while opening a subcategory displays only the games assigned to that subcategory.
+
+C. Default category icons
+
+Use recognizable Google Play-style default category iconography.
+
+The default icon for each category must be consistent throughout the launcher.
+
+Use appropriate category symbols and icons rather than assigning random images.
+
+Users must be able to replace any default category icon with:
+
+- An imported image.
+- A custom icon.
+- An emoji.
+- A built-in icon.
+- A transparent PNG.
+
+Allow independent icon sizing, color, background, and styling.
+
+D. Manual category overrides
+
+Automatic categorization must NEVER prevent manual organization.
+
+Every installed application must allow users to:
+
+- Change its primary category.
+- Assign multiple categories.
+- Assign or remove game subcategories.
+- Override an automatically detected category.
+- Restore automatic categorization.
+- Exclude an application from a category.
+- Hide an application from selected drawers.
+- Add custom categories.
+
+Manual choices must always take precedence over automatic categorization.
+
+When an application is manually assigned a category, an automatic refresh must not overwrite that choice.
+
+E. Automatic categorization updates
+
+- Detect newly installed applications.
+- Categorize newly installed applications.
+- Detect updated applications.
+- Preserve manual overrides.
+- Detect uninstalled applications.
+- Maintain category assignments after restarting.
+- Allow manual recategorization.
+- Provide bulk category editing.
+
+4. ADVANCED TAGGING SYSTEM
+
+Tags are a separate organizational layer from Play Store categories.
+
+An application can have multiple tags and multiple categories simultaneously.
+
+Tags must be first-class interactive navigation elements.
+
+A. Tag creation and management
+
+Allow unlimited custom tags.
+
+Each tag supports:
+
+- Name.
+- Description.
+- Custom icon.
+- Custom image.
+- Color.
+- Background.
+- Sorting order.
+- Parent tag.
+- Nested tags.
+- Visibility settings.
+- Custom sidebar configuration.
+
+Users can create, edit, rename, duplicate, reorder, merge, and delete tags.
+
+B. Multiple tag assignments
+
+An application can belong to any number of tags.
+
+Example:
+
+Minecraft:
+
+- Games
+- Sandbox
+- Multiplayer
+- Creative
+- Favorites
+
+Discord:
+
+- Communication
+- Social
+- Gaming
+- Favorites
+
+Do not duplicate applications in storage when they appear in multiple collections.
+
+Use a proper many-to-many database relationship.
+
+C. Opening tags
+
+When a user taps a tag, open the corresponding tag collection in its configured sidebar or panel.
+
+The sidebar must display:
+
+1. Selected tag icon, if configured.
+2. Selected tag name as a prominent title at the TOP.
+3. Optional application count.
+4. All applications assigned to that tag.
+5. Configurable grid or list.
+6. Optional nested tag navigation.
+
+The title must dynamically change when another tag is selected.
+
+Only matching applications should appear.
+
+Applications must launch normally when tapped.
+
+Users must be able to assign tags from the app drawer, application context menus, bulk editor, and tag management screen.
+
+Each tag-specific sidebar must support its own wallpaper and appearance.
+
+D. Advanced tag filtering
+
+Support:
+
+- AND.
+- OR.
+- NOT.
+- Multiple-tag intersections.
+- Excluded tags.
+- Saved tag combinations.
+- Dynamic collections.
+- Nested tag filtering.
+
+Allow a collection to show applications that match defined tag rules.
+
+Example:
+
+Show all applications tagged CREATIVE and PRODUCTIVITY, but exclude GAMES.
+
+5. UNIVERSAL ALL-APPLICATIONS SIDEBAR
+
+Implement a dedicated all-apps sidebar.
+
+Users decide whether it opens from the LEFT or RIGHT edge of the screen.
+
+This setting must be configurable and changeable at any time.
+
+The sidebar must be independently customizable.
+
+Features:
+
+- Left/right placement.
+- Adjustable width.
+- Edge swipe activation.
+- Custom opening gesture.
+- Custom closing gesture.
+- Configurable animation.
+- Transparent or solid background.
+- Custom background image.
+- Blur effects where supported.
+- Custom icon sizes.
+- Custom labels.
+- Grid or list layouts.
+- Scrollable content.
+- Search.
+- Sorting.
+- Category filtering.
+- Tag filtering.
+- Favorites.
+- Recently installed.
+- Recently used.
+- Hidden applications.
+- Application context menus.
+- Independent wallpaper.
+
+The all-apps sidebar must include every installed application that is not hidden by the user.
+
+A. Category navigation at the BOTTOM
+
+This requirement is mandatory.
+
+Place category navigation along the BOTTOM of the all-apps drawer.
+
+Do not put the category navigation exclusively at the top or in a separate settings page.
+
+The bottom category area must remain accessible while browsing the app collection.
+
+It should provide:
+
+- All.
+- Favorites.
+- Standard application categories.
+- Games.
+- Custom categories.
+- Tags.
+
+Allow horizontal scrolling when there are too many categories.
+
+Use recognizable category icons.
+
+When a category is selected:
+
+- Filter the app collection.
+- Visually indicate the selected category.
+- Preserve the bottom category navigation.
+- Update the displayed app collection immediately.
+
+When Games is selected, show game subcategory navigation.
+
+The user must be able to select a game subcategory without leaving the drawer.
+
+B. Drawer layout
+
+TOP:
+
+- Optional search field.
+- Optional drawer title.
+- Optional app count.
+
+CENTER:
+
+- Application icons and names.
+- Scrollable application area.
+- Optional alphabetical sorting.
+- Configurable grid/list.
+
+BOTTOM:
+
+- Persistent category navigation.
+- Game subcategory controls when applicable.
+- Custom tag navigation.
+
+The bottom navigation must not obscure the last row of applications.
+
+6. NIAGARA-STYLE WAVE ALPHABET NAVIGATION
+
+Implement a vertical alphabetical navigation bar inspired by Niagara Launcher's distinctive interactive alphabet navigation.
+
+This is a required feature.
+
+Place the alphabet index along the RIGHT EDGE of the application drawer by default.
+
+Allow users to move it to the left edge.
+
+The interaction must reproduce the characteristic wave-style navigation behavior, not merely display a static list of letters.
+
+A. Wave behavior
+
+Display alphabet letters vertically.
+
+When the user touches or drags along the alphabet:
+
+- The selected letter enlarges.
+- Nearby letters scale progressively.
+- Letters above and below create a smooth wave effect.
+- The wave follows the user's finger.
+- The selected letter is visually highlighted.
+- The application list scrolls continuously to the corresponding alphabetical section.
+
+The effect should be smooth, fluid, responsive, and visually polished.
+
+Use animated scaling and spacing adjustments.
+
+Avoid jitter, lag, or delayed scrolling.
+
+B. Alphabet functionality
+
+- Support A–Z.
+- Support a # section for numbers and symbols.
+- Skip letters with no matching applications or show them as inactive.
+- Display a floating letter indicator while navigating.
+- Support direct tapping.
+- Support continuous dragging.
+- Support fast scrolling.
+- Support alphabetical grouping.
+- Work with both grid and list layouts.
+- Respect the currently selected category or tag.
+- Recalculate available letters for filtered results.
+
+The wave index must navigate the currently displayed collection, not the entire unfiltered application list.
+
+C. Customization
+
+Allow:
+
+- Left/right placement.
+- Alphabet size.
+- Selected letter size.
+- Wave intensity.
+- Animation speed.
+- Spacing.
+- Color.
+- Transparency.
+- Typeface.
+- Background.
+- Highlight style.
+- Haptic feedback.
+- Visibility.
+
+Provide an option to disable the wave effect while retaining ordinary alphabetical navigation.
+
+7. ADDITIONAL APP DRAWER MODES
+
+Provide multiple drawer configurations.
+
+Users can create independent drawers for different purposes.
+
+Examples:
+
+- All Applications.
+- Games.
+- Work.
+- Personal.
+- Favorites.
+- Custom Tags.
+- Media.
+- Creative Applications.
+
+Each drawer must have its own:
+
+- Position.
+- Appearance.
+- Width.
+- Layout.
+- Sorting.
+- Filters.
+- Categories.
+- Tag behavior.
+- Gestures.
+- Animation.
+- Wallpaper.
+- Background image layers.
+
+Support both conventional app drawer navigation and custom Total Launcher-style sliding drawers.
+
+8. COMPLETE IMAGE CUSTOMIZATION AND RESOURCE MANAGEMENT
+
+Reproduce and expand ALL image customization capabilities available in Total Launcher.
+
+Image handling must be a core launcher feature, not a limited wallpaper selector.
+
+Users must have complete control over images, image positioning, image transformations, image effects, image layering, and image backgrounds throughout the entire launcher.
+
+A. Independent wallpapers for every page
+
+Every home screen page must support its own completely independent wallpaper and background configuration.
+
+Users must be able to:
+
+- Assign a different wallpaper to every page.
+- Use different images on every page.
+- Use solid color backgrounds.
+- Use gradients.
+- Use transparent backgrounds.
+- Use multiple background layers.
+- Use custom images as backgrounds.
+- Change backgrounds without affecting other pages.
+- Copy backgrounds between pages.
+- Save and reuse background presets.
+
+Changing one page's wallpaper must NEVER automatically change another page's wallpaper unless the user explicitly selects an apply-to-all option.
+
+Support independent portrait and landscape background configurations.
+
+B. Independent drawer backgrounds
+
+Every drawer must have its own independent background and image configuration.
+
+This includes:
+
+- All-apps drawer.
+- Custom app drawers.
+- Category drawers.
+- Game drawers.
+- Tag drawers.
+- Custom collection drawers.
+- Sliding drawers.
+- Nested drawers.
+
+Each drawer must support:
+
+- Its own wallpaper.
+- Its own background image.
+- Multiple background image layers.
+- Transparency.
+- Image cropping.
+- Image positioning.
+- Scaling.
+- Rotation.
+- Color overlays.
+- Gradients.
+- Blur.
+- Borders.
+- Shadows.
+- Rounded corners.
+- Background animations.
+
+Changing one drawer's background must not affect any other drawer.
+
+C. Independent sidebar backgrounds
+
+Every sidebar must support its own completely independent wallpaper and appearance.
+
+This includes:
+
+- Left-side all-apps sidebar.
+- Right-side all-apps sidebar.
+- Tag-specific sidebars.
+- Favorites sidebar.
+- Custom collection sidebars.
+- Any user-created sidebar.
+
+Allow each sidebar to have:
+
+- A custom background image.
+- Multiple image layers.
+- Independent background colors.
+- Independent gradients.
+- Custom transparency.
+- Image positioning.
+- Image scaling.
+- Cropping.
+- Blur effects.
+- Image overlays.
+- Custom borders.
+- Independent background animations.
+
+Sidebars must not be restricted to the wallpaper of the underlying home screen.
+
+D. Independent backgrounds for all other elements
+
+Provide independent background customization for:
+
+- Folders.
+- Widgets and widget containers.
+- Windows.
+- Panels.
+- Cards.
+- Category collections.
+- Tags.
+- App groups.
+- Custom objects.
+- Navigation elements.
+
+No component should be forced to inherit its background from another component.
+
+E. Total Launcher-style image transformations
+
+Reproduce the complete range of image manipulation and appearance controls found in Total Launcher.
+
+Every image object must support:
+
+- Free positioning.
+- Width and height adjustment.
+- Independent horizontal and vertical scaling.
+- Aspect ratio preservation.
+- Rotation.
+- Flipping horizontally.
+- Flipping vertically.
+- Skewing.
+- Cropping.
+- Image masking.
+- Clipping.
+- Transparency.
+- Alpha adjustment.
+- Brightness.
+- Contrast.
+- Saturation.
+- Hue.
+- Grayscale.
+- Color tinting.
+- Blur.
+- Shadow.
+- Glow.
+- Border.
+- Rounded corners.
+- Custom corner radii.
+- Blend modes.
+- Layer ordering.
+- Clipping to shapes.
+- Custom alignment.
+- Custom image anchoring.
+
+Provide image fitting modes:
+
+- Fit center.
+- Center crop.
+- Fit XY.
+- Fit start.
+- Fit end.
+- Fill.
+- Original dimensions.
+- User-defined dimensions.
+
+F. Advanced image layering
+
+Allow users to place multiple images on top of one another.
+
+Support:
+
+- Independent layer positioning.
+- Independent transparency.
+- Independent transformations.
+- Layer ordering.
+- Layer locking.
+- Layer duplication.
+- Layer grouping.
+- Layer visibility.
+- Blend modes.
+- Image overlays.
+- Decorative frames.
+- Image masks.
+
+Image layers must be available on home pages, inside drawers, inside sidebars, inside folders, and inside custom windows.
+
+G. Image-based launcher objects
+
+Users must be able to create custom interactive objects from images.
+
+Examples:
+
+- Custom application icons.
+- Decorative artwork.
+- Custom navigation buttons.
+- Transparent decorative overlays.
+- Character illustrations.
+- Custom clocks with image backgrounds.
+- Custom folder covers.
+- Tag icons.
+- Category icons.
+- Custom widget frames.
+- Image-based shortcuts.
+
+Allow images to have independent touch actions and gesture assignments.
+
+H. Image library and asset management
+
+Create a centralized image resource manager.
+
+Users must be able to:
+
+- Import images from device storage.
+- Browse imported images.
+- Organize images into folders.
+- Rename image resources.
+- Replace images.
+- Duplicate images.
+- Remove unused resources.
+- Preview images.
+- Assign images to multiple objects.
+- Reuse the same image without duplicating the original file.
+
+Use Android's photo picker and document picker.
+
+Support:
+
+- PNG.
+- JPG.
+- JPEG.
+- WEBP.
+- Transparent PNG.
+- SVG where supported.
+
+Preserve transparency in image formats that support it.
+
+Never destructively modify the original imported image.
+
+I. Background presets and inheritance
+
+Allow users to save complete background configurations as reusable presets.
+
+Support:
+
+- Page background presets.
+- Drawer background presets.
+- Sidebar background presets.
+- Object background presets.
+- Global background presets.
+
+Allow users to choose between:
+
+- Independent background.
+- Inherited background.
+- Shared background preset.
+
+Independent must be the default for pages, drawers, and sidebars.
+
+Users must explicitly opt into shared backgrounds.
+
+J. Image persistence and performance
+
+- Preserve image references after application updates.
+- Preserve backgrounds after device restarts.
+- Include required images in theme exports and backups.
+- Restore image assignments accurately.
+- Avoid unnecessarily duplicating image files.
+- Cache appropriately for smooth scrolling.
+- Load large images efficiently.
+- Avoid excessive memory consumption.
+- Support high-resolution Pixel 9 wallpapers.
+- Prevent missing images from breaking layouts.
+
+9. ADVANCED APPEARANCE ENGINE
+
+Every visual aspect must be customizable.
+
+Support:
+
+- Light and dark themes.
+- Custom color palettes.
+- Gradients.
+- Transparent surfaces.
+- Blur.
+- Glass effects.
+- Shadows.
+- Borders.
+- Rounded corners.
+- Custom fonts.
+- Icon packs where compatible.
+- Custom icon images.
+- Icon masks.
+- Label typography.
+- Text alignment.
+- Custom spacing.
+- Animation settings.
+- Background images.
+- Independent object styling.
+
+Support per-page, per-drawer, per-sidebar, per-category, per-tag, and per-folder appearance settings.
+
+Do not force one global style on all components.
+
+10. GESTURE AND ACTION ENGINE
+
+Implement a comprehensive gesture engine.
+
+Support:
+
+- Single tap.
+- Double tap.
+- Long press.
+- Swipe up.
+- Swipe down.
+- Swipe left.
+- Swipe right.
+- Two-finger gestures.
+- Edge swipes.
+- Pinch gestures.
+
+Allow gestures to trigger:
+
+- Open an app.
+- Open a tag.
+- Open a category.
+- Open a drawer.
+- Open a window.
+- Switch pages.
+- Open settings.
+- Launch a custom action sequence.
+- Toggle visibility.
+- Open a folder.
+- Change layouts.
+
+Allow different gesture assignments for individual objects, pages, drawers, and sidebars.
+
+Prevent gesture conflicts with Android system navigation.
+
+11. SEARCH SYSTEM
+
+Provide universal launcher search.
+
+Search across:
+
+- Installed applications.
+- Application names.
+- Custom application names.
+- Categories.
+- Game subcategories.
+- Tags.
+- Folders.
+- Pages.
+- Contacts where permission is granted.
+- Supported shortcuts.
+
+Support:
+
+- Live results.
+- Partial matches.
+- Fuzzy matching.
+- Recent searches.
+- Search history controls.
+- Configurable search placement.
+- Search filters.
+
+Allow search results to launch applications or open their associated tags and categories.
+
+12. NOTIFICATIONS AND SYSTEM INTEGRATION
+
+Support:
+
+- Notification badges.
+- Per-app notification indicators.
+- Unread counts where supported.
+- Android notification permission handling.
+- Status bar appearance controls where Android permits.
+- Navigation bar appearance controls where Android permits.
+- Home key behavior.
+- Screen rotation settings.
+- System wallpaper integration.
+
+Never claim access to notification information without the required Android permission.
+
+Do not use accessibility services unnecessarily.
+
+Use native APIs and appropriate permissions.
+
+13. SETTINGS AND CONFIGURATION
+
+Provide a comprehensive settings interface.
+
+Organize settings into:
+
+- Home Screen.
+- Pages.
+- Objects.
+- Layouts.
+- App Drawer.
+- Categories.
+- Game Categories.
+- Tags.
+- Sidebars.
+- Sliding Drawers.
+- Windows.
+- Folders.
+- Widgets.
+- Images and Resources.
+- Backgrounds and Wallpapers.
+- Icons.
+- Appearance.
+- Gestures.
+- Animations.
+- Search.
+- Notifications.
+- Backup and Restore.
+- Privacy.
+- Performance.
+- About.
+
+Every feature must have its corresponding configuration controls.
+
+Provide sensible defaults while allowing users to customize nearly everything.
+
+14. DATA ARCHITECTURE
+
+Use a robust local database.
+
+Suggested entities:
+
+Application:
+
+- packageName
+- appName
+- customName
+- iconReference
+- primaryCategory
+- automaticCategory
+- manualCategoryOverride
+- isGame
+- isHidden
+- isFavorite
+- installDate
+- lastUsed
+
+Category:
+
+- categoryId
+- name
+- iconReference
+- color
+- parentCategoryId
+- sortOrder
+- categoryType
+
+Tag:
+
+- tagId
+- name
+- description
+- iconReference
+- color
+- parentTagId
+- sortOrder
+
+ApplicationTag:
+
+- packageName
+- tagId
+
+ApplicationCategory:
+
+- packageName
+- categoryId
+- isManualAssignment
+
+Page:
+
+- pageId
+- name
+- position
+- backgroundConfiguration
+- portraitBackground
+- landscapeBackground
+- orientation
+- isHome
+- isHidden
+
+LauncherObject:
+
+- objectId
+- pageId
+- objectType
+- position
+- dimensions
+- rotation
+- scale
+- appearance
+- imageLayers
+- actions
+- layerOrder
+
+Drawer:
+
+- drawerId
+- name
+- edge
+- dimensions
+- appearance
+- backgroundConfiguration
+- filters
+- sorting
+- gestures
+
+Sidebar:
+
+- sidebarId
+- name
+- edge
+- width
+- selectedTag
+- appearance
+- backgroundConfiguration
+- layout
+
+ImageResource:
+
+- imageId
+- sourceUri
+- localReference
+- fileFormat
+- dimensions
+- metadata
+
+BackgroundConfiguration:
+
+- backgroundId
+- ownerType
+- ownerId
+- backgroundType
+- imageLayers
+- color
+- gradient
+- transparency
+- blur
+- scalingMode
+- position
+- rotation
+
+Support additional entities for widgets, folders, windows, image layers, resources, and settings.
+
+All many-to-many relationships must be implemented properly.
+
+Never duplicate an installed application to represent multiple category or tag memberships.
+
+All page, drawer, sidebar, folder, and window backgrounds must be stored independently.
+
+15. PRIVACY, PERFORMANCE, AND DATA SAFETY
+
+- Local-first architecture.
+- No mandatory accounts.
+- No subscriptions.
+- No advertisements.
+- No unnecessary analytics.
+- No unnecessary internet access.
+- No root requirements.
+- No unnecessary accessibility services.
+- No unnecessary permissions.
+- Persistent local configuration.
+- Safe image handling.
+- Reliable backup and restoration.
+- Efficient application discovery.
+- Efficient icon caching.
+- Smooth animations.
+- Memory-conscious widget management.
+- Battery-conscious operation.
+
+Preserve user-created tags, category overrides, layouts, wallpapers, image resources, and customizations across application updates and device restarts.
+
+16. COMPLETION AND QUALITY REQUIREMENTS
+
+The finished product must be a complete, functional Android launcher.
+
+All major features must be implemented, integrated, and accessible from the actual application interface.
+
+Do not deliver:
+
+- A web-only launcher.
+- A static mockup.
+- A clickable design prototype.
+- A simplified app drawer.
+- A fake Android home screen.
+- A demonstration with hardcoded applications.
+- A project containing placeholder buttons.
+- An incomplete feature checklist.
+- A roadmap instead of the application.
+
+All controls must perform their advertised functions.
+
+All data must persist.
+
+All app-launching functionality must use real installed applications.
+
+All widgets must use actual supported Android widget mechanisms.
+
+All sidebars, windows, folders, drawers, and objects must be interactive.
+
+The application must be able to become the Android default launcher.
+
+Test:
+
+- Application installation.
+- Application launching.
+- Categorization.
+- Manual overrides.
+- Tag assignment.
+- Tag filtering.
+- Drawer navigation.
+- Wave alphabet navigation.
+- Image imports.
+- Image transformations.
+- Independent page wallpapers.
+- Independent drawer wallpapers.
+- Independent sidebar wallpapers.
+- Widget placement.
+- Page editing.
+- Theme export and import.
+- Backup restoration.
+
+Do not sacrifice Total Launcher functionality to prioritize the new tagging system. Both must work together.
+
+FINAL PRODUCT REQUIREMENT
+
+Deliver a fully functional, independent Android launcher that matches Total Launcher in customization depth and feature coverage while adding:
+
+1. Google Play-based automatic application categorization.
+2. Manual category overrides.
+3. Games as a separate primary category with game-specific subcategories.
+4. Custom category icons and default Play Store-style iconography.
+5. Unlimited many-to-many application tagging.
+6. Tag-triggered sidebars with the selected tag's title at the top.
+7. A configurable left-or-right all-apps sidebar.
+8. Persistent category navigation at the bottom of the app drawer.
+9. A Niagara-inspired interactive wave alphabet index.
+10. Multiple independent, customizable drawers, sidebars, pages, and windows.
+11. Full Total Launcher-style image customization and transformation capabilities.
+12. Independent wallpapers for every home screen page.
+13. Independent wallpapers for every drawer.
+14. Independent wallpapers for every sidebar.
+15. Independent image backgrounds for folders, widgets, windows, panels, and custom objects.
+16. Advanced image layering, blending, cropping, masking, scaling, rotation, transparency, and effects.
+17. A centralized reusable image resource library.
+18. Complete theme and image backup and restoration.
+
+BUILD THE COMPLETE APPLICATION NOW.
+
+Make reasonable implementation decisions independently.
+
+Do not ask me to approve individual features.
+
+Do not stop after generating a plan.
+
+Do not split the requested functionality into separate development phases.
+
+Do not replace requested features with simplified alternatives.
+
+Do not consume additional interactions asking me to repeat or clarify requirements already contained in this specification.
+
+Deliver the actual Android project and a working installable APK whenever the environment supports Android compilation.
+
+If the environment cannot compile an APK directly, deliver the complete buildable Android project with all source files and configuration necessary to compile it.
