@@ -153,9 +153,15 @@ fun NiagaraWaveAlphabetBar(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val count = NiagaraAlphabetLetters.size
-            val selectedIdx = if (isTouching && activeLetter != null) {
-                NiagaraAlphabetLetters.indexOf(activeLetter!!).toFloat().coerceAtLeast(0f)
+            val rawWaveIndex = if (isTouching) {
+                ((touchY / containerHeightPx.toFloat()) * count - 0.5f)
+                    .coerceIn(0f, (count - 1).toFloat())
             } else -10f
+            val selectedIdx by animateFloatAsState(
+                targetValue = rawWaveIndex,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = 520f),
+                label = "alphabet_wave_position",
+            )
 
             NiagaraAlphabetLetters.forEachIndexed { index, letter ->
                 val isPresent = letter in activeLetters
