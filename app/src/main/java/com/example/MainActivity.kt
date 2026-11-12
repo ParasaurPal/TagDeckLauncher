@@ -38,6 +38,7 @@ import com.example.data.db.AppEntity
 import com.example.data.db.CategoryEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.TagEntity
+import com.example.data.db.SidebarConfigEntity
 import com.example.data.system.InstalledWidgetProvider
 import com.example.ui.components.ActiveOverlayHost
 import com.example.ui.components.AppActionAndCustomizeDialog
