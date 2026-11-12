@@ -2,14 +2,15 @@ package com.example
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.performTouchInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.db.AppEntity
@@ -22,15 +23,18 @@ import com.example.data.db.TagEntity
 import com.example.data.prefs.LauncherPreferencesRepository
 import com.example.data.repository.LauncherRepository
 import com.example.data.system.AppDiscoveryManager
+import com.example.ui.components.ActiveOverlayHost
 import com.example.ui.components.AppDrawerOverlay
 import com.example.ui.components.TagTriggeredSidebarContent
 import com.example.ui.components.UniversalSearchOverlay
+import com.example.ui.state.ActiveOverlay
 import com.example.ui.state.LauncherUiState
 import com.example.ui.theme.TagDeckTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -63,11 +67,25 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `app name and home launcher intent filter are configured`() {
+    fun `app name and separated launcher and home intent filters are configured`() {
         assertEquals("TagDeck", context.getString(R.string.app_name))
+
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val launcherActivities = context.packageManager.queryIntentActivities(
+            launcherIntent,
+            PackageManager.GET_RESOLVED_FILTER,
+        ).filter { it.activityInfo.packageName == context.packageName }
+        assertTrue(launcherActivities.any { it.activityInfo.name == MainActivity::class.java.name })
+        assertFalse(
+            launcherActivities.any {
+                it.activityInfo.name == MainActivity::class.java.name &&
+                    it.filter?.hasCategory(Intent.CATEGORY_HOME) == true
+            }
+        )
+
         val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        val activities = context.packageManager.queryIntentActivities(homeIntent, 0)
-        assertTrue(activities.any { it.activityInfo.packageName == context.packageName })
+        val homeActivities = context.packageManager.queryIntentActivities(homeIntent, 0)
+        assertTrue(homeActivities.any { it.activityInfo.packageName == context.packageName })
     }
 
     @Test
@@ -307,5 +325,141 @@ class ExampleRobolectricTest {
         composeRule.onNodeWithText("Discord").assertIsDisplayed()
         composeRule.onNodeWithText("#GAMING").assertIsDisplayed()
         composeRule.onNodeWithText("Communication").assertIsDisplayed()
+    }
+
+    @Test
+    fun `drawer switches active custom category backgrounds and long press triggers category editor`() {
+        val discovery = AppDiscoveryManager(context)
+        val categories = listOf(
+            CategoryEntity(
+                categoryId = PlayCategoryCatalog.SYSTEM_ALL_ID,
+                name = "All",
+                customEmoji = "✨",
+                backgroundType = "SOLID",
+                backgroundColorHex = 0xFF0D1B2AL,
+                categoryType = "SYSTEM_ALL",
+                sortOrder = -10,
+            ),
+            CategoryEntity(
+                categoryId = PlayCategoryCatalog.SYSTEM_FAVORITES_ID,
+                name = "Favorites",
+                customEmoji = "⭐",
+                backgroundType = "GRADIENT",
+                backgroundColorHex = 0xFF1A1038L,
+                backgroundGradientEndHex = 0xFF064E3BL,
+                categoryType = "SYSTEM_FAVORITES",
+                sortOrder = -9,
+            ),
+            CategoryEntity(
+                categoryId = PlayCategoryCatalog.GAMES_PARENT_ID,
+                name = "Games",
+                backgroundType = "INHERIT",
+                categoryType = "GAMES_PARENT",
+            ),
+        )
+        val state = LauncherUiState(
+            isLoading = false,
+            categories = categories,
+            appsWithTags = listOf(
+                AppWithTags(
+                    app = AppEntity("com.spotify.music", appName = "Spotify", favorite = true, primaryCategoryId = 20L),
+                    tags = emptyList(),
+                ),
+            ),
+            isDrawerOpen = true,
+        )
+        var editedCategory: CategoryEntity? = null
+
+        composeRule.setContent {
+            TagDeckTheme {
+                AppDrawerOverlay(
+                    visible = true,
+                    state = state,
+                    appDiscovery = discovery,
+                    onClose = {},
+                    onLaunchApp = {},
+                    onAppLongPress = {},
+                    onOpenTagSidebar = {},
+                    onEditCategory = { editedCategory = it },
+                    onToggleLayout = {},
+                    onCycleSort = {},
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("drawer_bg_custom_SOLID").assertIsDisplayed()
+
+        // Switching to Favorites applies its custom gradient background
+        composeRule.onNodeWithTag("dock_chip_favorites").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("drawer_bg_custom_GRADIENT").assertIsDisplayed()
+
+        // Switching to Games falls back to global drawer background because Games is INHERIT
+        composeRule.onNodeWithTag("dock_chip_games").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("drawer_bg_global").assertIsDisplayed()
+
+        // Long-pressing All dock chip invokes category editor
+        composeRule.onNodeWithTag("dock_chip_all").performTouchInput { longClick() }
+        composeRule.waitForIdle()
+        assertEquals(PlayCategoryCatalog.SYSTEM_ALL_ID, editedCategory?.categoryId)
+
+        // Long-pressing Games dock chip invokes category editor
+        composeRule.onNodeWithTag("dock_chip_games").performTouchInput { longClick() }
+        composeRule.waitForIdle()
+        assertEquals(PlayCategoryCatalog.GAMES_PARENT_ID, editedCategory?.categoryId)
+    }
+
+    @Test
+    fun `category sidebar renders custom category background, emoji badge, and edit action`() {
+        val discovery = AppDiscoveryManager(context)
+        val favCat = CategoryEntity(
+            categoryId = PlayCategoryCatalog.SYSTEM_FAVORITES_ID,
+            name = "Favorites",
+            customEmoji = "⭐",
+            colorHex = 0xFFFBBF24L,
+            backgroundType = "GRADIENT",
+            backgroundColorHex = 0xFF1A1038L,
+            backgroundGradientEndHex = 0xFF064E3BL,
+            categoryType = "SYSTEM_FAVORITES",
+        )
+        val state = LauncherUiState(
+            isLoading = false,
+            categories = listOf(favCat),
+            appsWithTags = listOf(
+                AppWithTags(AppEntity("com.spotify.music", appName = "Spotify", favorite = true), tags = emptyList()),
+            ),
+            activeOverlay = ActiveOverlay.CategorySidebar(PlayCategoryCatalog.SYSTEM_FAVORITES_ID),
+        )
+        var editedCategory: CategoryEntity? = null
+
+        composeRule.setContent {
+            TagDeckTheme {
+                ActiveOverlayHost(
+                    state = state,
+                    appDiscovery = discovery,
+                    onDismiss = {},
+                    onSwitchToTag = {},
+                    onLaunchApp = {},
+                    onEditTag = {},
+                    onEditCategory = { editedCategory = it },
+                    onAssignAppsToTag = {},
+                    onUpdateTagLayout = {},
+                    onAppLongPress = {},
+                    onToggleSidebarPin = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("generic_sidebar_title").assertTextEquals("Favorites")
+        composeRule.onNodeWithText("⭐").assertIsDisplayed()
+        composeRule.onNodeWithTag("sidebar_bg_GRADIENT").assertIsDisplayed()
+        composeRule.onNodeWithText("Spotify").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("sidebar_edit_category_button").performClick()
+        composeRule.waitForIdle()
+        assertEquals(PlayCategoryCatalog.SYSTEM_FAVORITES_ID, editedCategory?.categoryId)
     }
 }

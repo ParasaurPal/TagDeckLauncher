@@ -73,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -83,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.db.AppEntity
+import com.example.data.db.CategoryEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.LauncherWindowEntity
 import com.example.data.db.PlayCategoryCatalog
@@ -104,6 +106,7 @@ fun ActiveOverlayHost(
     onOpenNestedFolder: (Long) -> Unit = {},
     onLaunchApp: (AppEntity) -> Unit,
     onEditTag: (TagEntity) -> Unit,
+    onEditCategory: (CategoryEntity) -> Unit = {},
     onAssignAppsToTag: (TagEntity) -> Unit,
     onUpdateTagLayout: (TagEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
@@ -263,10 +266,11 @@ fun ActiveOverlayHost(
                                 val matchingApps = state.appsWithTags
                                     .filter { item ->
                                         !item.app.hidden && item.app.isInstalled && (
-                                            if (cat.categoryId == PlayCategoryCatalog.GAMES_PARENT_ID) {
-                                                item.app.isGame || item.app.primaryCategoryId in 100L..199L
-                                            } else {
-                                                item.app.primaryCategoryId == cat.categoryId ||
+                                            when (cat.categoryId) {
+                                                PlayCategoryCatalog.SYSTEM_ALL_ID -> true
+                                                PlayCategoryCatalog.SYSTEM_FAVORITES_ID -> item.app.favorite
+                                                PlayCategoryCatalog.GAMES_PARENT_ID -> item.app.isGame || item.app.primaryCategoryId in 100L..199L
+                                                else -> item.app.primaryCategoryId == cat.categoryId ||
                                                     item.categories.any { it.categoryId == cat.categoryId }
                                             }
                                             )
@@ -278,14 +282,24 @@ fun ActiveOverlayHost(
                                     state.categories.filter { it.categoryType == "GAME_SUB" }
                                 } else emptyList()
 
+                                val useCustomBg = cat.backgroundType != "INHERIT"
                                 GenericSidebarContent(
                                     title = cat.name,
-                                    subtitle = if (cat.categoryType == "GAME_SUB") "Games Subcategory" else "Google Play Category",
+                                    subtitle = when {
+                                        cat.isSystemDockTab -> "Drawer Dock Tab"
+                                        cat.categoryType == "GAME_SUB" -> "Games Subcategory"
+                                        cat.isCustom -> "Custom Category"
+                                        else -> "Google Play Category"
+                                    },
                                     accentColor = Color(cat.colorHex),
                                     iconKey = cat.iconKey,
                                     customImagePath = cat.customIconPath,
-                                    backgroundColorHex = 0xEE0B1120L,
-                                    backgroundImagePath = null,
+                                    customEmoji = cat.customEmoji,
+                                    backgroundType = if (useCustomBg) cat.backgroundType else "SOLID",
+                                    backgroundColorHex = if (useCustomBg) cat.backgroundColorHex else 0xEE0B1120L,
+                                    backgroundGradientEndHex = if (useCustomBg) cat.backgroundGradientEndHex else null,
+                                    backgroundImagePath = if (useCustomBg) cat.backgroundImagePath else null,
+                                    backgroundBlurDp = if (useCustomBg) cat.backgroundBlurDp else 0f,
                                     side = configuredSide,
                                     widthFraction = 0.84f,
                                     heightFraction = 0.72f,
@@ -308,6 +322,7 @@ fun ActiveOverlayHost(
                                         onDismiss()
                                     },
                                     onAppLongPress = onAppLongPress,
+                                    onEditAction = { onEditCategory(cat) },
                                     onTogglePin = {},
                                     onClose = onDismiss,
                                 )
@@ -379,10 +394,11 @@ fun ActiveOverlayHost(
                                         val cId = cfg.targetCategoryId ?: PlayCategoryCatalog.GAMES_PARENT_ID
                                         state.appsWithTags.filter { item ->
                                             !item.app.hidden && item.app.isInstalled && (
-                                                if (cId == PlayCategoryCatalog.GAMES_PARENT_ID) {
-                                                    item.app.isGame || item.app.primaryCategoryId in 100L..199L
-                                                } else {
-                                                    item.app.primaryCategoryId == cId || item.categories.any { it.categoryId == cId }
+                                                when (cId) {
+                                                    PlayCategoryCatalog.SYSTEM_ALL_ID -> true
+                                                    PlayCategoryCatalog.SYSTEM_FAVORITES_ID -> item.app.favorite
+                                                    PlayCategoryCatalog.GAMES_PARENT_ID -> item.app.isGame || item.app.primaryCategoryId in 100L..199L
+                                                    else -> item.app.primaryCategoryId == cId || item.categories.any { it.categoryId == cId }
                                                 }
                                                 )
                                         }.map { it.app }.sortedBy { it.displayName.lowercase() }
@@ -414,6 +430,15 @@ fun ActiveOverlayHost(
                                 val linkedTag = if (cfg.sourceType == "TAG") {
                                     state.allTags.find { it.tagId == cfg.targetTagId }
                                 } else null
+                                val linkedCat = if (cfg.sourceType == "CATEGORY") {
+                                    state.categories.find { it.categoryId == cfg.targetCategoryId }
+                                } else null
+
+                                val resolvedBgType = when {
+                                    !cfg.backgroundImagePath.isNullOrBlank() -> "IMAGE"
+                                    cfg.backgroundGradientEndHex != null -> "GRADIENT"
+                                    else -> "SOLID"
+                                }
 
                                 GenericSidebarContent(
                                     title = linkedTag?.name ?: cfg.title,
@@ -421,16 +446,18 @@ fun ActiveOverlayHost(
                                         "FAVORITES" -> "Pinned favorites"
                                         "ALL_APPS" -> "All installed apps"
                                         "TAG" -> linkedTag?.description?.ifBlank { "Tagged collection" } ?: "Tag sidebar"
-                                        "CATEGORY" -> "Category drawer"
+                                        "CATEGORY" -> linkedCat?.name ?: "Category drawer"
                                         "RULE" -> "Dynamic rule collection"
                                         else -> "Custom sidebar"
                                     },
-                                    accentColor = Color(linkedTag?.colorHex ?: 0xFF38BDF8L),
-                                    iconKey = linkedTag?.iconKey ?: if (cfg.sourceType == "FAVORITES") "star" else "folder",
-                                    customImagePath = linkedTag?.customImagePath,
+                                    accentColor = Color(linkedTag?.colorHex ?: linkedCat?.colorHex ?: 0xFF38BDF8L),
+                                    iconKey = linkedTag?.iconKey ?: linkedCat?.iconKey ?: if (cfg.sourceType == "FAVORITES") "star" else "folder",
+                                    customImagePath = linkedTag?.customImagePath ?: linkedCat?.customIconPath,
+                                    customEmoji = linkedCat?.customEmoji,
+                                    backgroundType = resolvedBgType,
                                     backgroundColorHex = cfg.backgroundColorHex,
-                                    backgroundImagePath = cfg.backgroundImagePath,
                                     backgroundGradientEndHex = cfg.backgroundGradientEndHex,
+                                    backgroundImagePath = cfg.backgroundImagePath,
                                     backgroundBlurDp = cfg.backgroundBlurDp,
                                     side = cfg.side,
                                     widthFraction = cfg.widthFraction,
@@ -894,9 +921,11 @@ fun GenericSidebarContent(
     accentColor: Color,
     iconKey: String,
     customImagePath: String?,
+    customEmoji: String? = null,
+    backgroundType: String = "SOLID",
     backgroundColorHex: Long,
-    backgroundImagePath: String?,
     backgroundGradientEndHex: Long? = null,
+    backgroundImagePath: String?,
     backgroundBlurDp: Float = 0f,
     side: String = "LEFT",
     widthFraction: Float,
@@ -917,6 +946,7 @@ fun GenericSidebarContent(
     onSwitchToTag: (Long) -> Unit,
     onLaunchApp: (AppEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
+    onEditAction: (() -> Unit)? = null,
     onTogglePin: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -941,7 +971,7 @@ fun GenericSidebarContent(
     }
 
     Surface(
-        modifier = sizeModifier,
+        modifier = sizeModifier.testTag("generic_sidebar_container"),
         shape = shape,
         color = Color.Transparent,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
@@ -949,15 +979,12 @@ fun GenericSidebarContent(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             SurfaceBackgroundLayer(
-                bgType = when {
-                    backgroundGradientEndHex != null -> "GRADIENT"
-                    !backgroundImagePath.isNullOrBlank() -> "IMAGE"
-                    else -> "SOLID"
-                },
+                bgType = backgroundType,
                 colorHex = backgroundColorHex,
                 gradientEndHex = backgroundGradientEndHex,
                 imagePath = backgroundImagePath,
                 blurDp = backgroundBlurDp,
+                modifier = Modifier.testTag("sidebar_bg_$backgroundType"),
             )
 
             Column(
@@ -971,12 +998,24 @@ fun GenericSidebarContent(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TagBadgeIcon(
-                        iconKey = iconKey,
-                        customImagePath = customImagePath,
-                        colorHex = accentColor.value.toLong(),
-                        size = 44.dp,
-                    )
+                    if (!customEmoji.isNullOrBlank() && customImagePath.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(accentColor.copy(alpha = 0.22f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(text = customEmoji, fontSize = 24.sp)
+                        }
+                    } else {
+                        TagBadgeIcon(
+                            iconKey = iconKey,
+                            customImagePath = customImagePath,
+                            colorHex = (accentColor.toArgb().toLong() and 0xFFFFFFFFL),
+                            size = 44.dp,
+                        )
+                    }
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -986,6 +1025,7 @@ fun GenericSidebarContent(
                             color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("generic_sidebar_title"),
                         )
                         if (showCount) {
                             Text(
@@ -1151,11 +1191,24 @@ fun GenericSidebarContent(
                             Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = Color.White)
                         }
                     }
-                    OutlinedButton(
-                        onClick = onClose,
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                    ) {
-                        Text("Close", color = Color.White)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onEditAction != null) {
+                            OutlinedButton(
+                                onClick = onEditAction,
+                                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.6f)),
+                                modifier = Modifier.testTag("sidebar_edit_category_button"),
+                            ) {
+                                Icon(Icons.Rounded.Edit, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Edit", color = accentColor)
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = onClose,
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                        ) {
+                            Text("Close", color = Color.White)
+                        }
                     }
                 }
             }

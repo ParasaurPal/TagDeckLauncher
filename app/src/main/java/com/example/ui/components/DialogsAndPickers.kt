@@ -379,7 +379,7 @@ fun AppCategoryOverrideDialog(
     val autoCatName = allCategories.find { it.categoryId == app.automaticCategoryId }?.name ?: "Tools"
     val shownCategories = remember(allCategories, filterQuery) {
         val q = filterQuery.trim().lowercase()
-        allCategories.filter { q.isEmpty() || it.name.lowercase().contains(q) }
+        allCategories.filter { !it.isSystemDockTab && (q.isEmpty() || it.name.lowercase().contains(q)) }
     }
 
     AlertDialog(

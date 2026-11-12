@@ -175,24 +175,29 @@ class LauncherRepository(
 
     private suspend fun ensureSeedPlayCategories() {
         val existing = dao.getAllCategoriesOnce().associateBy { it.categoryId }
-        if (existing.size < PlayCategoryCatalog.allSeedCategories.size) {
-            val missing = PlayCategoryCatalog.allSeedCategories
-                .filter { it.id !in existing }
-                .mapIndexed { idx, seed ->
-                    CategoryEntity(
-                        categoryId = seed.id,
-                        name = seed.name,
-                        iconKey = seed.iconKey,
-                        colorHex = seed.colorHex,
-                        backgroundColorHex = (0x24000000L or (seed.colorHex and 0x00FFFFFFL)),
-                        parentCategoryId = seed.parentCategoryId,
-                        sortOrder = idx,
-                        categoryType = seed.categoryType,
-                        isCustom = false,
-                    )
+        val allSeeds = PlayCategoryCatalog.allDockAndPlaySeedCategories
+        val missing = allSeeds
+            .filter { it.id !in existing }
+            .mapIndexed { _, seed ->
+                val sortOrder = when (seed.id) {
+                    PlayCategoryCatalog.SYSTEM_ALL_ID -> -10
+                    PlayCategoryCatalog.SYSTEM_FAVORITES_ID -> -9
+                    else -> PlayCategoryCatalog.allSeedCategories.indexOfFirst { it.id == seed.id }
+                        .coerceAtLeast(0)
                 }
-            if (missing.isNotEmpty()) dao.insertCategories(missing)
-        }
+                CategoryEntity(
+                    categoryId = seed.id,
+                    name = seed.name,
+                    iconKey = seed.iconKey,
+                    colorHex = seed.colorHex,
+                    backgroundColorHex = (0x24000000L or (seed.colorHex and 0x00FFFFFFL)),
+                    parentCategoryId = seed.parentCategoryId,
+                    sortOrder = sortOrder,
+                    categoryType = seed.categoryType,
+                    isCustom = false,
+                )
+            }
+        if (missing.isNotEmpty()) dao.insertCategories(missing)
     }
 
     private suspend fun seedInitialWorkspace(installedApps: List<AppEntity>) {
@@ -754,10 +759,16 @@ class LauncherRepository(
         }
 
         if (payload.categories.isNotEmpty()) {
-            dao.insertCategories(payload.categories)
-        } else {
-            ensureSeedPlayCategories()
+            dao.insertCategories(
+                payload.categories.map { cat ->
+                    cat.copy(
+                        customIconPath = cat.customIconPath?.let { remappedPaths[it] ?: it },
+                        backgroundImagePath = cat.backgroundImagePath?.let { remappedPaths[it] ?: it },
+                    )
+                }
+            )
         }
+        ensureSeedPlayCategories()
 
         val existingApps = dao.getAllAppsOnce().associateBy { it.packageName }
         val restoredApps = payload.apps.map { backedUp ->

@@ -76,6 +76,10 @@ object BackupManager {
                 put("customEmoji", c.customEmoji ?: JSONObject.NULL)
                 put("colorHex", c.colorHex)
                 put("backgroundColorHex", c.backgroundColorHex)
+                put("backgroundType", c.backgroundType)
+                put("backgroundGradientEndHex", c.backgroundGradientEndHex ?: JSONObject.NULL)
+                put("backgroundImagePath", c.backgroundImagePath ?: JSONObject.NULL)
+                put("backgroundBlurDp", c.backgroundBlurDp.toDouble())
                 put("iconSizeDp", c.iconSizeDp)
                 put("parentCategoryId", c.parentCategoryId ?: JSONObject.NULL)
                 put("sortOrder", c.sortOrder)
@@ -344,6 +348,10 @@ object BackupManager {
                     customEmoji = o.optNullableString("customEmoji"),
                     colorHex = o.optLong("colorHex", 0xFF38BDF8L),
                     backgroundColorHex = o.optLong("backgroundColorHex", 0x2238BDF8L),
+                    backgroundType = o.optString("backgroundType", "INHERIT"),
+                    backgroundGradientEndHex = o.optNullableLong("backgroundGradientEndHex"),
+                    backgroundImagePath = o.optNullableString("backgroundImagePath"),
+                    backgroundBlurDp = o.optDouble("backgroundBlurDp", 0.0).toFloat(),
                     iconSizeDp = o.optInt("iconSizeDp", 24),
                     parentCategoryId = o.optNullableLong("parentCategoryId"),
                     sortOrder = o.optInt("sortOrder", i),

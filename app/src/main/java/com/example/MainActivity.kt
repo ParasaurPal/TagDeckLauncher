@@ -35,6 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.data.db.AppEntity
+import com.example.data.db.CategoryEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.TagEntity
 import com.example.data.system.InstalledWidgetProvider
@@ -42,6 +43,7 @@ import com.example.ui.components.ActiveOverlayHost
 import com.example.ui.components.AppActionAndCustomizeDialog
 import com.example.ui.components.AppDrawerOverlay
 import com.example.ui.components.BulkAssignAppsToTagDialog
+import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
 import com.example.ui.screens.AppManagerScreen
@@ -248,6 +250,7 @@ private fun TagDeckRoot(
     }
 
     var inlineEditTag by remember { mutableStateOf<TagEntity?>(null) }
+    var inlineEditCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var inlineAssignAppsTag by remember { mutableStateOf<TagEntity?>(null) }
     var inlineCustomizeApp by remember { mutableStateOf<AppEntity?>(null) }
 
@@ -454,6 +457,7 @@ private fun TagDeckRoot(
             onLaunchApp = { viewModel.launchApp(it) },
             onAppLongPress = { inlineCustomizeApp = it },
             onOpenTagSidebar = { viewModel.openTagSidebar(it) },
+            onEditCategory = { inlineEditCategory = it },
             onToggleLayout = {
                 val next = if (state.settings.drawerLayoutMode == "GRID") "LIST" else "GRID"
                 viewModel.updateSettings { it.copy(drawerLayoutMode = next) }
@@ -500,6 +504,7 @@ private fun TagDeckRoot(
             onOpenNestedFolder = { folderId -> viewModel.openFolder(folderId) },
             onLaunchApp = { viewModel.launchApp(it) },
             onEditTag = { inlineEditTag = it },
+            onEditCategory = { inlineEditCategory = it },
             onAssignAppsToTag = { inlineAssignAppsTag = it },
             onUpdateTagLayout = { viewModel.saveTag(it) },
             onAppLongPress = { inlineCustomizeApp = it },
@@ -555,6 +560,19 @@ private fun TagDeckRoot(
                 inlineEditTag = null
             },
             onDismiss = { inlineEditTag = null },
+        )
+    }
+
+    inlineEditCategory?.let { c ->
+        val freshCat = state.categories.find { it.categoryId == c.categoryId } ?: c
+        CategoryEditorDialog(
+            initialCategory = freshCat,
+            onImportImage = { viewModel.importImagePreservingOriginal(it, "Categories") },
+            onSave = { saved ->
+                viewModel.saveCategory(saved)
+                inlineEditCategory = null
+            },
+            onDismiss = { inlineEditCategory = null },
         )
     }
 

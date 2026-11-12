@@ -401,8 +401,11 @@ fun AppManagerScreen(
             onDismissRequest = { showBulkCategoryPicker = false },
             title = { Text("Override Category for ${selectedPackages.size} Apps") },
             text = {
+                val assignableCategories = remember(state.categories) {
+                    state.categories.filter { !it.isSystemDockTab }
+                }
                 LazyColumn(modifier = Modifier.height(320.dp)) {
-                    items(state.categories, key = { it.categoryId }) { cat ->
+                    items(assignableCategories, key = { it.categoryId }) { cat ->
                         val selected = cat.categoryId == chosenCategoryId
                         Row(
                             modifier = Modifier

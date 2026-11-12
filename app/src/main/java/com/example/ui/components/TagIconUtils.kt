@@ -172,7 +172,12 @@ fun CategoryBadgeIcon(
     contentDescription: String? = category.name,
 ) {
     val accent = Color(category.colorHex)
-    val bg = Color(category.backgroundColorHex)
+    val storedBg = Color(category.backgroundColorHex)
+    val bg = if (category.backgroundType != "INHERIT" || storedBg.alpha > 0.45f) {
+        accent.copy(alpha = 0.22f)
+    } else {
+        storedBg
+    }
     val shape = RoundedCornerShape(size * 0.30f)
     Box(
         modifier = Modifier

@@ -47,12 +47,19 @@ data class CategoryEntity(
     val customEmoji: String? = null,
     val colorHex: Long = 0xFF38BDF8L,
     val backgroundColorHex: Long = 0x2238BDF8L,
+    val backgroundType: String = "INHERIT", // INHERIT, SOLID, GRADIENT, IMAGE
+    val backgroundGradientEndHex: Long? = null,
+    val backgroundImagePath: String? = null,
+    val backgroundBlurDp: Float = 0f,
     val iconSizeDp: Int = 24,
     val parentCategoryId: Long? = null,
     val sortOrder: Int = 0,
-    val categoryType: String = "APP", // APP, GAMES_PARENT, GAME_SUB, CUSTOM
+    val categoryType: String = "APP", // SYSTEM_ALL, SYSTEM_FAVORITES, APP, GAMES_PARENT, GAME_SUB, CUSTOM
     val isCustom: Boolean = false,
-)
+) {
+    val isSystemDockTab: Boolean
+        get() = categoryId < 0L || categoryType == "SYSTEM_ALL" || categoryType == "SYSTEM_FAVORITES"
+}
 
 @Entity(
     tableName = "app_categories",

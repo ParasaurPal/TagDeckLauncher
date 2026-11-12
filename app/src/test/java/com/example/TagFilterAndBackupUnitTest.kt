@@ -93,9 +93,11 @@ class TagFilterAndBackupUnitTest {
 
     @Test
     fun `play store catalog defines 32 app categories plus games parent and 17 game subcategories`() {
+        assertEquals(2, PlayCategoryCatalog.systemDockCategories.size)
         assertEquals(32, PlayCategoryCatalog.appCategories.size)
         assertEquals(17, PlayCategoryCatalog.gameSubcategories.size)
         assertEquals(50, PlayCategoryCatalog.allSeedCategories.size)
+        assertEquals(52, PlayCategoryCatalog.allDockAndPlaySeedCategories.size)
         assertTrue(PlayCategoryCatalog.gameSubcategories.all { it.parentCategoryId == PlayCategoryCatalog.GAMES_PARENT_ID })
     }
 
@@ -141,7 +143,27 @@ class TagFilterAndBackupUnitTest {
                 )
             ),
             categories = listOf(
-                CategoryEntity(categoryId = 200L, name = "Dev Tools", categoryType = "CUSTOM", isCustom = true)
+                CategoryEntity(
+                    categoryId = PlayCategoryCatalog.SYSTEM_ALL_ID,
+                    name = "All",
+                    customEmoji = "✨",
+                    backgroundType = "SOLID",
+                    backgroundColorHex = 0xFF0D1B2AL,
+                    categoryType = "SYSTEM_ALL",
+                    isCustom = false,
+                ),
+                CategoryEntity(
+                    categoryId = 200L,
+                    name = "Dev Tools",
+                    customEmoji = "🛠️",
+                    backgroundType = "GRADIENT",
+                    backgroundColorHex = 0xFF1A1038L,
+                    backgroundGradientEndHex = 0xFF064E3BL,
+                    backgroundImagePath = "/tmp/dev_bg.png",
+                    backgroundBlurDp = 12f,
+                    categoryType = "CUSTOM",
+                    isCustom = true,
+                ),
             ),
             appCategories = listOf(
                 AppCategoryCrossRef("com.figma", 1L, isManualAssignment = true, isExcluded = false)
@@ -184,7 +206,17 @@ class TagFilterAndBackupUnitTest {
         assertEquals(original.apps.first().customName, decoded.apps.first().customName)
         assertTrue(decoded.apps.first().manualCategoryOverride)
         assertEquals(1L, decoded.apps.first().primaryCategoryId)
-        assertEquals(original.categories.first().name, decoded.categories.first().name)
+        assertEquals(2, decoded.categories.size)
+        val decodedAll = decoded.categories.first { it.categoryId == PlayCategoryCatalog.SYSTEM_ALL_ID }
+        assertEquals("✨", decodedAll.customEmoji)
+        assertEquals("SOLID", decodedAll.backgroundType)
+        assertEquals(0xFF0D1B2AL, decodedAll.backgroundColorHex)
+        val decodedDev = decoded.categories.first { it.categoryId == 200L }
+        assertEquals("Dev Tools", decodedDev.name)
+        assertEquals("GRADIENT", decodedDev.backgroundType)
+        assertEquals(0xFF064E3BL, decodedDev.backgroundGradientEndHex)
+        assertEquals("/tmp/dev_bg.png", decodedDev.backgroundImagePath)
+        assertEquals(12f, decodedDev.backgroundBlurDp, 0.01f)
         assertEquals(original.appCategories.first().isManualAssignment, decoded.appCategories.first().isManualAssignment)
         assertEquals(original.tags.size, decoded.tags.size)
         assertEquals(original.crossRefs.size, decoded.crossRefs.size)

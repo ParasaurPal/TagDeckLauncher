@@ -41,3 +41,18 @@ val TagPresetColors: List<Long> = listOf(
     0xFFEAB308L, // Gold
     0xFF94A3B8L, // Slate
 )
+
+val CategoryBackgroundPalette: List<Long> = listOf(
+    0xF2090D16L, // Deep Obsidian
+    0xF20D1B2AL, // Midnight Navy
+    0xF21A1038L, // Ultraviolet Indigo
+    0xF20B2622L, // Forest Emerald
+    0xF226141EL, // Crimson Plum
+    0xF21F1A0EL, // Deep Amber
+    0xF20E2430L, // Oceanic Teal
+    0xF21E293BL, // Cool Slate
+    0xFF1E1B4BL, // Rich Indigo
+    0xFF064E3BL, // Deep Mint
+    0xFF4C1D95L, // Royal Violet
+    0xFF831843L, // Deep Rose
+)

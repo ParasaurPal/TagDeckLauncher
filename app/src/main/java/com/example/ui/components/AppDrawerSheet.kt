@@ -41,12 +41,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ViewList
-import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SortByAlpha
-import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
@@ -89,8 +87,8 @@ import com.example.ui.state.LauncherUiState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private const val FILTER_ALL = -1L
-private const val FILTER_FAVORITES = -2L
+private const val FILTER_ALL = PlayCategoryCatalog.SYSTEM_ALL_ID
+private const val FILTER_FAVORITES = PlayCategoryCatalog.SYSTEM_FAVORITES_ID
 private const val FILTER_GAMES = PlayCategoryCatalog.GAMES_PARENT_ID
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -103,6 +101,7 @@ fun AppDrawerOverlay(
     onLaunchApp: (AppEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
     onOpenTagSidebar: (Long) -> Unit,
+    onEditCategory: (CategoryEntity) -> Unit = {},
     onToggleLayout: () -> Unit,
     onCycleSort: () -> Unit,
     onUpdateSettings: ((LauncherSettings) -> LauncherSettings) -> Unit = {},
@@ -138,11 +137,45 @@ fun AppDrawerOverlay(
         var selectedTagFilterId by remember { mutableStateOf<Long?>(null) }
         var showCustomizeDialog by remember { mutableStateOf(false) }
 
+        val allCategory = remember(state.categories) {
+            state.categories.find { it.categoryId == FILTER_ALL }
+                ?: CategoryEntity(
+                    categoryId = FILTER_ALL,
+                    name = "All",
+                    iconKey = "apps",
+                    colorHex = 0xFF38BDF8L,
+                    categoryType = "SYSTEM_ALL",
+                    sortOrder = -10,
+                )
+        }
+        val favoritesCategory = remember(state.categories) {
+            state.categories.find { it.categoryId == FILTER_FAVORITES }
+                ?: CategoryEntity(
+                    categoryId = FILTER_FAVORITES,
+                    name = "Favorites",
+                    iconKey = "star",
+                    colorHex = 0xFFFBBF24L,
+                    categoryType = "SYSTEM_FAVORITES",
+                    sortOrder = -9,
+                )
+        }
+        val gamesCategory = remember(state.categories) {
+            state.categories.find { it.categoryId == FILTER_GAMES }
+                ?: CategoryEntity(
+                    categoryId = FILTER_GAMES,
+                    name = "Games",
+                    iconKey = "gamepad",
+                    colorHex = 0xFF34D399L,
+                    categoryType = "GAMES_PARENT",
+                )
+        }
         val gameSubcategories = remember(state.categories) {
             state.categories.filter { it.categoryType == "GAME_SUB" }.sortedBy { it.sortOrder }
         }
         val playAndCustomCategories = remember(state.categories, state.appsWithTags) {
-            val nonGame = state.categories.filter { it.categoryType != "GAMES_PARENT" && it.categoryType != "GAME_SUB" }
+            val nonGame = state.categories.filter {
+                !it.isSystemDockTab && it.categoryType != "GAMES_PARENT" && it.categoryType != "GAME_SUB"
+            }
             // Order: categories with apps first (preserving sortOrder), then remaining categories
             nonGame.sortedWith(
                 compareByDescending<CategoryEntity> { cat ->
@@ -205,13 +238,29 @@ fun AppDrawerOverlay(
             visibleApps.map { appIndexLetter(it.app.displayName) }.toSet()
         }
 
-        val headerTitle = when {
-            selectedTagFilterId != null -> state.allTags.find { it.tagId == selectedTagFilterId }?.name ?: "Tag"
-            selectedFilterId == FILTER_ALL -> "All Apps"
-            selectedFilterId == FILTER_FAVORITES -> "Favorites"
-            selectedFilterId == FILTER_GAMES -> "Games"
-            else -> state.categories.find { it.categoryId == selectedFilterId }?.name ?: "Category"
+        val activeTag = remember(selectedTagFilterId, state.allTags) {
+            selectedTagFilterId?.let { tid -> state.allTags.find { it.tagId == tid } }
         }
+        val activeCategory = when {
+            selectedTagFilterId != null -> null
+            selectedFilterId == FILTER_ALL -> allCategory
+            selectedFilterId == FILTER_FAVORITES -> favoritesCategory
+            selectedFilterId == FILTER_GAMES -> gamesCategory
+            else -> state.categories.find { it.categoryId == selectedFilterId }
+        }
+        val headerTitle = when {
+            activeTag != null -> activeTag.name
+            selectedFilterId == FILTER_ALL && allCategory.name == "All" -> "All Apps"
+            activeCategory != null -> activeCategory.name
+            else -> "Category"
+        }
+
+        val useCategoryBg = activeCategory != null && activeCategory.backgroundType != "INHERIT"
+        val resolvedBgType = if (useCategoryBg) activeCategory!!.backgroundType else state.settings.allAppsBgType
+        val resolvedBgColor = if (useCategoryBg) activeCategory!!.backgroundColorHex else state.settings.allAppsBgColorHex
+        val resolvedBgGradEnd = if (useCategoryBg) activeCategory!!.backgroundGradientEndHex else state.settings.allAppsBgGradientEndHex
+        val resolvedBgImage = if (useCategoryBg) activeCategory!!.backgroundImagePath else state.settings.allAppsBgImagePath
+        val resolvedBgBlur = if (useCategoryBg) activeCategory!!.backgroundBlurDp else state.settings.allAppsBgBlurDp
 
         val drawerFraction = if (edge == "BOTTOM") 1f else state.settings.allAppsSidebarWidthFraction.coerceIn(0.60f, 1f)
         val boxAlignment = when (edge) {
@@ -241,11 +290,14 @@ fun AppDrawerOverlay(
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     SurfaceBackgroundLayer(
-                        bgType = state.settings.allAppsBgType,
-                        colorHex = state.settings.allAppsBgColorHex,
-                        gradientEndHex = state.settings.allAppsBgGradientEndHex,
-                        imagePath = state.settings.allAppsBgImagePath,
-                        blurDp = state.settings.allAppsBgBlurDp,
+                        bgType = resolvedBgType,
+                        colorHex = resolvedBgColor,
+                        gradientEndHex = resolvedBgGradEnd,
+                        imagePath = resolvedBgImage,
+                        blurDp = resolvedBgBlur,
+                        modifier = Modifier.testTag(
+                            if (useCategoryBg) "drawer_bg_custom_${activeCategory!!.backgroundType}" else "drawer_bg_global"
+                        ),
                     )
 
                     Column(
@@ -265,7 +317,16 @@ fun AppDrawerOverlay(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(Icons.Rounded.Apps, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                if (activeTag != null) {
+                                    TagBadgeIcon(
+                                        iconKey = activeTag.iconKey,
+                                        customImagePath = activeTag.customImagePath,
+                                        colorHex = activeTag.colorHex,
+                                        size = 28.dp,
+                                    )
+                                } else if (activeCategory != null) {
+                                    CategoryBadgeIcon(activeCategory, size = 28.dp)
+                                }
                                 Spacer(Modifier.width(8.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -510,72 +571,82 @@ fun AppDrawerOverlay(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         item {
-                                            FilterChip(
+                                            CategoryDockChip(
+                                                label = "All Games",
                                                 selected = selectedFilterId == FILTER_GAMES,
+                                                accent = Color(gamesCategory.colorHex),
+                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = FILTER_GAMES
                                                 },
-                                                label = { Text("All Games") },
+                                                onLongClick = { onEditCategory(gamesCategory) },
+                                                modifier = Modifier.testTag("dock_chip_all_games"),
                                             )
                                         }
                                         items(gameSubcategories, key = { it.categoryId }) { sub ->
                                             val sel = selectedFilterId == sub.categoryId
-                                            FilterChip(
+                                            CategoryDockChip(
+                                                label = sub.name,
                                                 selected = sel,
+                                                accent = Color(sub.colorHex),
+                                                leading = { CategoryBadgeIcon(sub, size = 16.dp) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = sub.categoryId
                                                 },
-                                                leadingIcon = { CategoryBadgeIcon(sub, size = 18.dp) },
-                                                label = { Text(sub.name) },
+                                                onLongClick = { onEditCategory(sub) },
+                                                modifier = Modifier.testTag("dock_chip_${sub.categoryId}"),
                                             )
                                         }
                                     }
                                 }
 
-                                // Primary Bottom Category Navigation Row (Google Play + Favorites + Games + Custom + Tags)
+                                // Primary Bottom Category Navigation Row (All + Favorites + Games + Play + Custom + Tags)
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     item {
                                         CategoryDockChip(
-                                            label = "All",
+                                            label = allCategory.name,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_ALL,
-                                            accent = MaterialTheme.colorScheme.primary,
+                                            accent = Color(allCategory.colorHex),
+                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_ALL
                                             },
+                                            onLongClick = { onEditCategory(allCategory) },
+                                            modifier = Modifier.testTag("dock_chip_all"),
                                         )
                                     }
                                     item {
                                         CategoryDockChip(
-                                            label = "Favorites",
+                                            label = favoritesCategory.name,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES,
-                                            accent = Color(0xFFFBBF24L),
-                                            leading = {
-                                                Icon(Icons.Rounded.Star, null, tint = Color(0xFFFBBF24L), modifier = Modifier.size(16.dp))
-                                            },
+                                            accent = Color(favoritesCategory.colorHex),
+                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_FAVORITES
                                             },
+                                            onLongClick = { onEditCategory(favoritesCategory) },
+                                            modifier = Modifier.testTag("dock_chip_favorites"),
                                         )
                                     }
                                     item {
                                         CategoryDockChip(
-                                            label = "Games",
+                                            label = gamesCategory.name,
                                             selected = isGamesContext,
-                                            accent = Color(0xFF34D399L),
-                                            leading = {
-                                                Icon(Icons.Rounded.SportsEsports, null, tint = Color(0xFF34D399L), modifier = Modifier.size(16.dp))
-                                            },
+                                            accent = Color(gamesCategory.colorHex),
+                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_GAMES
                                             },
+                                            onLongClick = { onEditCategory(gamesCategory) },
+                                            modifier = Modifier.testTag("dock_chip_games"),
                                         )
                                     }
                                     items(playAndCustomCategories, key = { it.categoryId }) { cat ->
@@ -589,6 +660,8 @@ fun AppDrawerOverlay(
                                                 selectedTagFilterId = null
                                                 selectedFilterId = cat.categoryId
                                             },
+                                            onLongClick = { onEditCategory(cat) },
+                                            modifier = Modifier.testTag("dock_chip_${cat.categoryId}"),
                                         )
                                     }
                                     items(state.allTags, key = { "tag_${it.tagId}" }) { tag ->
@@ -636,6 +709,7 @@ fun AppDrawerOverlay(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CategoryDockChip(
     label: String,
@@ -643,12 +717,17 @@ private fun CategoryDockChip(
     accent: Color,
     leading: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = if (selected) accent.copy(alpha = 0.24f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
         border = BorderStroke(1.dp, if (selected) accent else Color.Transparent),
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick,
+        ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),

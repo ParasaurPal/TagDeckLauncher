@@ -2,15 +2,9 @@ package com.example.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -29,10 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.CallMerge
@@ -42,15 +33,12 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BookmarkAdd
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GroupAdd
-import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.SubdirectoryArrowRight
@@ -68,7 +56,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -81,11 +68,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -102,13 +87,11 @@ import com.example.data.system.AppDiscoveryManager
 import com.example.ui.components.AppIconView
 import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryBadgeIcon
+import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.TagBadgeIcon
 import com.example.ui.components.TagEditorDialog
-import com.example.ui.components.TagIconCatalog
 import com.example.ui.state.LauncherUiState
 import com.example.ui.theme.TagPresetColors
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -470,11 +453,15 @@ private fun CategoriesAndGamesTab(
     onDeleteCustomCategory: (Long) -> Unit,
 ) {
     var filterQuery by remember { mutableStateOf("") }
-    var showType by remember { mutableStateOf("ALL") } // ALL, APP, GAMES, CUSTOM
+    var showType by remember { mutableStateOf("ALL") } // ALL, SYSTEM, APP, GAMES, CUSTOM
 
     val appCountsByCategory = remember(state.appsWithTags, state.appCategories) {
         val map = mutableMapOf<Long, MutableSet<String>>()
         state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }.forEach { item ->
+            map.getOrPut(PlayCategoryCatalog.SYSTEM_ALL_ID) { mutableSetOf() }.add(item.app.packageName)
+            if (item.app.favorite) {
+                map.getOrPut(PlayCategoryCatalog.SYSTEM_FAVORITES_ID) { mutableSetOf() }.add(item.app.packageName)
+            }
             map.getOrPut(item.app.primaryCategoryId) { mutableSetOf() }.add(item.app.packageName)
             if (item.app.isGame) {
                 map.getOrPut(PlayCategoryCatalog.GAMES_PARENT_ID) { mutableSetOf() }.add(item.app.packageName)
@@ -490,6 +477,7 @@ private fun CategoriesAndGamesTab(
         val q = filterQuery.trim().lowercase()
         state.categories.filter { cat ->
             val typeOk = when (showType) {
+                "SYSTEM" -> cat.isSystemDockTab
                 "APP" -> cat.categoryType == "APP"
                 "GAMES" -> cat.categoryType == "GAMES_PARENT" || cat.categoryType == "GAME_SUB"
                 "CUSTOM" -> cat.isCustom || cat.categoryType == "CUSTOM"
@@ -505,7 +493,7 @@ private fun CategoriesAndGamesTab(
         OutlinedTextField(
             value = filterQuery,
             onValueChange = { filterQuery = it },
-            placeholder = { Text("Search 32 Play & 17 Game categories...") },
+            placeholder = { Text("Search All, Favorites, 32 Play & 17 Game categories...") },
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
             singleLine = true,
             shape = RoundedCornerShape(16.dp),
@@ -515,6 +503,7 @@ private fun CategoriesAndGamesTab(
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val chips = listOf(
                 "ALL" to "All (${state.categories.size})",
+                "SYSTEM" to "Dock Tabs",
                 "APP" to "32 Play Apps",
                 "GAMES" to "Games + 17 Sub",
                 "CUSTOM" to "Custom",
@@ -569,13 +558,22 @@ private fun CategoriesAndGamesTab(
                                     fontWeight = FontWeight.SemiBold,
                                 )
                             }
+                            val typeLabel = when {
+                                cat.isSystemDockTab -> "Drawer Dock Tab"
+                                cat.isCustom -> "Custom Category"
+                                else -> cat.categoryType
+                            }
+                            val bgNote = if (cat.backgroundType != "INHERIT") " • ${cat.backgroundType} bg" else ""
                             Text(
-                                text = "$count apps • ${if (cat.isCustom) "Custom Category" else cat.categoryType}",
+                                text = "$count apps • $typeLabel$bgNote",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        IconButton(onClick = { onEditCategory(cat) }) {
+                        IconButton(
+                            onClick = { onEditCategory(cat) },
+                            modifier = Modifier.testTag("edit_category_${cat.categoryId}"),
+                        ) {
                             Icon(Icons.Rounded.Edit, contentDescription = "Customize category")
                         }
                         if (cat.isCustom) {
@@ -588,169 +586,6 @@ private fun CategoriesAndGamesTab(
             }
         }
     }
-}
-
-@Composable
-private fun CategoryEditorDialog(
-    initialCategory: CategoryEntity?,
-    onImportImage: suspend (Uri) -> String?,
-    onSave: (CategoryEntity) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    var name by remember { mutableStateOf(initialCategory?.name ?: "") }
-    var iconKey by remember { mutableStateOf(initialCategory?.iconKey ?: "tag") }
-    var customIconPath by remember { mutableStateOf(initialCategory?.customIconPath) }
-    var customEmoji by remember { mutableStateOf(initialCategory?.customEmoji ?: "") }
-    var colorHex by remember { mutableLongStateOf(initialCategory?.colorHex ?: TagPresetColors.first()) }
-    var iconSizeDp by remember { mutableIntStateOf(initialCategory?.iconSizeDp ?: 24) }
-
-    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val path = onImportImage(uri)
-                if (path != null) customIconPath = path
-            }
-        }
-    }
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val path = onImportImage(uri)
-                if (path != null) customIconPath = path
-            }
-        }
-    }
-
-    val preview = (initialCategory ?: CategoryEntity(name = name.ifBlank { "Custom" }, categoryType = "CUSTOM", isCustom = true)).copy(
-        name = name.ifBlank { "Custom" },
-        iconKey = iconKey,
-        customIconPath = customIconPath,
-        customEmoji = customEmoji.takeIf { it.isNotBlank() },
-        colorHex = colorHex,
-        backgroundColorHex = (0x22000000L or (colorHex and 0x00FFFFFFL)),
-        iconSizeDp = iconSizeDp,
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CategoryBadgeIcon(preview, size = 36.dp)
-                Text(if (initialCategory == null) "New Custom Category" else "Customize Category")
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 440.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Category Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("category_name_input"),
-                )
-                OutlinedTextField(
-                    value = customEmoji,
-                    onValueChange = { customEmoji = it.take(4) },
-                    label = { Text("Custom Emoji Badge (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text("Accent Color", style = MaterialTheme.typography.labelLarge)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(TagPresetColors) { c ->
-                        val selected = c == colorHex
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(Color(c))
-                                .border(if (selected) 2.5.dp else 0.dp, Color.White, CircleShape)
-                                .clickable { colorHex = c },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (selected) Icon(Icons.Rounded.Check, null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
-                Text("Icon or Custom PNG/SVG", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) {
-                        Icon(Icons.Rounded.PhotoLibrary, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Gallery")
-                    }
-                    OutlinedButton(onClick = {
-                        filePicker.launch(arrayOf("image/*", "image/svg+xml"))
-                    }) {
-                        Icon(Icons.Rounded.FolderOpen, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("SVG/PNG")
-                    }
-                    if (customIconPath != null) {
-                        TextButton(onClick = { customIconPath = null }) { Text("Clear") }
-                    }
-                }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(TagIconCatalog) { opt ->
-                        val selected = customIconPath == null && customEmoji.isBlank() && iconKey == opt.key
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (selected) Color(colorHex).copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, if (selected) Color(colorHex) else Color.Transparent),
-                            modifier = Modifier.clickable {
-                                iconKey = opt.key
-                                customIconPath = null
-                                customEmoji = ""
-                            },
-                        ) {
-                            Icon(opt.icon, opt.label, modifier = Modifier.padding(8.dp).size(20.dp))
-                        }
-                    }
-                }
-                Text("Icon Size: ${iconSizeDp}dp")
-                Slider(
-                    value = iconSizeDp.toFloat(),
-                    onValueChange = { iconSizeDp = it.roundToInt() },
-                    valueRange = 18f..42f,
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = {
-                    val saved = (initialCategory ?: CategoryEntity(
-                        name = name.trim(),
-                        categoryType = "CUSTOM",
-                        isCustom = true,
-                        sortOrder = 900,
-                    )).copy(
-                        name = name.trim(),
-                        iconKey = iconKey,
-                        customIconPath = customIconPath,
-                        customEmoji = customEmoji.takeIf { it.isNotBlank() },
-                        colorHex = colorHex,
-                        backgroundColorHex = (0x22000000L or (colorHex and 0x00FFFFFFL)),
-                        iconSizeDp = iconSizeDp,
-                    )
-                    onSave(saved)
-                },
-                modifier = Modifier.testTag("save_category_button"),
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)

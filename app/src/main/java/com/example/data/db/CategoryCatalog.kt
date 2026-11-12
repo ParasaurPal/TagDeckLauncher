@@ -14,7 +14,14 @@ data class CategorySeed(
 )
 
 object PlayCategoryCatalog {
+    const val SYSTEM_ALL_ID = -1L
+    const val SYSTEM_FAVORITES_ID = -2L
     const val GAMES_PARENT_ID = 100L
+
+    val systemDockCategories: List<CategorySeed> = listOf(
+        CategorySeed(SYSTEM_ALL_ID, "All", "apps", 0xFF38BDF8L, "SYSTEM_ALL"),
+        CategorySeed(SYSTEM_FAVORITES_ID, "Favorites", "star", 0xFFFBBF24L, "SYSTEM_FAVORITES"),
+    )
 
     val appCategories: List<CategorySeed> = listOf(
         CategorySeed(1L, "Art & Design", "palette", 0xFFF472B6L, "APP"),
@@ -74,6 +81,8 @@ object PlayCategoryCatalog {
     )
 
     val allSeedCategories: List<CategorySeed> = appCategories + gamesParent + gameSubcategories
+
+    val allDockAndPlaySeedCategories: List<CategorySeed> = systemDockCategories + allSeedCategories
 }
 
 data class ClassificationResult(
