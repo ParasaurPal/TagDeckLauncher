@@ -48,6 +48,17 @@ fun appIndexLetter(displayName: String): String {
     return if (first in 'A'..'Z') first.toString() else "#"
 }
 
+/** Returns the closest populated index letter for the current filtered app set. */
+fun nearestActiveAlphabetLetter(targetIndex: Int, activeLetters: Set<String>): String? {
+    val clampedIndex = targetIndex.coerceIn(0, NiagaraAlphabetLetters.lastIndex)
+    return NiagaraAlphabetLetters
+        .withIndex()
+        .asSequence()
+        .filter { it.value in activeLetters }
+        .minByOrNull { kotlin.math.abs(it.index - clampedIndex) }
+        ?.value
+}
+
 @Composable
 fun NiagaraWaveAlphabetBar(
     activeLetters: Set<String>,
@@ -77,12 +88,7 @@ fun NiagaraWaveAlphabetBar(
             .coerceIn(0, count - 1)
         // Empty initials are not dead stops: snap to the nearest letter that
         // actually exists in the currently filtered app collection.
-        val letter = NiagaraAlphabetLetters
-            .withIndex()
-            .filter { it.value in activeLetters }
-            .minByOrNull { kotlin.math.abs(it.index - targetIndex) }
-            ?.value
-            ?: return
+        val letter = nearestActiveAlphabetLetter(targetIndex, activeLetters) ?: return
         if (letter != activeLetter) {
             activeLetter = letter
             if (hapticsEnabled) {
