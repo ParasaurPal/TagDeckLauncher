@@ -569,6 +569,60 @@ private fun WindowPopupHost(
     }
 }
 
+@Composable
+private fun TagIconDock(
+    tags: List<TagEntity>,
+    selectedTagId: Long?,
+    onSelect: (Long) -> Unit,
+    darkSurface: Boolean = false,
+) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+    ) {
+        items(tags, key = { "tag_dock_${it.tagId}" }) { item ->
+            val tint = Color(item.colorHex)
+            val selected = item.tagId == selectedTagId
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSelect(item.tagId) }
+                    .background(if (selected) tint.copy(alpha = 0.22f) else Color.Transparent)
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                    .testTag("sidebar_tag_icon_${item.tagId}"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(tint.copy(alpha = if (darkSurface) 0.28f else 0.16f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TagBadgeIcon(
+                        iconKey = item.iconKey,
+                        customImagePath = item.customImagePath,
+                        colorHex = item.colorHex,
+                        size = 30.dp,
+                        circular = false,
+                    )
+                }
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (darkSurface) Color.White else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TagTriggeredSidebarContent(
@@ -674,61 +728,6 @@ fun TagTriggeredSidebarContent(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-
-            if (childTags.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(childTags, key = { "child_${it.tagId}" }) { sub ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(sub.colorHex).copy(alpha = 0.22f),
-                            modifier = Modifier.clickable { onSwitchToTag(sub.tagId) },
-                        ) {
-                            Text(
-                                text = "↳ ${sub.name}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(sub.colorHex),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (allTags.size > 1) {
-                Spacer(Modifier.height(10.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 2.dp),
-                ) {
-                    items(allTags, key = { it.tagId }) { other ->
-                        val selected = other.tagId == tag.tagId
-                        val chipColor = Color(other.colorHex)
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = if (selected) chipColor.copy(alpha = 0.24f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
-                            border = BorderStroke(1.dp, if (selected) chipColor else Color.Transparent),
-                            modifier = Modifier
-                                .testTag("sidebar_switch_tag_${other.tagId}")
-                                .clickable { onSwitchToTag(other.tagId) },
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                TagBadgeIcon(other.iconKey, other.customImagePath, other.colorHex, 20.dp, circular = true)
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = other.name,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (selected) chipColor else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                )
-                            }
-                        }
-                    }
-                }
             }
 
             Spacer(Modifier.height(10.dp))
@@ -847,6 +846,15 @@ fun TagTriggeredSidebarContent(
                         }
                     }
                 }
+            }
+
+            if (allTags.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                TagIconDock(
+                    tags = allTags,
+                    selectedTagId = tag.tagId,
+                    onSelect = onSwitchToTag,
+                )
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -1071,27 +1079,6 @@ fun GenericSidebarContent(
                             }
                         }
                     }
-                } else if (allTags.isNotEmpty()) {
-                    Spacer(Modifier.height(10.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(allTags, key = { it.tagId }) { tag ->
-                            val c = Color(tag.colorHex)
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = c.copy(alpha = 0.18f),
-                                modifier = Modifier.clickable { onSwitchToTag(tag.tagId) },
-                            ) {
-                                Text(
-                                    text = tag.name,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = c,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-
                 Spacer(Modifier.height(10.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(10.dp))
@@ -1169,6 +1156,16 @@ fun GenericSidebarContent(
                             }
                         }
                     }
+                }
+
+                if (allTags.isNotEmpty()) {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                    TagIconDock(
+                        tags = allTags,
+                        selectedTagId = null,
+                        onSelect = onSwitchToTag,
+                        darkSurface = true,
+                    )
                 }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
