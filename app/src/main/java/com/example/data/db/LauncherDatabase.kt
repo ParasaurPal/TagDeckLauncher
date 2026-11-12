@@ -38,7 +38,11 @@ abstract class LauncherDatabase : RoomDatabase() {
                     context.applicationContext,
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
-                ).fallbackToDestructiveMigration(dropAllTables = true)
+                )
+                    // Never silently erase a user's launcher configuration when a schema
+                    // migration is missing. Add an explicit Room Migration before increasing
+                    // the database version; until then, fail visibly rather than deleting
+                    // pages, tags, app assignments, images, and settings.
                     .build()
                     .also { INSTANCE = it }
             }
