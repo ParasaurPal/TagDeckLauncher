@@ -50,20 +50,27 @@ jobs:
       - name: Build debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
 
-      - name: Upload APK artifact
+      - name: Package source code ZIP
+        run: git archive --format=zip --output=TagDeckLauncher-source.zip HEAD
+
+      - name: Upload APK and source ZIP artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TagDeckLauncher-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: TagDeckLauncher-build
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            TagDeckLauncher-source.zip
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish latest APK download
+      - name: Publish latest APK and source ZIP downloads
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest TagDeckLauncher APK
-          body: "Automatically updated installable debug APK from the latest successful push to main."
-          files: app/build/outputs/apk/debug/*.apk
+          body: "Automatically updated installable APK and complete tracked source-code ZIP from the latest successful push to main."
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            TagDeckLauncher-source.zip
           overwrite_files: true
           make_latest: true
