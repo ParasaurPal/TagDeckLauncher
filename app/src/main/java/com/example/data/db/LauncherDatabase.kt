@@ -50,7 +50,8 @@ abstract class LauncherDatabase : RoomDatabase() {
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
                 ).addMigrations(MIGRATION_2_3)
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    // Preserve launcher layouts, tags, images, and settings if a migration is missing.
+                    // Add an explicit Room Migration before increasing the schema version.
                     .build()
                     .also { INSTANCE = it }
             }
