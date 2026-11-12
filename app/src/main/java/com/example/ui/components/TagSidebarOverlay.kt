@@ -111,6 +111,7 @@ fun ActiveOverlayHost(
     onUpdateTagLayout: (TagEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
     onToggleSidebarPin: (Long, Boolean) -> Unit,
+    onSaveSidebar: (SidebarConfigEntity) -> Unit = {},
     windowElementRenderer: @Composable (HomeElementEntity, Float, Float) -> Unit = { _, _, _ -> },
 ) {
     val visible = state.activeOverlay !is ActiveOverlay.None
@@ -480,6 +481,7 @@ fun ActiveOverlayHost(
                                     },
                                     onAppLongPress = onAppLongPress,
                                     onTogglePin = { onToggleSidebarPin(cfg.sidebarId, !cfg.pinned) },
+                                    onUpdateLayout = { mode, size -> onSaveSidebar(cfg.copy(layoutMode = mode, iconSizeDp = size)) },
                                     onClose = onDismiss,
                                 )
                             }
@@ -947,6 +949,7 @@ fun GenericSidebarContent(
     onLaunchApp: (AppEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
     onEditAction: (() -> Unit)? = null,
+    onUpdateLayout: ((String, Int) -> Unit)? = null,
     onTogglePin: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -1177,6 +1180,7 @@ fun GenericSidebarContent(
                     Row {
                         IconButton(onClick = {
                             layoutMode = if (layoutMode == "GRID") "LIST" else "GRID"
+                            onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {
                             Icon(
                                 imageVector = if (layoutMode == "GRID") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
@@ -1184,10 +1188,16 @@ fun GenericSidebarContent(
                                 tint = Color.White,
                             )
                         }
-                        IconButton(onClick = { iconSize = (iconSize - 6).coerceAtLeast(36) }) {
+                        IconButton(onClick = {
+                            iconSize = (iconSize - 6).coerceAtLeast(36)
+                            onUpdateLayout?.invoke(layoutMode, iconSize)
+                        }) {
                             Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = Color.White)
                         }
-                        IconButton(onClick = { iconSize = (iconSize + 6).coerceAtMost(72) }) {
+                        IconButton(onClick = {
+                            iconSize = (iconSize + 6).coerceAtMost(72)
+                            onUpdateLayout?.invoke(layoutMode, iconSize)
+                        }) {
                             Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = Color.White)
                         }
                     }
