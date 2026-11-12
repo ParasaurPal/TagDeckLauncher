@@ -789,7 +789,13 @@ class LauncherRepository(
 
         if (payload.windows.isNotEmpty()) {
             dao.deleteAllWindows()
-            payload.windows.forEach { dao.upsertWindow(it) }
+            payload.windows.forEach { window ->
+                dao.upsertWindow(
+                    window.copy(
+                        backgroundImagePath = window.backgroundImagePath?.let { remappedPaths[it] ?: it },
+                    )
+                )
+            }
         }
         if (payload.pages.isNotEmpty()) {
             dao.deleteAllHomeElements()
@@ -813,7 +819,13 @@ class LauncherRepository(
             }
         }
         if (payload.gestures.isNotEmpty()) dao.upsertGestures(payload.gestures)
-        payload.backgroundPresets.forEach { dao.upsertBackgroundPreset(it) }
+        payload.backgroundPresets.forEach { preset ->
+            dao.upsertBackgroundPreset(
+                preset.copy(
+                    imagePath = preset.imagePath?.let { remappedPaths[it] ?: it },
+                )
+            )
+        }
         prefsRepo.updateSettings {
             payload.settings.copy(
                 wallpaperCustomPath = payload.settings.wallpaperCustomPath?.let { remappedPaths[it] ?: it },

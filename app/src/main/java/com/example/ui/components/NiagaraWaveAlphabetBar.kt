@@ -48,6 +48,17 @@ fun appIndexLetter(displayName: String): String {
     return if (first in 'A'..'Z') first.toString() else "#"
 }
 
+/** Returns the closest populated index letter for the current filtered app set. */
+fun nearestActiveAlphabetLetter(targetIndex: Int, activeLetters: Set<String>): String? {
+    val clampedIndex = targetIndex.coerceIn(0, NiagaraAlphabetLetters.lastIndex)
+    return NiagaraAlphabetLetters
+        .withIndex()
+        .asSequence()
+        .filter { it.value in activeLetters }
+        .minByOrNull { kotlin.math.abs(it.index - clampedIndex) }
+        ?.value
+}
+
 @Composable
 fun NiagaraWaveAlphabetBar(
     activeLetters: Set<String>,
@@ -72,8 +83,12 @@ fun NiagaraWaveAlphabetBar(
     fun handlePointerY(y: Float) {
         touchY = y.coerceIn(0f, containerHeightPx.toFloat())
         val count = NiagaraAlphabetLetters.size
-        val idx = ((touchY / containerHeightPx.toFloat()) * count).toInt().coerceIn(0, count - 1)
-        val letter = NiagaraAlphabetLetters[idx]
+        val targetIndex = ((touchY / containerHeightPx.toFloat()) * count)
+            .toInt()
+            .coerceIn(0, count - 1)
+        // Empty initials are not dead stops: snap to the nearest letter that
+        // actually exists in the currently filtered app collection.
+        val letter = nearestActiveAlphabetLetter(targetIndex, activeLetters) ?: return
         if (letter != activeLetter) {
             activeLetter = letter
             if (hapticsEnabled) {
@@ -138,8 +153,8 @@ fun NiagaraWaveAlphabetBar(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val count = NiagaraAlphabetLetters.size
-            val selectedIdx = if (isTouching && touchY >= 0f) {
-                (touchY / containerHeightPx.toFloat()) * (count - 1)
+            val selectedIdx = if (isTouching && activeLetter != null) {
+                NiagaraAlphabetLetters.indexOf(activeLetter!!).toFloat().coerceAtLeast(0f)
             } else -10f
 
             NiagaraAlphabetLetters.forEachIndexed { index, letter ->

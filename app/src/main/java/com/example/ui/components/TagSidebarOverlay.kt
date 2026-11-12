@@ -430,6 +430,8 @@ fun ActiveOverlayHost(
                                     customImagePath = linkedTag?.customImagePath,
                                     backgroundColorHex = cfg.backgroundColorHex,
                                     backgroundImagePath = cfg.backgroundImagePath,
+                                    backgroundGradientEndHex = cfg.backgroundGradientEndHex,
+                                    backgroundBlurDp = cfg.backgroundBlurDp,
                                     side = cfg.side,
                                     widthFraction = cfg.widthFraction,
                                     heightFraction = cfg.heightFraction,
@@ -894,6 +896,8 @@ fun GenericSidebarContent(
     customImagePath: String?,
     backgroundColorHex: Long,
     backgroundImagePath: String?,
+    backgroundGradientEndHex: Long? = null,
+    backgroundBlurDp: Float = 0f,
     side: String = "LEFT",
     widthFraction: Float,
     heightFraction: Float = 0.72f,
@@ -939,20 +943,22 @@ fun GenericSidebarContent(
     Surface(
         modifier = sizeModifier,
         shape = shape,
-        color = Color(backgroundColorHex),
+        color = Color.Transparent,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
         shadowElevation = 18.dp,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (!backgroundImagePath.isNullOrBlank() && File(backgroundImagePath).exists()) {
-                AsyncImage(
-                    model = File(backgroundImagePath),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.35f,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            SurfaceBackgroundLayer(
+                bgType = when {
+                    backgroundGradientEndHex != null -> "GRADIENT"
+                    !backgroundImagePath.isNullOrBlank() -> "IMAGE"
+                    else -> "SOLID"
+                },
+                colorHex = backgroundColorHex,
+                gradientEndHex = backgroundGradientEndHex,
+                imagePath = backgroundImagePath,
+                blurDp = backgroundBlurDp,
+            )
 
             Column(
                 modifier = Modifier
