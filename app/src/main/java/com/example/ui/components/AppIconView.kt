@@ -52,6 +52,7 @@ import kotlin.math.roundToInt
 val LocalIconPackOrder = staticCompositionLocalOf<List<String>> { emptyList() }
 val LocalNotificationBadgesEnabled = staticCompositionLocalOf { false }
 val LocalLineIconProfiles = staticCompositionLocalOf<Map<String, LineIconProfile>> { emptyMap() }
+val LocalDefaultLineIconProfile = staticCompositionLocalOf<LineIconProfile?> { null }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
     "CIRCLE" -> CircleShape
@@ -71,7 +72,7 @@ fun AppIconView(
 ) {
     val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
-    val lineProfile = LocalLineIconProfiles.current[app.packageName]
+    val lineProfile = LocalLineIconProfiles.current[app.packageName] ?: LocalDefaultLineIconProfile.current
     val showNotificationBadges = LocalNotificationBadgesEnabled.current
     val notificationCounts by NotificationBadgeStore.counts.collectAsState()
     val notificationCount = if (showNotificationBadges) notificationCounts[app.packageName] ?: 0 else 0
