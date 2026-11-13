@@ -197,6 +197,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("json", "export", "import", "save", "restore"),
             entries = listOf(
                 entry("backup_restore", SECTION_BACKUP, "Export & Restore JSON Backup", "Save or restore pages, widgets, windows, tags, and settings", listOf("backup", "restore", "export", "import", "json")),
+                entry("cloud_backup", SECTION_BACKUP, "Automatic Cloud Backup", "Choose any connected cloud document provider and schedule backups every 12 hours", listOf("cloud", "automatic", "sync", "drive", "dropbox", "onedrive", "backup schedule")),
             ),
         ),
         section(
