@@ -685,6 +685,7 @@ fun AppActionAndCustomizeDialog(
     onUninstall: () -> Unit,
     onEditLineIcon: () -> Unit,
     onLaunchApp: () -> Unit = {},
+    onAddShortcutToHome: (String, String) -> Unit = { _, _ -> },
     appLocked: Boolean = false,
     onToggleAppLock: () -> Unit = {},
     onDismiss: () -> Unit,
@@ -842,17 +843,28 @@ fun AppActionAndCustomizeDialog(
                 if (appShortcuts.isNotEmpty()) {
                     Text("App Shortcuts", style = MaterialTheme.typography.labelLarge)
                     appShortcuts.forEach { shortcut ->
-                        OutlinedButton(
-                            onClick = {
-                                if (appLocked) {
-                                    onLaunchApp()
-                                } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id, app.componentName)) {
-                                    onLaunchApp()
-                                }
-                            },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(shortcut.shortLabel?.toString() ?: shortcut.id)
+                            OutlinedButton(
+                                onClick = {
+                                    if (appLocked) {
+                                        onLaunchApp()
+                                    } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id, app.componentName)) {
+                                        onLaunchApp()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(shortcut.shortLabel?.toString() ?: shortcut.id, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            TextButton(onClick = {
+                                onAddShortcutToHome(shortcut.id, shortcut.shortLabel?.toString() ?: shortcut.id)
+                            }) {
+                                Text("Add to Home")
+                            }
                         }
                     }
                 }
