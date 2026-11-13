@@ -313,7 +313,7 @@ fun ActiveOverlayHost(
                                     isPinned = false,
                                     canPin = false,
                                     allTags = state.allTags,
-                                    quickSubChips = subCategories.map { it.categoryId to it.name },
+                                    quickCategories = subCategories,
                                     onClickSubChip = onSwitchToCategory,
                                     apps = matchingApps,
                                     appDiscovery = appDiscovery,
@@ -622,6 +622,32 @@ private fun TagIconDock(
     }
 }
 
+
+@Composable
+private fun CategoryIconDock(
+    categories: List<CategoryEntity>,
+    onSelect: (Long) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+    ) {
+        items(categories, key = { "category_dock_${it.categoryId}" }) { category ->
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSelect(category.categoryId) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                    .testTag("sidebar_category_icon_${category.categoryId}"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CategoryBadgeIcon(category = category, size = 40.dp)
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -949,7 +975,7 @@ fun GenericSidebarContent(
     isPinned: Boolean,
     canPin: Boolean,
     allTags: List<TagEntity>,
-    quickSubChips: List<Pair<Long, String>> = emptyList(),
+    quickCategories: List<CategoryEntity> = emptyList(),
     onClickSubChip: (Long) -> Unit = {},
     apps: List<AppEntity>,
     appDiscovery: AppDiscoveryManager,
@@ -1061,25 +1087,6 @@ fun GenericSidebarContent(
                     }
                 }
 
-                if (quickSubChips.isNotEmpty()) {
-                    Spacer(Modifier.height(10.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(quickSubChips, key = { it.first }) { (catId, name) ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = accentColor.copy(alpha = 0.22f),
-                                modifier = Modifier.clickable { onClickSubChip(catId) },
-                            ) {
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = accentColor,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                )
-                            }
-                        }
-                    }
-                }
                 Spacer(Modifier.height(10.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(10.dp))
@@ -1157,6 +1164,14 @@ fun GenericSidebarContent(
                             }
                         }
                     }
+                }
+
+                if (quickCategories.isNotEmpty()) {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                    CategoryIconDock(
+                        categories = quickCategories,
+                        onSelect = onClickSubChip,
+                    )
                 }
 
                 if (allTags.isNotEmpty()) {
