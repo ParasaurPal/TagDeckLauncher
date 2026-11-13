@@ -331,6 +331,7 @@ object BackupManager {
             put("blackIconOutlineColorHex", s.blackIconOutlineColorHex)
             put("blackIconOutlineWidthDp", s.blackIconOutlineWidthDp.toDouble())
             put("blackIconDarknessThreshold", s.blackIconDarknessThreshold.toDouble())
+            put("lineIconProfilesJson", s.lineIconProfilesJson)
         })
 
         return root.toString(2)
@@ -659,6 +660,7 @@ object BackupManager {
             blackIconOutlineColorHex = so.optLong("blackIconOutlineColorHex", IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX),
             blackIconOutlineWidthDp = so.optDouble("blackIconOutlineWidthDp", IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP.toDouble()).toFloat(),
             blackIconDarknessThreshold = so.optDouble("blackIconDarknessThreshold", IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD.toDouble()).toFloat(),
+            lineIconProfilesJson = so.optString("lineIconProfilesJson", ""),
             seededDefaults = true,
         )
 
