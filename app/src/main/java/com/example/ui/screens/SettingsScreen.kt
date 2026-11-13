@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -200,6 +201,10 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    val calendarAccessLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        onShowMessage(if (granted) "Calendar access enabled for upcoming events" else "Calendar access was not granted")
     }
 
     val cloudBackupFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -1507,6 +1512,12 @@ fun SettingsScreen(
                         onUpdateSettings { it.copy(hapticFeedbackEnabled = v) }
                     }
 
+                    OutlinedButton(
+                        onClick = { calendarAccessLauncher.launch(Manifest.permission.READ_CALENDAR) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Allow Calendar Events in At-a-Glance")
+                    }
                     OutlinedButton(
                         onClick = {
                             runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
