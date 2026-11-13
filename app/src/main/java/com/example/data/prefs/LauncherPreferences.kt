@@ -107,6 +107,8 @@ data class LauncherSettings(
     val lineIconDefaultOutlineColorHex: Long = 0xFF000000L,
     val lineIconDefaultOutlineWidthPx: Float = 1.2f,
     val lockedAppsCsv: String = "",
+    val cloudBackupEnabled: Boolean = false,
+    val cloudBackupTreeUri: String? = null,
     val seededDefaults: Boolean = false,
 ) {
     fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
@@ -224,6 +226,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val LINE_ICON_DEFAULT_OUTLINE_COLOR = longPreferencesKey("line_icon_default_outline_color")
         val LINE_ICON_DEFAULT_OUTLINE_WIDTH = floatPreferencesKey("line_icon_default_outline_width")
         val LOCKED_APPS = stringPreferencesKey("locked_apps_csv")
+        val CLOUD_BACKUP_ENABLED = booleanPreferencesKey("cloud_backup_enabled")
+        val CLOUD_BACKUP_TREE_URI = stringPreferencesKey("cloud_backup_tree_uri")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -311,6 +315,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         lineIconDefaultOutlineColorHex = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] ?: 0xFF000000L,
         lineIconDefaultOutlineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] ?: 1.2f,
         lockedAppsCsv = prefs[Keys.LOCKED_APPS] ?: "",
+        cloudBackupEnabled = prefs[Keys.CLOUD_BACKUP_ENABLED] ?: false,
+        cloudBackupTreeUri = prefs[Keys.CLOUD_BACKUP_TREE_URI],
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -411,6 +417,9 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] = updated.lineIconDefaultOutlineColorHex
             prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] = updated.lineIconDefaultOutlineWidthPx
             prefs[Keys.LOCKED_APPS] = updated.lockedAppsCsv
+            prefs[Keys.CLOUD_BACKUP_ENABLED] = updated.cloudBackupEnabled
+            if (updated.cloudBackupTreeUri != null) prefs[Keys.CLOUD_BACKUP_TREE_URI] = updated.cloudBackupTreeUri
+            else prefs.remove(Keys.CLOUD_BACKUP_TREE_URI)
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }
