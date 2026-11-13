@@ -41,6 +41,7 @@ import com.example.data.db.HomeElementEntity
 import com.example.data.db.TagEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.system.InstalledWidgetProvider
+import com.example.data.system.LineIconProfile
 import com.example.ui.components.ActiveOverlayHost
 import com.example.ui.components.AppActionAndCustomizeDialog
 import com.example.ui.components.AppDrawerOverlay
@@ -48,7 +49,7 @@ import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.LocalIconPackOrder
 import com.example.ui.components.LocalNotificationBadgesEnabled
-import com.example.ui.components.LocalLineIconProfilesJson
+import com.example.ui.components.LocalLineIconProfiles
 import com.example.ui.components.LineIconStudioDialog
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
@@ -289,7 +290,7 @@ private fun TagDeckRoot(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
-        LocalLineIconProfilesJson provides state.settings.lineIconProfilesJson,
+        LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
