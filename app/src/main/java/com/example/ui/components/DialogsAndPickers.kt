@@ -996,6 +996,13 @@ fun WidgetPickerDialog(
                 ) {
                     Text("Add Live Weather Widget")
                 }
+                OutlinedButton(
+                    onClick = { onPickBuiltinType("AT_A_GLANCE_WIDGET", weatherCity.trim(), 250f, 180f) },
+                    enabled = weatherCity.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add At-a-Glance (Clock + Weather)")
+                }
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
