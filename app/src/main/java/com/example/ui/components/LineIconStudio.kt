@@ -93,6 +93,7 @@ fun LineIconStudioDialog(
         }
     }
 
+    val edgeSnapper = remember(sourceIcon) { sourceIcon?.let { LineIconProcessor.createSnapper(it) } }
     var profile by remember(app.packageName, initialProfile) {
         mutableStateOf(initialProfile ?: LineIconProfile())
     }
@@ -105,9 +106,7 @@ fun LineIconStudioDialog(
             (offset.x / width.coerceAtLeast(1f)).coerceIn(0f, 1f),
             (offset.y / height.coerceAtLeast(1f)).coerceIn(0f, 1f),
         )
-        if (profile.snapToEdges && sourceIcon != null) {
-            point = LineIconProcessor.snapToEdge(sourceIcon!!, point)
-        }
+        if (profile.snapToEdges) point = edgeSnapper?.invoke(point) ?: point
         return point
     }
 
