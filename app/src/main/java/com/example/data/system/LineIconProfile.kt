@@ -113,6 +113,23 @@ object LineIconProcessor {
         val pixels = IntArray(edgeMap.width * edgeMap.height)
         if (profile.autoEdgesEnabled) {
             val lineColor = profile.lineColorHex.toInt()
+            if (profile.outlineEnabled) {
+                val outlineColor = profile.outlineColorHex.toInt()
+                val radius = profile.outlineWidthPx.toInt().coerceIn(1, 4)
+                for (i in edgeMap.edges.indices) {
+                    if (!edgeMap.edges[i]) continue
+                    val x = i % edgeMap.width
+                    val y = i / edgeMap.width
+                    for (dy in -radius..radius) for (dx in -radius..radius) {
+                        if (dx * dx + dy * dy > radius * radius + 1) continue
+                        val nx = x + dx
+                        val ny = y + dy
+                        if (nx in 0 until edgeMap.width && ny in 0 until edgeMap.height) {
+                            pixels[ny * edgeMap.width + nx] = outlineColor
+                        }
+                    }
+                }
+            }
             for (i in edgeMap.edges.indices) if (edgeMap.edges[i]) pixels[i] = lineColor
             out.setPixels(pixels, 0, edgeMap.width, 0, 0, edgeMap.width, edgeMap.height)
         }
