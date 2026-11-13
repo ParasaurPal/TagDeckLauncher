@@ -684,6 +684,8 @@ fun AppActionAndCustomizeDialog(
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onEditLineIcon: () -> Unit,
+    appLocked: Boolean = false,
+    onToggleAppLock: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -827,6 +829,13 @@ fun AppActionAndCustomizeDialog(
                     Icon(Icons.Rounded.LocalOffer, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Tags (${appWithTags.tags.size}): ${appWithTags.tags.joinToString { it.name }.ifBlank { "None" }}")
+                }
+
+                OutlinedButton(
+                    onClick = onToggleAppLock,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (appLocked) "Disable App Lock" else "Require Device Authentication to Open")
                 }
 
                 if (appShortcuts.isNotEmpty()) {
