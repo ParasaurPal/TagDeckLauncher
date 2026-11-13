@@ -108,7 +108,17 @@ data class LauncherSettings(
     val lineIconDefaultOutlineWidthPx: Float = 1.2f,
     val seededDefaults: Boolean = false,
 ) {
-    fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(\n        lineColorHex = lineIconDefaultColorHex,\n        lineWidthPx = lineIconDefaultLineWidthPx,\n        outlineEnabled = lineIconDefaultOutlineEnabled,\n        outlineColorHex = lineIconDefaultOutlineColorHex,\n        outlineWidthPx = lineIconDefaultOutlineWidthPx,\n    )\n\n    fun lineIconProfile(packageName: String): LineIconProfile? =\n        LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName) ?: defaultLineIconProfile().takeIf { lineIconsEnabled }\n
+    fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
+        lineColorHex = lineIconDefaultColorHex,
+        lineWidthPx = lineIconDefaultLineWidthPx,
+        outlineEnabled = lineIconDefaultOutlineEnabled,
+        outlineColorHex = lineIconDefaultOutlineColorHex,
+        outlineWidthPx = lineIconDefaultOutlineWidthPx,
+    )
+
+    fun lineIconProfile(packageName: String): LineIconProfile? =
+        LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName) ?: defaultLineIconProfile().takeIf { lineIconsEnabled }
+
     fun iconPackOrder(): List<String> =
         iconPackOrderCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
