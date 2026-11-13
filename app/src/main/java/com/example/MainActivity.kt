@@ -432,6 +432,30 @@ private fun TagDeckRoot(
                             settings.copy(lockedAppsCsv = packages.sorted().joinToString(","))
                         }
                     },
+                    onAddShortcutToHome = { app, shortcutId, shortcutLabel ->
+                        val pageId = state.homePages.getOrNull(state.currentPageIndex)?.pageId
+                            ?: state.homePages.firstOrNull()?.pageId
+                        if (pageId != null) {
+                            viewModel.saveHomeElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    type = "APP_SHORTCUT",
+                                    targetPackageName = app.packageName,
+                                    label = shortcutLabel,
+                                    folderAppPackagesCsv = shortcutId,
+                                    xFraction = 0.12f,
+                                    yFraction = 0.12f,
+                                    widthDp = 88f,
+                                    heightDp = 96f,
+                                    backgroundColorHex = 0x00000000L,
+                                ),
+                                selectAfter = false,
+                            )
+                            viewModel.showMessage("Added $shortcutLabel to the home screen")
+                        } else {
+                            viewModel.showMessage("Create a home page before adding shortcuts")
+                        }
+                    },
                     onImportImage = { uri -> viewModel.importImagePreservingOriginal(uri, "Icons") },
                 )
             }
