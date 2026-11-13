@@ -3,6 +3,10 @@ package com.example.ui.screens
 import android.content.Context
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
+import android.Manifest
+import android.content.pm.PackageManager
+import android.provider.CalendarContract
+import androidx.core.content.ContextCompat
 import android.os.Process
 import android.view.KeyEvent
 import androidx.compose.foundation.Canvas
@@ -604,11 +608,42 @@ fun RecentAppsWidgetContent(
 }
 
 
+private fun readUpcomingCalendarEvents(context: Context): List<String> {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return emptyList()
+    val start = System.currentTimeMillis()
+    val end = start + 7L * 24L * 60L * 60L * 1000L
+    val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().apply {
+        android.content.ContentUris.appendId(this, start)
+        android.content.ContentUris.appendId(this, end)
+    }.build()
+    return runCatching {
+        context.contentResolver.query(
+            uri,
+            arrayOf(CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN),
+            "${CalendarContract.Instances.BEGIN} >= ?",
+            arrayOf(start.toString()),
+            "${CalendarContract.Instances.BEGIN} ASC",
+        )?.use { cursor ->
+            val titleIndex = cursor.getColumnIndex(CalendarContract.Instances.TITLE)
+            val beginIndex = cursor.getColumnIndex(CalendarContract.Instances.BEGIN)
+            buildList {
+                while (cursor.moveToNext() && size < 3) {
+                    val title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: continue
+                    val begin = cursor.getLong(beginIndex)
+                    val time = SimpleDateFormat("EEE h:mm a", Locale.getDefault()).format(Date(begin))
+                    add("$time  $title")
+                }
+            }
+        }.orEmpty()
+    }.getOrDefault(emptyList())
+}
+
 @Composable
 fun AtAGlanceWidgetContent(element: HomeElementEntity) {
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var weather by remember(element.elementId, element.label) { mutableStateOf<WeatherSnapshot?>(null) }
     var weatherError by remember(element.elementId, element.label) { mutableStateOf<String?>(null) }
+    var upcomingEvents by remember(element.elementId) { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(Unit) {
         while (true) {
             nowMillis = System.currentTimeMillis()
@@ -627,6 +662,12 @@ fun AtAGlanceWidgetContent(element: HomeElementEntity) {
             weatherError = "Set a city in the widget label"
         }
     }
+    LaunchedEffect(element.elementId) {
+        while (true) {
+            upcomingEvents = withContext(Dispatchers.IO) { readUpcomingCalendarEvents(LocalContext.current) }
+            delay(30L * 60L * 1000L)
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize().padding(14.dp),
         verticalArrangement = Arrangement.Center,
@@ -640,6 +681,9 @@ fun AtAGlanceWidgetContent(element: HomeElementEntity) {
             Text(current.condition, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
         } else {
             Text(weatherError ?: "Loading weather…", color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+        }
+        upcomingEvents.forEach { event ->
+            Text(event, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
