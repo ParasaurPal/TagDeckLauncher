@@ -102,6 +102,7 @@ import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.NotificationAccess
+import com.example.data.system.CloudBackupScheduler
 import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.IconOutlineProcessor
@@ -197,6 +198,22 @@ fun SettingsScreen(
                     onUpdateSettings { it.copy(wallpaperType = "CUSTOM_IMAGE", wallpaperCustomPath = path) }
                     onShowMessage("Wallpaper updated")
                 }
+            }
+        }
+    }
+
+    val cloudBackupFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+                onUpdateSettings { it.copy(cloudBackupTreeUri = uri.toString(), cloudBackupEnabled = true) }
+                CloudBackupScheduler.schedule(context)
+                onShowMessage("Automatic cloud backup enabled")
+            }.onFailure {
+                onShowMessage("Could not access that cloud folder")
             }
         }
     }
@@ -1582,6 +1599,33 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    HorizontalDivider()
+                    Text("Automatic Cloud Backup", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Choose a folder from any Android document provider (such as Drive, Dropbox, OneDrive, or local storage). TagDeck keeps its local data as the primary copy and writes a full JSON backup every 12 hours while the device is online.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ToggleRow("Enable automatic cloud backup", s.cloudBackupEnabled) { enabled ->
+                        if (!enabled) {
+                            onUpdateSettings { it.copy(cloudBackupEnabled = false) }
+                            CloudBackupScheduler.cancel(context)
+                        } else if (s.cloudBackupTreeUri.isNullOrBlank()) {
+                            cloudBackupFolderPicker.launch(null)
+                        } else {
+                            onUpdateSettings { it.copy(cloudBackupEnabled = true) }
+                            CloudBackupScheduler.schedule(context)
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { cloudBackupFolderPicker.launch(null) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (s.cloudBackupTreeUri.isNullOrBlank()) "Choose Cloud Backup Folder" else "Change Cloud Backup Folder")
+                    }
+                    if (!s.cloudBackupTreeUri.isNullOrBlank()) {
+                        Text("Backup destination selected. The latest file is TagDeck-AutoBackup.json.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { exportBackupLauncher.launch("tagdeck_backup.json") },
