@@ -1489,6 +1489,16 @@ fun SettingsScreen(
                         onUpdateSettings { it.copy(hapticFeedbackEnabled = v) }
                     }
 
+                    OutlinedButton(
+                        onClick = {
+                            runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+                                .onFailure { onShowMessage("Could not open Usage Access settings") }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Configure App Usage Access")
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
