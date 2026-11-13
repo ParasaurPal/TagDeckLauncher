@@ -8,6 +8,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.example.TagDeckApplication
@@ -62,6 +64,14 @@ object CloudBackupScheduler {
             CloudBackupWorker.UNIQUE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request,
+        )
+        val initialBackup = OneTimeWorkRequestBuilder<CloudBackupWorker>()
+            .setConstraints(constraints)
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "tagdeck_initial_cloud_backup",
+            ExistingWorkPolicy.KEEP,
+            initialBackup,
         )
     }
 
