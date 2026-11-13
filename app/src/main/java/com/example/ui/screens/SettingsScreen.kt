@@ -1,6 +1,16 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Process
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -174,6 +184,25 @@ fun SettingsScreen(
     BackHandler { onBack() }
 
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var permissionRefresh by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) permissionRefresh++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val hasCalendarAccess = remember(permissionRefresh) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+    }
+    val hasUsageAccess = remember(permissionRefresh) {
+        runCatching {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+        }.getOrDefault(false)
+    }
+    val hasNotificationAccess = remember(permissionRefresh) { NotificationAccess.isEnabled(context) }
     val scope = rememberCoroutineScope()
     val s = state.settings
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
@@ -1512,21 +1541,59 @@ fun SettingsScreen(
                         onUpdateSettings { it.copy(hapticFeedbackEnabled = v) }
                     }
 
-                    OutlinedButton(
-                        onClick = { calendarAccessLauncher.launch(Manifest.permission.READ_CALENDAR) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Allow Calendar Events in At-a-Glance")
-                    }
+                    Text(
+                        "Optional access is requested only for the feature that uses it. You can change these choices later in Android Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     OutlinedButton(
                         onClick = {
-                            runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-                                .onFailure { onShowMessage("Could not open Usage Access settings") }
+                            if (!hasCalendarAccess) {
+                                calendarAccessLauncher.launch(Manifest.permission.READ_CALENDAR)
+                            } else {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                    )
+                                }.onFailure { onShowMessage("Could not open TagDeck app settings") }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Configure App Usage Access")
+                        Text(if (hasCalendarAccess) "Calendar Access: Granted · Manage" else "Allow Calendar Events in At-a-Glance")
                     }
+                    Text(
+                        if (hasCalendarAccess) "At-a-Glance can show upcoming calendar events."
+                        else "Calendar access is optional and is used only to display upcoming events in At-a-Glance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                    }
+                                )
+                            }.onFailure {
+                                runCatching {
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }.onFailure { onShowMessage("Could not open Usage Access settings") }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (hasUsageAccess) "Usage Access: Granted · Manage" else "Grant App Usage Access")
+                    }
+                    Text(
+                        if (hasUsageAccess) "The App Usage widget can display the most-used apps from the last 24 hours."
+                        else "Usage Access is optional and is used only by the App Usage widget. Android requires you to enable it in Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1540,9 +1607,15 @@ fun SettingsScreen(
                                 Text("Notification Badges", style = MaterialTheme.typography.bodyLarge)
                             }
                             Text(
-                                "Shows active counts only; TagDeck does not read notification text. Turning this off hides badges; revoke Notification Access in Android Settings to remove access.",
+                                "Shows active counts only; TagDeck does not read or store notification text. Android requires separate Notification Access approval. Turning this off hides badges; revoke access in Android Settings to remove permission.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                if (hasNotificationAccess) "Notification Access: Granted"
+                                else "Notification Access: Not granted",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (hasNotificationAccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Switch(
@@ -1553,7 +1626,7 @@ fun SettingsScreen(
                                     try {
                                         context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                                     } catch (_: Exception) {
-                                        onShowMessage("Could not open Android Notification Access settings")
+                                        onShowMessage("Could not open Notification Access settings. Open Android Settings and search for Notification access.")
                                     }
                                 } else if (enabled) {
                                     onShowMessage("Notification badges enabled")
