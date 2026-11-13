@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
 import android.content.Context
+import android.app.AppOpsManager
+import android.app.usage.UsageStatsManager
+import android.os.Process
 import android.view.KeyEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -491,6 +494,73 @@ fun WeatherWidgetContent(element: HomeElementEntity) {
         } else {
             Text(error ?: "Loading weather…", color = Color.White, style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text("Weather by Open-Meteo", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+
+private fun readTopAppUsage(context: Context): List<Pair<String, String>> {
+    val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return emptyList()
+    val allowed = runCatching {
+        appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+    }.getOrDefault(false)
+    if (!allowed) return emptyList()
+    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return emptyList()
+    val end = System.currentTimeMillis()
+    val stats = runCatching {
+        manager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 24L * 60L * 60L * 1000L, end)
+    }.getOrDefault(emptyList())
+    return stats.asSequence()
+        .filter { it.packageName != context.packageName && it.totalTimeInForeground > 0L }
+        .groupBy { it.packageName }
+        .map { (pkg, rows) -> pkg to rows.sumOf { it.totalTimeInForeground } }
+        .sortedByDescending { it.second }
+        .take(4)
+        .mapNotNull { (pkg, millis) ->
+            runCatching {
+                val app = context.packageManager.getApplicationInfo(pkg, 0)
+                val label = context.packageManager.getApplicationLabel(app).toString()
+                val minutes = (millis / 60_000L).coerceAtLeast(1L)
+                val duration = if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
+                label to duration
+            }.getOrNull()
+        }
+}
+
+@Composable
+fun AppUsageWidgetContent(element: HomeElementEntity) {
+    val context = LocalContext.current
+    var topApps by remember(element.elementId) { mutableStateOf(emptyList<Pair<String, String>>()) }
+    var hasAccess by remember(element.elementId) { mutableStateOf(false) }
+    LaunchedEffect(element.elementId) {
+        while (true) {
+            val result = withContext(Dispatchers.IO) {
+                val access = runCatching {
+                    val ops = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+                    ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+                }.getOrDefault(false)
+                access to if (access) readTopAppUsage(context) else emptyList()
+            }
+            hasAccess = result.first
+            topApps = result.second
+            delay(15L * 60L * 1000L)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("APP USAGE • LAST 24 HOURS", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        when {
+            !hasAccess -> Text("Enable Usage Access in Android Settings to see your most-used apps.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            topApps.isEmpty() -> Text("No app usage recorded yet.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            else -> topApps.forEach { (name, duration) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(name, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text(duration, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
     }
 }
