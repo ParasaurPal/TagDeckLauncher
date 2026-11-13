@@ -944,6 +944,7 @@ fun WidgetPickerDialog(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var weatherCity by remember { mutableStateOf("") }
     val filtered = remember(providers, query) {
         val q = query.trim().lowercase()
         if (q.isEmpty()) providers else providers.filter {
@@ -974,6 +975,22 @@ fun WidgetPickerDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
                 Text("TagDeck Built-in Live Widgets", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = weatherCity,
+                    onValueChange = { weatherCity = it },
+                    label = { Text("Weather widget city") },
+                    placeholder = { Text("e.g. Euless, Texas") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedButton(
+                    onClick = { onPickBuiltinType("WEATHER_WIDGET", weatherCity.trim(), 240f, 160f) },
+                    enabled = weatherCity.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add Live Weather Widget")
+                }
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
