@@ -50,6 +50,7 @@ import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.LocalIconPackOrder
 import com.example.ui.components.LocalNotificationBadgesEnabled
 import com.example.ui.components.LocalLineIconProfiles
+import com.example.ui.components.LocalDefaultLineIconProfile
 import com.example.ui.components.LineIconStudioDialog
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
@@ -291,6 +292,7 @@ private fun TagDeckRoot(
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
         LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
+        LocalDefaultLineIconProfile provides if (state.settings.lineIconsEnabled) state.settings.defaultLineIconProfile() else null,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
