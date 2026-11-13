@@ -59,6 +59,7 @@ import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -233,24 +234,42 @@ fun HomeScreen(
             ) {
                 if (!state.isEditMode) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(
+                        Button(
                             onClick = {
                                 onToggleEditMode(true)
                                 showAddElementDialog = true
                             },
-                            modifier = Modifier.testTag("home_add_element_button"),
+                            modifier = Modifier.weight(1f).testTag("home_add_element_button"),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                         ) {
-                            Icon(Icons.Rounded.Add, contentDescription = "Add to Home")
+                            Icon(Icons.Rounded.Add, contentDescription = null)
+                            Spacer(Modifier.width(5.dp))
+                            Text("Add")
                         }
-                        IconButton(
-                            onClick = { onNavigate(LauncherRoute.Settings) },
-                            modifier = Modifier.testTag("home_settings_button"),
+                        Button(
+                            onClick = {
+                                onToggleEditMode(true)
+                                showWidgetPicker = true
+                            },
+                            modifier = Modifier.weight(1f).testTag("home_widgets_button"),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                         ) {
-                            Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                            Icon(Icons.Rounded.GridOn, contentDescription = null)
+                            Spacer(Modifier.width(5.dp))
+                            Text("Widgets")
+                        }
+                        Button(
+                            onClick = { onNavigate(LauncherRoute.Settings) },
+                            modifier = Modifier.weight(1f).testTag("home_settings_button"),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                        ) {
+                            Icon(Icons.Rounded.Settings, contentDescription = null)
+                            Spacer(Modifier.width(5.dp))
+                            Text("Settings")
                         }
                     }
                 }
