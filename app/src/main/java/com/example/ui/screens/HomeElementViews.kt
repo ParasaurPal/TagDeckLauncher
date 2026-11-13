@@ -254,6 +254,7 @@ fun HomeElementBody(
                 "MEDIA_WIDGET" -> MediaWidgetContent(element)
                 "WEATHER_WIDGET" -> WeatherWidgetContent(element)
                 "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
+                "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
 
                 "TEXT_LABEL" -> {
