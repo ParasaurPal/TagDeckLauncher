@@ -22,6 +22,7 @@ import com.example.data.db.TagWithApps
 import com.example.data.prefs.LauncherPreferencesRepository
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.AppLockGateActivity
 import com.example.data.system.BackupManager
 import com.example.data.system.FullBackupPayload
 import com.example.data.system.ImageStorageManager
@@ -465,10 +466,15 @@ class LauncherRepository(
 
     // --- APP OPERATIONS ---
     suspend fun launchApp(app: AppEntity): Boolean {
-        val ok = appDiscovery.launchApp(app.packageName, app.componentName)
-        if (ok) {
-            dao.recordAppLaunch(app.packageName, System.currentTimeMillis())
+        val settings = prefsRepo.getSettingsOnce()
+        val lockedPackages = settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toSet()
+        val ok = if (app.packageName in lockedPackages) {
+            AppLockGateActivity.launch(appDiscovery.context, app.packageName)
+            true
+        } else {
+            appDiscovery.launchApp(app.packageName, app.componentName)
         }
+        if (ok) dao.recordAppLaunch(app.packageName, System.currentTimeMillis())
         return ok
     }
 
