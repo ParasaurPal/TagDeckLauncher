@@ -906,10 +906,11 @@ fun TagTriggeredSidebarContent(
                         Icon(
                             imageVector = if (tag.sidebarLayoutMode == "GRID") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
                             contentDescription = "Toggle grid or list",
-                            tint = MaterialTheme.colorScheme.onSurface,
+                            tint = Color.White,
                         )
                     }
                     IconButton(
+                        modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)),
                         onClick = {
                             val smaller = (tag.sidebarIconSizeDp - 6).coerceAtLeast(36)
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = smaller))
@@ -918,6 +919,7 @@ fun TagTriggeredSidebarContent(
                         Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = Color.White)
                     }
                     IconButton(
+                        modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)),
                         onClick = {
                             val larger = (tag.sidebarIconSizeDp + 6).coerceAtMost(76)
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = larger))
@@ -927,7 +929,7 @@ fun TagTriggeredSidebarContent(
                     }
                     IconButton(
                         onClick = onAssignApps,
-                        modifier = Modifier.testTag("sidebar_assign_apps_button"),
+                        modifier = Modifier.testTag("sidebar_assign_apps_button").clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)),
                     ) {
                         Icon(Icons.Rounded.Add, contentDescription = "Assign apps to tag", tint = Color.White)
                     }
