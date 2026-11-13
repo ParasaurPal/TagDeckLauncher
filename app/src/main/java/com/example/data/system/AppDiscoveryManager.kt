@@ -17,6 +17,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.os.UserHandle
+import android.os.UserManager
 import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -47,31 +48,46 @@ class AppDiscoveryManager(val context: Context) {
         val ownPackage = context.packageName
         val results = LinkedHashMap<String, DiscoveredApp>()
 
-        val activities = try {
-            launcherApps?.getActivityList(null, Process.myUserHandle()).orEmpty()
+        val profiles = try {
+            launcherApps?.getProfiles().orEmpty().sortedBy { it != Process.myUserHandle() }
         } catch (_: Exception) {
-            emptyList()
+            listOf(Process.myUserHandle())
         }
-
-        if (activities.isNotEmpty()) {
+        var discoveredAnyProfileApps = false
+        for (profile in profiles) {
+            val activities = try {
+                launcherApps?.getActivityList(null, profile).orEmpty()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            if (activities.isNotEmpty()) discoveredAnyProfileApps = true
+            val isWorkProfile = profile != Process.myUserHandle()
+            val serial = try {
+                (context.getSystemService(Context.USER_SERVICE) as UserManager).getSerialNumberForUser(profile)
+            } catch (_: Exception) {
+                -1L
+            }
             for (info in activities) {
                 val pkg = info.applicationInfo.packageName
                 if (pkg == ownPackage) continue
+                // A package installed in both profiles currently has one shared launcher record;
+                // personal-profile launch takes precedence, while work-only apps remain available.
                 if (!results.containsKey(pkg)) {
-                    val label = info.label?.toString()?.takeIf { it.isNotBlank() } ?: pkg
-                    val comp = info.componentName.flattenToString()
-                    val installTime = getInstallTime(pkg)
-                    results[pkg] = DiscoveredApp(pkg, comp, label, installTime)
+                    val baseLabel = info.label?.toString()?.takeIf { it.isNotBlank() } ?: pkg
+                    val label = if (isWorkProfile) "$baseLabel • Work" else baseLabel
+                    val flattened = info.componentName.flattenToString()
+                    val comp = if (isWorkProfile && serial >= 0L) "tdprofile:$serial|$flattened" else flattened
+                    results[pkg] = DiscoveredApp(pkg, comp, label, getInstallTime(pkg))
                     try {
                         val drawable = info.getIcon(0)
-                        drawableToBitmap(drawable)?.asImageBitmap()?.let {
-                            iconCache[pkg] = it
-                        }
+                        drawableToBitmap(drawable)?.asImageBitmap()?.let { iconCache[pkg] = it }
                     } catch (_: Exception) {
                     }
                 }
             }
-        } else {
+        }
+
+        if (!discoveredAnyProfileApps) {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
             }
@@ -144,9 +160,16 @@ class AppDiscoveryManager(val context: Context) {
     fun launchApp(packageName: String, componentName: String? = null): Boolean {
         return try {
             if (componentName != null && componentName.isNotBlank() && launcherApps != null) {
-                val comp = ComponentName.unflattenFromString(componentName)
-                if (comp != null) {
-                    launcherApps.startMainActivity(comp, Process.myUserHandle(), null, null)
+                val profilePrefix = "tdprofile:"
+                val targetUser = if (componentName.startsWith(profilePrefix)) {
+                    val serial = componentName.substringAfter(profilePrefix).substringBefore("|").toLongOrNull()
+                    val userManager = context.getSystemService(Context.USER_SERVICE) as? UserManager
+                    serial?.let { userManager?.getUserForSerialNumber(it) }
+                } else Process.myUserHandle()
+                val flattened = if (componentName.startsWith(profilePrefix)) componentName.substringAfter("|") else componentName
+                val comp = ComponentName.unflattenFromString(flattened)
+                if (comp != null && targetUser != null) {
+                    launcherApps.startMainActivity(comp, targetUser, null, null)
                     return true
                 }
             }
