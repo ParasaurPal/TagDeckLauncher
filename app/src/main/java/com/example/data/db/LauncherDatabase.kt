@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ImageResourceEntity::class,
         BackgroundPresetEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -52,6 +52,12 @@ abstract class LauncherDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tags ADD COLUMN showOnHome INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         @Volatile
         private var INSTANCE: LauncherDatabase? = null
 
@@ -61,7 +67,7 @@ abstract class LauncherDatabase : RoomDatabase() {
                     context.applicationContext,
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     // Preserve launcher layouts, tags, images, and settings if a migration is missing.
                     // Add an explicit Room Migration before increasing the schema version.
                     .build()
