@@ -91,6 +91,7 @@ fun AppManagerScreen(
     onChangeSortOrder: (String) -> Unit,
     onOpenAppInfo: (String) -> Unit,
     onUninstallApp: (String) -> Unit,
+    onEditLineIcon: (AppEntity) -> Unit,
     onImportImage: suspend (Uri) -> String?,
 ) {
     BackHandler { onBack() }
@@ -482,6 +483,7 @@ fun AppManagerScreen(
             onToggleHidden = { onToggleHidden(fresh.app.packageName, !fresh.app.hidden) },
             onOpenAppInfo = { onOpenAppInfo(fresh.app.packageName) },
             onUninstall = { onUninstallApp(fresh.app.packageName) },
+            onEditLineIcon = { customizingApp = null; onEditLineIcon(fresh.app) },
             onDismiss = { customizingApp = null },
         )
     }
