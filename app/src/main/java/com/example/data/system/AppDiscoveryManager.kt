@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -168,6 +169,40 @@ class AppDiscoveryManager(val context: Context) {
             } catch (_: Exception) {
                 false
             }
+        }
+    }
+
+    fun getAppShortcuts(packageName: String): List<ShortcutInfo> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
+        return try {
+            val query = LauncherApps.ShortcutQuery()
+                .setPackage(packageName)
+                .setQueryFlags(
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+                )
+            launcherApps?.getShortcuts(query, Process.myUserHandle())
+                .orEmpty()
+                .filter { it.isEnabled && it.shortLabel?.isNotBlank() == true }
+                .sortedBy { it.shortLabel.toString().lowercase() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun launchAppShortcut(packageName: String, shortcutId: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return false
+        return try {
+            launcherApps?.startShortcut(
+                packageName,
+                shortcutId,
+                null,
+                android.os.Bundle(),
+                Process.myUserHandle(),
+            ) ?: false
+        } catch (_: Exception) {
+            false
         }
     }
 
