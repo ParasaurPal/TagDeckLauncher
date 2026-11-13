@@ -157,16 +157,20 @@ class AppDiscoveryManager(val context: Context) {
         }
     }
 
+    private fun userForComponentName(componentName: String?): UserHandle? {
+        if (componentName.isNullOrBlank() || !componentName.startsWith("tdprofile:")) {
+            return Process.myUserHandle()
+        }
+        val serial = componentName.substringAfter("tdprofile:").substringBefore("|").toLongOrNull() ?: return null
+        val userManager = context.getSystemService(Context.USER_SERVICE) as? UserManager ?: return null
+        return userManager.getUserForSerialNumber(serial)
+    }
+
     fun launchApp(packageName: String, componentName: String? = null): Boolean {
         return try {
             if (componentName != null && componentName.isNotBlank() && launcherApps != null) {
-                val profilePrefix = "tdprofile:"
-                val targetUser = if (componentName.startsWith(profilePrefix)) {
-                    val serial = componentName.substringAfter(profilePrefix).substringBefore("|").toLongOrNull()
-                    val userManager = context.getSystemService(Context.USER_SERVICE) as? UserManager
-                    serial?.let { userManager?.getUserForSerialNumber(it) }
-                } else Process.myUserHandle()
-                val flattened = if (componentName.startsWith(profilePrefix)) componentName.substringAfter("|") else componentName
+                val targetUser = userForComponentName(componentName)
+                val flattened = if (componentName.startsWith("tdprofile:")) componentName.substringAfter("|") else componentName
                 val comp = ComponentName.unflattenFromString(flattened)
                 if (comp != null && targetUser != null) {
                     launcherApps.startMainActivity(comp, targetUser, null, null)
@@ -195,7 +199,7 @@ class AppDiscoveryManager(val context: Context) {
         }
     }
 
-    fun getAppShortcuts(packageName: String): List<ShortcutInfo> {
+    fun getAppShortcuts(packageName: String, componentName: String? = null): List<ShortcutInfo> {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
         return try {
             val query = LauncherApps.ShortcutQuery()
@@ -205,7 +209,8 @@ class AppDiscoveryManager(val context: Context) {
                         LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
                         LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
                 )
-            launcherApps?.getShortcuts(query, Process.myUserHandle())
+            val user = userForComponentName(componentName) ?: return emptyList()
+            launcherApps?.getShortcuts(query, user)
                 .orEmpty()
                 .filter { it.isEnabled && it.shortLabel?.isNotBlank() == true }
                 .sortedBy { it.shortLabel.toString().lowercase() }
@@ -214,16 +219,17 @@ class AppDiscoveryManager(val context: Context) {
         }
     }
 
-    fun launchAppShortcut(packageName: String, shortcutId: String): Boolean {
+    fun launchAppShortcut(packageName: String, shortcutId: String, componentName: String? = null): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return false
         return try {
             val manager = launcherApps ?: return false
+            val user = userForComponentName(componentName) ?: return false
             manager.startShortcut(
                 packageName,
                 shortcutId,
                 null,
                 android.os.Bundle(),
-                Process.myUserHandle(),
+                user,
             )
             true
         } catch (_: Exception) {
