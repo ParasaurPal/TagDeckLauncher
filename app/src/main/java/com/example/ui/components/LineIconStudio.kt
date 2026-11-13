@@ -113,7 +113,7 @@ fun LineIconStudioDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -142,7 +142,7 @@ fun LineIconStudioDialog(
                     } else {
                         Canvas(
                             modifier = Modifier.fillMaxSize().pointerInput(
-                                profile.snapToEdges, sourceIcon, strokes, activeStroke
+                                profile.snapToEdges, sourceIcon
                             ) {
                                 detectDragGestures(
                                     onDragStart = { start ->
