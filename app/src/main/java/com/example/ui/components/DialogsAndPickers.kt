@@ -113,6 +113,7 @@ fun TagEditorDialog(
     var iconSizeDp by remember { mutableIntStateOf(initialTag?.sidebarIconSizeDp ?: 52) }
     var columns by remember { mutableIntStateOf(initialTag?.sidebarColumns ?: 3) }
     var showCount by remember { mutableStateOf(initialTag?.showCountInSidebar ?: true) }
+    var showOnHome by remember { mutableStateOf(initialTag?.showOnHome ?: true) }
     var parentExpanded by remember { mutableStateOf(false) }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -311,6 +312,22 @@ fun TagEditorDialog(
                     Text("Show app count in sidebar title", style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = showCount, onCheckedChange = { showCount = it })
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Show on home screen", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Hide this category shortcut without deleting the tag.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = showOnHome, onCheckedChange = { showOnHome = it })
+                }
             }
         },
         confirmButton = {
@@ -328,6 +345,7 @@ fun TagEditorDialog(
                         sidebarIconSizeDp = iconSizeDp,
                         sidebarColumns = columns,
                         showCountInSidebar = showCount,
+                        showOnHome = showOnHome,
                     )
                     onSave(saved)
                 },
