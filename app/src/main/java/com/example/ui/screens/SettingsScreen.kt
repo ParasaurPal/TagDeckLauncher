@@ -1036,6 +1036,7 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         listOf(
+                            "SYSTEM_LIVE" to "System / Live",
                             "BUILTIN_PRISM" to "Prism",
                             "BUILTIN_TOPO" to "Topo",
                             "GRADIENT" to "Gradient",
