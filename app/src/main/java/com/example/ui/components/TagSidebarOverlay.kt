@@ -615,6 +615,7 @@ private fun TagIconDock(
                     text = item.name,
                     style = MaterialTheme.typography.labelSmall,
                     color = if (darkSurface) Color.White else MaterialTheme.colorScheme.onSurface,
+                    modifier = if (darkSurface) Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp) else Modifier,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1070,13 +1071,14 @@ fun GenericSidebarContent(
                             color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.testTag("generic_sidebar_title"),
+                            modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 3.dp).testTag("generic_sidebar_title"),
                         )
                         if (showCount) {
                             Text(
                                 text = "$subtitle • ${apps.size} apps",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = accentColor,
+                                color = Color.White,
+                                modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
                             )
                         }
                     }
@@ -1132,6 +1134,7 @@ fun GenericSidebarContent(
                                         text = app.displayName,
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
+                                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -1162,6 +1165,7 @@ fun GenericSidebarContent(
                                         text = app.displayName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color.White,
+                                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         textAlign = TextAlign.Center,
