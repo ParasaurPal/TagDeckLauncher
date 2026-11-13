@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.hypot
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
@@ -113,15 +114,19 @@ object LineIconProcessor {
         val pixels = IntArray(edgeMap.width * edgeMap.height)
         if (profile.autoEdgesEnabled) {
             val lineColor = profile.lineColorHex.toInt()
+            val lineRadius = ((profile.lineWidthPx - 1f) / 2f).coerceAtLeast(0f)
+            val lineRadiusPx = ceil(lineRadius).toInt().coerceAtMost(3)
+            val outlineRadiusPx = if (profile.outlineEnabled) {
+                (lineRadiusPx + ceil(profile.outlineWidthPx).toInt()).coerceAtMost(6)
+            } else 0
             if (profile.outlineEnabled) {
                 val outlineColor = profile.outlineColorHex.toInt()
-                val radius = profile.outlineWidthPx.toInt().coerceIn(1, 4)
                 for (i in edgeMap.edges.indices) {
                     if (!edgeMap.edges[i]) continue
                     val x = i % edgeMap.width
                     val y = i / edgeMap.width
-                    for (dy in -radius..radius) for (dx in -radius..radius) {
-                        if (dx * dx + dy * dy > radius * radius + 1) continue
+                    for (dy in -outlineRadiusPx..outlineRadiusPx) for (dx in -outlineRadiusPx..outlineRadiusPx) {
+                        if (dx * dx + dy * dy > outlineRadiusPx * outlineRadiusPx + 1) continue
                         val nx = x + dx
                         val ny = y + dy
                         if (nx in 0 until edgeMap.width && ny in 0 until edgeMap.height) {
@@ -130,7 +135,19 @@ object LineIconProcessor {
                     }
                 }
             }
-            for (i in edgeMap.edges.indices) if (edgeMap.edges[i]) pixels[i] = lineColor
+            for (i in edgeMap.edges.indices) {
+                if (!edgeMap.edges[i]) continue
+                val x = i % edgeMap.width
+                val y = i / edgeMap.width
+                for (dy in -lineRadiusPx..lineRadiusPx) for (dx in -lineRadiusPx..lineRadiusPx) {
+                    if (dx * dx + dy * dy > lineRadiusPx * lineRadiusPx + 1) continue
+                    val nx = x + dx
+                    val ny = y + dy
+                    if (nx in 0 until edgeMap.width && ny in 0 until edgeMap.height) {
+                        pixels[ny * edgeMap.width + nx] = lineColor
+                    }
+                }
+            }
             out.setPixels(pixels, 0, edgeMap.width, 0, 0, edgeMap.width, edgeMap.height)
         }
         val scale = edgeMap.width / 192f
