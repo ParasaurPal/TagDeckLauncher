@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -30,14 +33,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.db.AppEntity
 import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.NotificationBadgeStore
 import java.io.File
 import kotlin.math.roundToInt
 
 val LocalIconPackOrder = staticCompositionLocalOf<List<String>> { emptyList() }
+val LocalNotificationBadgesEnabled = staticCompositionLocalOf { false }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
     "CIRCLE" -> CircleShape
@@ -57,6 +64,9 @@ fun AppIconView(
 ) {
     val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
+    val showNotificationBadges = LocalNotificationBadgesEnabled.current
+    val notificationCounts by NotificationBadgeStore.counts.collectAsState()
+    val notificationCount = if (showNotificationBadges) notificationCounts[app.packageName] ?: 0 else 0
     val customFile = remember(app.customIconPath) {
         app.customIconPath?.let { File(it) }?.takeIf { it.exists() }
     }
@@ -202,6 +212,26 @@ fun AppIconView(
                         )
                     }
                 }
+            }
+        }
+
+        if (notificationCount > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(1.dp)
+                    .size(if (notificationCount > 9) 19.dp else 15.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE53935)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (notificationCount > 99) "99+" else notificationCount.toString(),
+                    color = Color.White,
+                    fontSize = if (notificationCount > 9) 8.sp else 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
             }
         }
     }
