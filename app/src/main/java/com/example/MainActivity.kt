@@ -47,6 +47,7 @@ import com.example.ui.components.AppDrawerOverlay
 import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.LocalIconPackOrder
+import com.example.ui.components.LocalNotificationBadgesEnabled
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
@@ -134,6 +135,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         viewModel.refreshDefaultLauncherStatus()
         viewModel.refreshInstalledApps()
+        viewModel.refreshNotificationAccessStatus()
     }
 
     override fun onStop() {
@@ -283,6 +285,7 @@ private fun TagDeckRoot(
     CompositionLocalProvider(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
+        LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
