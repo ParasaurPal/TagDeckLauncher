@@ -184,8 +184,10 @@ fun SurfaceBackgroundLayer(
     gradientEndHex: Long? = null,
     imagePath: String? = null,
     blurDp: Float = 0f,
+    alpha: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
+    val opacity = alpha.coerceIn(0f, 1f)
     val blurMod = if (blurDp > 0.5f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         Modifier.blur(blurDp.dp)
     } else Modifier
@@ -198,7 +200,10 @@ fun SurfaceBackgroundLayer(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color(colorHex), Color(gradientEndHex ?: colorHex))
+                                listOf(
+                                Color(colorHex).copy(alpha = opacity),
+                                Color(gradientEndHex ?: colorHex).copy(alpha = opacity),
+                            )
                             )
                         )
                 )
@@ -209,19 +214,20 @@ fun SurfaceBackgroundLayer(
                         model = File(imagePath),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
+                        alpha = opacity,
                         modifier = Modifier.fillMaxSize().then(blurMod),
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(colorHex).copy(alpha = 0.45f))
+                            .background(Color(colorHex).copy(alpha = 0.45f * opacity))
                     )
                 } else {
-                    Box(modifier = Modifier.fillMaxSize().background(Color(colorHex)))
+                    Box(modifier = Modifier.fillMaxSize().background(Color(colorHex).copy(alpha = opacity)))
                 }
             }
             else -> {
-                Box(modifier = Modifier.fillMaxSize().background(Color(colorHex)))
+                Box(modifier = Modifier.fillMaxSize().background(Color(colorHex).copy(alpha = opacity)))
             }
         }
     }
