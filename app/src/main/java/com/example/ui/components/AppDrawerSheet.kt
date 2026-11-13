@@ -170,11 +170,11 @@ fun AppDrawerOverlay(
                 )
         }
         val gameSubcategories = remember(state.categories) {
-            state.categories.filter { it.categoryType == "GAME_SUB" }.sortedBy { it.sortOrder }
+            state.categories.filter { it.categoryType == "GAME_SUB" && it.showInMainBar }.sortedBy { it.sortOrder }
         }
         val playAndCustomCategories = remember(state.categories, state.appsWithTags) {
             val nonGame = state.categories.filter {
-                !it.isSystemDockTab && it.categoryType != "GAMES_PARENT" && it.categoryType != "GAME_SUB"
+                !it.isSystemDockTab && it.showInMainBar && it.categoryType != "GAMES_PARENT" && it.categoryType != "GAME_SUB"
             }
             // Order: categories with apps first (preserving sortOrder), then remaining categories
             nonGame.sortedWith(
@@ -333,8 +333,13 @@ fun AppDrawerOverlay(
                                         text = headerTitle,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
+                                        color = Color.White,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.Black.copy(alpha = 0.62f))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp),
                                     )
                                     Text(
                                         text = "${visibleApps.size} apps • ${state.settings.drawerSortOrder.lowercase().replace('_', ' ')}",
@@ -738,8 +743,12 @@ private fun CategoryDockChip(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (selected) accent else MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Black.copy(alpha = 0.58f))
+                    .padding(horizontal = 5.dp, vertical = 2.dp),
             )
         }
     }
