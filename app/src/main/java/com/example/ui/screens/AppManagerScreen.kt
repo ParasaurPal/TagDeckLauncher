@@ -485,6 +485,7 @@ fun AppManagerScreen(
             onOpenAppInfo = { onOpenAppInfo(fresh.app.packageName) },
             onUninstall = { onUninstallApp(fresh.app.packageName) },
             onEditLineIcon = { customizingApp = null; onEditLineIcon(fresh.app) },
+            onLaunchApp = { onLaunchApp(fresh.app) },
             appLocked = fresh.app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank),
             onToggleAppLock = {
                 val current = state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toMutableSet()
