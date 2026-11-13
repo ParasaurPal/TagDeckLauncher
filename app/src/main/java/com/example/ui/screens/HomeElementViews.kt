@@ -346,7 +346,17 @@ fun HomeElementBody(
                             .fillMaxSize()
                             .clickable(enabled = !state.isEditMode && app != null) {
                                 if (!onElementTrigger(element, "TAP")) {
-                                    app?.let(onLaunchApp)
+                                    app?.let { targetApp ->
+                                        val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
+                                        val isLocked = targetApp.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
+                                        if (shortcutId != null && !isLocked) {
+                                            if (!appDiscovery.launchAppShortcut(targetApp.packageName, shortcutId, targetApp.componentName)) {
+                                                onLaunchApp(targetApp)
+                                            }
+                                        } else {
+                                            onLaunchApp(targetApp)
+                                        }
+                                    }
                                 }
                             }
                             .padding(element.paddingDp.dp),
