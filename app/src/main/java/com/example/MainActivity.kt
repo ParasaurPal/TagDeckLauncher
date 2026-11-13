@@ -3,6 +3,9 @@ package com.example
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.graphics.PixelFormat
+import android.graphics.drawable.ColorDrawable
+import android.view.WindowManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -97,6 +100,19 @@ class MainActivity : ComponentActivity() {
             navControllerRef = navController
 
             val view = LocalView.current
+            LaunchedEffect(state.settings.wallpaperType) {
+                val activityWindow = (view.context as? Activity)?.window ?: return@LaunchedEffect
+                if (state.settings.wallpaperType == "SYSTEM_LIVE") {
+                    activityWindow.setFormat(PixelFormat.TRANSLUCENT)
+                    activityWindow.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+                    activityWindow.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+                    activityWindow.decorView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                } else {
+                    activityWindow.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+                    activityWindow.setFormat(PixelFormat.OPAQUE)
+                    activityWindow.setBackgroundDrawable(null)
+                }
+            }
             LaunchedEffect(state.settings.showStatusBar, state.settings.showNavBar) {
                 val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
                 val controller = WindowCompat.getInsetsController(window, view)
