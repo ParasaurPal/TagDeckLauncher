@@ -488,7 +488,13 @@ fun AppManagerScreen(
             appLocked = fresh.app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank),
             onToggleAppLock = {
                 val current = state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toMutableSet()
-                val nowLocked = if (fresh.app.packageName in current) current.remove(fresh.app.packageName) else current.add(fresh.app.packageName)
+                val nowLocked = if (fresh.app.packageName in current) {
+                    current.remove(fresh.app.packageName)
+                    false
+                } else {
+                    current.add(fresh.app.packageName)
+                    true
+                }
                 onToggleAppLock(fresh.app.packageName, nowLocked)
             },
             onDismiss = { customizingApp = null },
