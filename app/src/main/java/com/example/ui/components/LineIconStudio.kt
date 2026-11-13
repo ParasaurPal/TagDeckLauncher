@@ -38,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
@@ -87,17 +86,20 @@ fun LineIconStudioDialog(
             ) ?: appDiscovery.getCachedIcon(app.packageName)
         }
     }
-    val edgePreview: ImageBitmap? by produceState<ImageBitmap?>(null, sourceIcon) {
-        value = sourceIcon?.let { source ->
-            withContext(Dispatchers.Default) { runCatching { LineIconProcessor.edgePreview(source) }.getOrNull() }
-        }
-    }
-
     val edgeSnapper = remember(sourceIcon) { sourceIcon?.let { LineIconProcessor.createSnapper(it) } }
     var profile by remember(app.packageName, initialProfile) {
         mutableStateOf(initialProfile ?: LineIconProfile())
     }
     var strokes by remember(app.packageName, initialProfile) { mutableStateOf(profile.strokes) }
+    val autoLinePreview: ImageBitmap? by produceState<ImageBitmap?>(null, sourceIcon, profile) {
+        value = if (sourceIcon == null || !profile.autoEdgesEnabled) {
+            null
+        } else {
+            withContext(Dispatchers.Default) {
+                runCatching { LineIconProcessor.render(sourceIcon!!, profile.copy(strokes = emptyList())).asImageBitmap() }.getOrNull()
+            }
+        }
+    }
     var activeStroke by remember { mutableStateOf<List<LineIconPoint>>(emptyList()) }
     var showOriginalUnderlay by remember { mutableStateOf(true) }
 
