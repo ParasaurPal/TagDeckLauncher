@@ -253,6 +253,7 @@ fun HomeElementBody(
                 "COMPASS_WIDGET" -> CompassWidgetContent(element)
                 "MEDIA_WIDGET" -> MediaWidgetContent(element)
                 "WEATHER_WIDGET" -> WeatherWidgetContent(element)
+                "AT_A_GLANCE_WIDGET" -> AtAGlanceWidgetContent(element)
                 "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
                 "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
