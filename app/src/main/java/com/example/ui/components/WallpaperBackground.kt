@@ -40,6 +40,7 @@ fun WallpaperBackground(
     Box(modifier = modifier.fillMaxSize()) {
         // Base global wallpaper
         when (settings.wallpaperType) {
+            "SYSTEM_LIVE" -> Unit // Transparent home canvas reveals Android's own static or live wallpaper.
             "BUILTIN_TOPO" -> {
                 Image(
                     painter = painterResource(id = R.drawable.img_wallpaper_topo),
