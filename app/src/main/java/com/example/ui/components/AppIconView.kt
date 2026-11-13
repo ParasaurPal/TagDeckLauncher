@@ -129,16 +129,20 @@ fun AppIconView(
         }
     }
     val lineBaseBitmap = customLineSource ?: rawBitmap
+    val lineIconCacheKey = remember(app.packageName, app.componentName, app.customIconPath, iconPackOrder, lineProfile) {
+        "${app.packageName}|${app.componentName}|${app.customIconPath.orEmpty()}|${iconPackOrder.joinToString(",")}"
+    }
     val lineDisplayedBitmap: ImageBitmap? by produceState(
         initialValue = null,
         lineBaseBitmap,
         lineProfile,
+        lineIconCacheKey,
     ) {
         value = if (lineBaseBitmap == null || lineProfile == null) {
             null
         } else {
             withContext(Dispatchers.Default) {
-                runCatching { LineIconProcessor.render(lineBaseBitmap, lineProfile).asImageBitmap() }.getOrNull()
+                runCatching { LineIconProcessor.render(lineIconCacheKey, lineBaseBitmap, lineProfile).asImageBitmap() }.getOrNull()
             }
         }
     }
