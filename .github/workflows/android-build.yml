@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Build release APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -46,11 +46,15 @@ jobs:
           printf '%s' "$TAGDECK_DEBUG_KEYSTORE_BASE64" | base64 --decode > debug.keystore
           test -s debug.keystore
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Build signed release APK
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore
+          STORE_PASSWORD: android
+          KEY_PASSWORD: android
+        run: ./gradlew --no-daemon :app:assembleRelease
 
       - name: Rename APK to application name
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/TagDeck.apk
+        run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/TagDeck.apk
 
       - name: Package source code ZIP
         run: git archive --format=zip --output=TagDeckLauncher-source.zip HEAD
@@ -60,7 +64,7 @@ jobs:
         with:
           name: TagDeckLauncher-build
           path: |
-            app/build/outputs/apk/debug/TagDeck.apk
+            app/build/outputs/apk/release/TagDeck.apk
             TagDeckLauncher-source.zip
           if-no-files-found: error
           retention-days: 14
@@ -70,9 +74,9 @@ jobs:
         with:
           tag_name: latest
           name: Latest TagDeckLauncher APK
-          body: "Automatically updated installable APK and complete tracked source-code ZIP from the latest successful push to main."
+          body: "Automatically updated signed release APK and complete tracked source-code ZIP from the latest successful push to main."
           files: |
-            app/build/outputs/apk/debug/TagDeck.apk
+            app/build/outputs/apk/release/TagDeck.apk
             TagDeckLauncher-source.zip
           overwrite_files: true
           make_latest: true
