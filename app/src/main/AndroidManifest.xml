@@ -71,7 +71,7 @@
             </intent-filter>
         </activity-alias>
 
-            <service
+        <service
             android:name=".data.system.TagDeckNotificationListenerService"
             android:exported="true"
             android:label="@string/app_name"
