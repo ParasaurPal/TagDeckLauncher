@@ -253,6 +253,7 @@ fun HomeElementBody(
                 "COMPASS_WIDGET" -> CompassWidgetContent(element)
                 "MEDIA_WIDGET" -> MediaWidgetContent(element)
                 "WEATHER_WIDGET" -> WeatherWidgetContent(element)
+                "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
 
                 "TEXT_LABEL" -> {
