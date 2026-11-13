@@ -171,6 +171,19 @@ class LauncherRepository(
             seedInitialWorkspace(merged)
             prefsRepo.updateSettings { it.copy(seededDefaults = true) }
         }
+
+        // Remove the obsolete bundled System Telemetry window and its triggers
+        // from existing installations as well as preventing it from being seeded.
+        val obsoleteWindows = dao.getWindowsOnce().filter {
+            it.title.equals("System Telemetry Panel", ignoreCase = true)
+        }
+        if (obsoleteWindows.isNotEmpty()) {
+            val obsoleteIds = obsoleteWindows.map { it.windowId }.toSet()
+            dao.getHomeElementsOnce()
+                .filter { it.ownerWindowId in obsoleteIds || it.targetWindowId in obsoleteIds }
+                .forEach { dao.deleteHomeElementById(it.elementId) }
+            obsoleteWindows.forEach { dao.deleteWindow(it.windowId) }
+        }
     }
 
     private suspend fun ensureSeedPlayCategories() {
@@ -275,15 +288,6 @@ class LauncherRepository(
             val page1Id = dao.upsertHomePage(HomePageEntity(title = "Main Deck", pageOrder = 0, isDefaultHome = true))
             val page2Id = dao.upsertHomePage(HomePageEntity(title = "Studio Deck", pageOrder = 1, backgroundType = "GRADIENT", backgroundColorHex = 0xFF0A1424L, backgroundGradientEndHex = 0xFF1E1032L))
 
-            val quickWindowId = dao.upsertWindow(
-                LauncherWindowEntity(
-                    title = "System Telemetry Panel",
-                    widthFraction = 0.88f,
-                    heightFraction = 0.56f,
-                    backgroundColorHex = 0xEE0D1526L,
-                )
-            )
-
             val initialElements = mutableListOf<HomeElementEntity>()
             initialElements.add(
                 HomeElementEntity(
@@ -341,23 +345,6 @@ class LauncherRepository(
                     )
                 )
             }
-
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page1Id,
-                    type = "WINDOW_SHORTCUT",
-                    xFraction = 0.68f,
-                    yFraction = 0.41f,
-                    widthDp = 104f,
-                    heightDp = 88f,
-                    zIndex = 7,
-                    label = "Sys Panel",
-                    targetWindowId = quickWindowId,
-                    backgroundColorHex = 0x386366F1L,
-                    borderColorHex = 0x996366F1L,
-                    cornerRadiusDp = 22f,
-                )
-            )
 
             installedApps.take(4).forEachIndexed { idx, app ->
                 initialElements.add(
@@ -423,47 +410,6 @@ class LauncherRepository(
                     backgroundColorHex = 0x660F172AL,
                     borderColorHex = 0x66FBBF24L,
                     cornerRadiusDp = 26f,
-                )
-            )
-
-            // Window inner widgets
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page1Id,
-                    ownerType = "WINDOW",
-                    ownerWindowId = quickWindowId,
-                    type = "STORAGE_RAM_WIDGET",
-                    xFraction = 0.06f,
-                    yFraction = 0.08f,
-                    widthDp = 150f,
-                    heightDp = 140f,
-                    label = "Storage & RAM",
-                )
-            )
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page1Id,
-                    ownerType = "WINDOW",
-                    ownerWindowId = quickWindowId,
-                    type = "COMPASS_WIDGET",
-                    xFraction = 0.52f,
-                    yFraction = 0.08f,
-                    widthDp = 140f,
-                    heightDp = 140f,
-                    label = "Compass",
-                )
-            )
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page1Id,
-                    ownerType = "WINDOW",
-                    ownerWindowId = quickWindowId,
-                    type = "MEDIA_WIDGET",
-                    xFraction = 0.06f,
-                    yFraction = 0.50f,
-                    widthDp = 290f,
-                    heightDp = 96f,
-                    label = "Media Controls",
                 )
             )
 
