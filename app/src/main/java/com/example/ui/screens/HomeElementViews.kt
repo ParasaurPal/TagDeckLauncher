@@ -399,17 +399,7 @@ fun HomeElementBody(
                     ) {
                         if (cat != null) {
                             CategoryBadgeIcon(cat, size = 36.dp)
-                            if (element.showLabel) {
-                                Spacer(Modifier.height(5.dp))
-                                Text(
-                                    text = element.label.ifBlank { cat.name },
-                                    color = Color(element.textColorHex),
-                                    fontSize = element.fontSizeSp.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+
                         } else {
                             Icon(Icons.Rounded.Category, null, tint = Color.White)
                         }
