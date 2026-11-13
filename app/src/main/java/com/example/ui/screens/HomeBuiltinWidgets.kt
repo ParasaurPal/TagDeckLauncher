@@ -6,6 +6,7 @@ import android.app.usage.UsageStatsManager
 import android.os.Process
 import android.view.KeyEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.db.HomeElementEntity
+import com.example.data.db.AppEntity
+import com.example.data.db.AppWithTags
 import com.example.data.db.ImageResourceEntity
 import com.example.data.system.BatteryTelemetry
 import com.example.data.system.DeviceTelemetryProvider
@@ -560,6 +563,40 @@ fun AppUsageWidgetContent(element: HomeElementEntity) {
                     Text(name, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Text(duration, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
                 }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun RecentAppsWidgetContent(
+    apps: List<AppWithTags>,
+    onLaunchApp: (AppEntity) -> Unit,
+) {
+    val recent = remember(apps) {
+        apps.filter { it.app.lastLaunchedAt > 0L && !it.app.hidden }
+            .sortedByDescending { it.app.lastLaunchedAt }
+            .take(5)
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("RECENT APPS", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        if (recent.isEmpty()) {
+            Text("Apps you launch will appear here.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+        } else {
+            recent.forEach { item ->
+                Text(
+                    item.app.displayName,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onLaunchApp(item.app) }.padding(vertical = 4.dp, horizontal = 2.dp),
+                )
             }
         }
     }
