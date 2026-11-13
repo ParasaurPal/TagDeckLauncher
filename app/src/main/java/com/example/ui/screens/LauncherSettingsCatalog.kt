@@ -43,7 +43,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("hub", "editors", "managers"),
             entries = listOf(
                 entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, and smart rules", listOf("tag", "category", "rules", "collections")),
-                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename apps, hide apps, set per-app custom icons", listOf("app", "rename", "hide", "custom icon", "manager")),
+                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename apps, hide apps, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "custom icon", "manager", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
             ),
         ),
@@ -91,9 +91,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_ICON_PACKS,
             title = "Icon Packs & Loading Hierarchy",
-            keywords = listOf("icons", "packs", "priority", "theme"),
+            keywords = listOf("icons", "packs", "priority", "theme", "line icons", "monochrome"),
             entries = listOf(
-                entry("icon_pack_order", SECTION_ICON_PACKS, "Active Icon Pack Hierarchy", "Reorder installed icon packs or rescan ADW/Nova packs", listOf("icon pack", "apk", "priority", "order", "rescan", "adw", "nova")),
+                entry("icon_pack_order", SECTION_ICON_PACKS, "Active Icon Pack Hierarchy", "Reorder installed icon packs or rescan ADW/Nova packs; line-icon editing also works on pack artwork", listOf("icon pack", "apk", "priority", "order", "rescan", "adw", "nova", "line icon", "monochrome")),
             ),
         ),
         section(
