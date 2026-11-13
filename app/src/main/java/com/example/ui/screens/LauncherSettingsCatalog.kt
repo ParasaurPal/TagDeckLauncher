@@ -44,7 +44,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("hub", "editors", "managers"),
             entries = listOf(
                 entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, and smart rules", listOf("tag", "category", "rules", "collections")),
-                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename apps, hide apps, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "custom icon", "manager", "line icon", "line art", "arcticons", "draw", "edge snapping")),
+                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename, hide, lock apps behind device authentication, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "lock", "app lock", "device authentication", "custom icon", "manager", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
             ),
         ),
