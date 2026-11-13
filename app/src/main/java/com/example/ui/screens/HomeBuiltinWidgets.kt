@@ -472,14 +472,15 @@ fun WeatherWidgetContent(element: HomeElementEntity) {
     var snapshot by remember(element.elementId, city) { mutableStateOf<WeatherSnapshot?>(null) }
     var error by remember(element.elementId, city) { mutableStateOf<String?>(null) }
     LaunchedEffect(city) {
-        snapshot = null
-        error = null
         if (city.isBlank()) {
             error = "Edit widget label to set a city"
         } else {
-            runCatching { withContext(Dispatchers.IO) { loadCityWeather(city) } }
-                .onSuccess { snapshot = it }
-                .onFailure { error = it.message ?: "Weather unavailable" }
+            while (true) {
+                runCatching { withContext(Dispatchers.IO) { loadCityWeather(city) } }
+                    .onSuccess { snapshot = it; error = null }
+                    .onFailure { error = it.message ?: "Weather unavailable" }
+                delay(30L * 60L * 1000L)
+            }
         }
     }
     Column(
