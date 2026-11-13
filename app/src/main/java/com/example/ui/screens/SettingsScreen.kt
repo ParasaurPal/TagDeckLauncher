@@ -1570,6 +1570,22 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (!hasCalendarAccess) {
+                        OutlinedButton(
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                    )
+                                }.onFailure { onShowMessage("Could not open TagDeck app settings") }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Open TagDeck App Permissions")
+                        }
+                    }
                     OutlinedButton(
                         onClick = {
                             runCatching {
