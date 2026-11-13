@@ -716,6 +716,74 @@ fun SettingsScreen(
                 }
             }
 
+            // Global Arcticons-style Line Icon Generation
+            if (LauncherSettingsCatalog.SECTION_LINE_ICONS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_LINE_ICONS) {
+                    SettingsCard(
+                        title = "Arcticons-Style Line Icons",
+                        icon = Icons.Rounded.Contrast,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_LINE_ICONS].orEmpty() else emptyList(),
+                    ) {
+                        Text(
+                            "Automatically turn every installed app icon into transparent black or white line art. Individual icons can be refined by drawing over detected edges in App Icons.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        ToggleRow("Generate line icons for all apps", s.lineIconsEnabled) { enabled ->
+                            onUpdateSettings { it.copy(lineIconsEnabled = enabled) }
+                        }
+                        Text("Line color", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = s.lineIconDefaultColorHex == 0xFFFFFFFFL,
+                                onClick = { onUpdateSettings { it.copy(lineIconDefaultColorHex = 0xFFFFFFFFL, lineIconDefaultOutlineColorHex = 0xFF000000L) } },
+                                label = { Text("White") },
+                            )
+                            FilterChip(
+                                selected = s.lineIconDefaultColorHex == 0xFF000000L,
+                                onClick = { onUpdateSettings { it.copy(lineIconDefaultColorHex = 0xFF000000L, lineIconDefaultOutlineColorHex = 0xFFFFFFFFL) } },
+                                label = { Text("Black") },
+                            )
+                        }
+                        ToggleRow("Add a thin contrast outline", s.lineIconDefaultOutlineEnabled) { enabled ->
+                            onUpdateSettings { it.copy(lineIconDefaultOutlineEnabled = enabled) }
+                        }
+                        if (s.lineIconDefaultOutlineEnabled) {
+                            Text("Outline color", style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = s.lineIconDefaultOutlineColorHex == 0xFF000000L,
+                                    onClick = { onUpdateSettings { it.copy(lineIconDefaultOutlineColorHex = 0xFF000000L) } },
+                                    label = { Text("Black") },
+                                )
+                                FilterChip(
+                                    selected = s.lineIconDefaultOutlineColorHex == 0xFFFFFFFFL,
+                                    onClick = { onUpdateSettings { it.copy(lineIconDefaultOutlineColorHex = 0xFFFFFFFFL) } },
+                                    label = { Text("White") },
+                                )
+                            }
+                            Text("Outline thickness: ${"%.1f".format(s.lineIconDefaultOutlineWidthPx)} px")
+                            Slider(
+                                value = s.lineIconDefaultOutlineWidthPx,
+                                onValueChange = { value -> onUpdateSettings { it.copy(lineIconDefaultOutlineWidthPx = value) } },
+                                valueRange = 0.5f..3f,
+                            )
+                        }
+                        Text("Line thickness: ${"%.1f".format(s.lineIconDefaultLineWidthPx)} px")
+                        Slider(
+                            value = s.lineIconDefaultLineWidthPx,
+                            onValueChange = { value -> onUpdateSettings { it.copy(lineIconDefaultLineWidthPx = value) } },
+                            valueRange = 0.7f..4f,
+                        )
+                        Text(
+                            "Per-app drawings and settings override these global defaults. Turn this off to return uncustomized apps to their normal icon sources.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Black Launcher Icon Contrast & Outline Styling
             if (LauncherSettingsCatalog.SECTION_BLACK_ICONS in matchingSections ||
                 (!s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections)
