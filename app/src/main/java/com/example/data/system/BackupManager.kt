@@ -338,6 +338,7 @@ object BackupManager {
             put("lineIconDefaultOutlineEnabled", s.lineIconDefaultOutlineEnabled)
             put("lineIconDefaultOutlineColorHex", s.lineIconDefaultOutlineColorHex)
             put("lineIconDefaultOutlineWidthPx", s.lineIconDefaultOutlineWidthPx.toDouble())
+            put("lockedAppsCsv", s.lockedAppsCsv)
         })
 
         return root.toString(2)
@@ -673,6 +674,7 @@ object BackupManager {
             lineIconDefaultOutlineEnabled = so.optBoolean("lineIconDefaultOutlineEnabled", false),
             lineIconDefaultOutlineColorHex = so.optLong("lineIconDefaultOutlineColorHex", 0xFF000000L),
             lineIconDefaultOutlineWidthPx = so.optDouble("lineIconDefaultOutlineWidthPx", 1.2).toFloat(),
+            lockedAppsCsv = so.optString("lockedAppsCsv", ""),
             seededDefaults = true,
         )
 
