@@ -106,6 +106,9 @@ fun CategoryEditorDialog(
     var bgBlurDp by remember(initialCategory?.categoryId) {
         mutableFloatStateOf(initialCategory?.backgroundBlurDp ?: 0f)
     }
+    var bgAlpha by remember(initialCategory?.categoryId) {
+        mutableFloatStateOf(initialCategory?.backgroundAlpha ?: 1f)
+    }
 
     val iconPhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -169,6 +172,7 @@ fun CategoryEditorDialog(
         backgroundGradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
+        backgroundAlpha = bgAlpha,
         iconSizeDp = iconSizeDp,
     )
 
@@ -211,6 +215,7 @@ fun CategoryEditorDialog(
                             gradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
                             imagePath = if (bgType == "IMAGE") bgImagePath else null,
                             blurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
+                            alpha = bgAlpha,
                         )
                         Row(
                             modifier = Modifier
@@ -360,6 +365,13 @@ fun CategoryEditorDialog(
                 }
 
                 if (bgType != "INHERIT") {
+                    Text("Background Opacity: ${(bgAlpha * 100).roundToInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Slider(
+                        value = bgAlpha,
+                        onValueChange = { bgAlpha = it },
+                        valueRange = 0.05f..1f,
+                        modifier = Modifier.testTag("category_bg_opacity_slider"),
+                    )
                     Text(
                         text = when (bgType) {
                             "GRADIENT" -> "Gradient Start Color"
@@ -445,6 +457,7 @@ fun CategoryEditorDialog(
                         backgroundGradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
                         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
                         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
+                        backgroundAlpha = bgAlpha,
                         iconSizeDp = iconSizeDp,
                     )
                     onSave(saved)
