@@ -231,6 +231,29 @@ fun HomeScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding(),
             ) {
+                if (!state.isEditMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = {
+                                onToggleEditMode(true)
+                                showAddElementDialog = true
+                            },
+                            modifier = Modifier.testTag("home_add_element_button"),
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = "Add to Home")
+                        }
+                        IconButton(
+                            onClick = { onNavigate(LauncherRoute.Settings) },
+                            modifier = Modifier.testTag("home_settings_button"),
+                        ) {
+                            Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                        }
+                    }
+                }
                 if (state.isEditMode) {
                     StudioEditToolbar(
                         pageTitle = currentPage.title,
@@ -384,12 +407,22 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
-                                .width(20.dp)
-                                .fillMaxHeight(0.65f)
+                                .width(32.dp)
+                                .fillMaxHeight(0.82f)
                                 .pointerInput(rightEdgeSidebar.sidebarId) {
-                                    detectHorizontalDragGestures { _, dragAmount ->
-                                        if (dragAmount < -14f) onOpenConfiguredSidebar(rightEdgeSidebar.sidebarId)
-                                    }
+                                    var totalDrag = 0f
+                                    var opened = false
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { totalDrag = 0f; opened = false },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            totalDrag += dragAmount
+                                            if (!opened && totalDrag < -56f) {
+                                                opened = true
+                                                change.consume()
+                                                onOpenConfiguredSidebar(rightEdgeSidebar.sidebarId)
+                                            }
+                                        },
+                                    )
                                 }
                                 .clickable { onOpenConfiguredSidebar(rightEdgeSidebar.sidebarId) },
                             contentAlignment = Alignment.CenterEnd,

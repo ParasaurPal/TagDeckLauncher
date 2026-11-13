@@ -46,6 +46,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.SortByAlpha
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -89,6 +90,7 @@ import com.example.data.prefs.LauncherSettings
 import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.ImageLibraryDialog
 import com.example.ui.state.LauncherUiState
+import com.example.ui.state.LauncherRoute
 import com.example.ui.theme.TagPresetColors
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -126,6 +128,7 @@ private val ActionOptions = listOf(
 fun SettingsScreen(
     state: LauncherUiState,
     onBack: () -> Unit,
+    onNavigate: (LauncherRoute) -> Unit,
     onRequestDefaultLauncher: () -> Unit,
     onUpdateSettings: ((LauncherSettings) -> LauncherSettings) -> Unit,
     onSaveGesture: (GestureBindingEntity) -> Unit,
@@ -230,6 +233,31 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
+            // Direct access to every editable launcher manager.
+            item {
+                SettingsCard(title = "Manage Your Launcher", icon = Icons.Rounded.Tune) {
+                    Text(
+                        "Open the editors for your tags, app icons and visibility, and independent sidebars.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { onNavigate(LauncherRoute.Tags) }, modifier = Modifier.weight(1f)) {
+                            Text("Tags & Categories")
+                        }
+                        OutlinedButton(onClick = { onNavigate(LauncherRoute.Apps) }, modifier = Modifier.weight(1f)) {
+                            Text("App Icons")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { onNavigate(LauncherRoute.Sidebars) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Sidebars & Floating Windows")
+                    }
+                }
+            }
+
             // Default Home Launcher Card
             item {
                 SettingsCard(title = "Default Home Application", icon = Icons.Rounded.Home) {

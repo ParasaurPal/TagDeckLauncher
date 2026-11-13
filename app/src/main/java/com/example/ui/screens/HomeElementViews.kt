@@ -161,9 +161,10 @@ fun HomeElementBody(
 ) {
     val context = LocalContext.current
     val shape = resolveMaskShape(element)
-    val bg = Color(element.backgroundColorHex)
+    val isPlainAppShortcut = element.type == "APP_SHORTCUT"
+    val bg = if (isPlainAppShortcut) Color.Transparent else Color(element.backgroundColorHex)
     val borderColor = Color(element.borderColorHex)
-    val border = if (element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
+    val border = if (!isPlainAppShortcut && element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,

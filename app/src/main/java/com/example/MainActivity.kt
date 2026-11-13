@@ -435,6 +435,7 @@ private fun TagDeckRoot(
                 SettingsScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
+                    onNavigate = navigateTo,
                     onRequestDefaultLauncher = {
                         try {
                             defaultHomeLauncher.launch(viewModel.appDiscovery.buildRequestDefaultLauncherIntent())

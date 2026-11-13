@@ -686,10 +686,13 @@ fun TagTriggeredSidebarContent(
             .pointerInput(isRightSide) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragAccum = 0f },
-                    onHorizontalDrag = { _, dragAmount ->
+                    onHorizontalDrag = { change, dragAmount ->
                         dragAccum += dragAmount
-                        if ((!isRightSide && dragAccum < -90f) || (isRightSide && dragAccum > 90f)) {
+                        val shouldClose = if (isRightSide) dragAccum > 64f else dragAccum < -64f
+                        if (shouldClose) {
+                            change.consume()
                             onClose()
+                            dragAccum = 0f
                         }
                     },
                 )
