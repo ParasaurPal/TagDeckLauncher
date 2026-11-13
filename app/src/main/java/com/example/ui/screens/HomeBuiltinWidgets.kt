@@ -640,10 +640,12 @@ private fun readUpcomingCalendarEvents(context: Context): List<String> {
 
 @Composable
 fun AtAGlanceWidgetContent(element: HomeElementEntity) {
+    val context = LocalContext.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var weather by remember(element.elementId, element.label) { mutableStateOf<WeatherSnapshot?>(null) }
     var weatherError by remember(element.elementId, element.label) { mutableStateOf<String?>(null) }
     var upcomingEvents by remember(element.elementId) { mutableStateOf(emptyList<String>()) }
+    var hasCalendarAccess by remember(element.elementId) { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
             nowMillis = System.currentTimeMillis()
@@ -664,7 +666,8 @@ fun AtAGlanceWidgetContent(element: HomeElementEntity) {
     }
     LaunchedEffect(element.elementId) {
         while (true) {
-            upcomingEvents = withContext(Dispatchers.IO) { readUpcomingCalendarEvents(LocalContext.current) }
+            hasCalendarAccess = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+            upcomingEvents = withContext(Dispatchers.IO) { readUpcomingCalendarEvents(context) }
             delay(30L * 60L * 1000L)
         }
     }
@@ -682,6 +685,7 @@ fun AtAGlanceWidgetContent(element: HomeElementEntity) {
         } else {
             Text(weatherError ?: "Loading weather…", color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
         }
+        if (!hasCalendarAccess) Text("Grant Calendar access to show upcoming events", color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall)
         upcomingEvents.forEach { event ->
             Text(event, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
