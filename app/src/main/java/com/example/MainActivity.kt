@@ -409,6 +409,13 @@ private fun TagDeckRoot(
                     onOpenAppInfo = { viewModel.openAppInfo(it) },
                     onUninstallApp = { viewModel.requestUninstall(it) },
                     onEditLineIcon = { inlineLineIconApp = it },
+                    onToggleAppLock = { packageName, locked ->
+                        viewModel.updateSettings { settings ->
+                            val packages = settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toMutableSet()
+                            if (locked) packages.add(packageName) else packages.remove(packageName)
+                            settings.copy(lockedAppsCsv = packages.sorted().joinToString(","))
+                        }
+                    },
                     onImportImage = { uri -> viewModel.importImagePreservingOriginal(uri, "Icons") },
                 )
             }
