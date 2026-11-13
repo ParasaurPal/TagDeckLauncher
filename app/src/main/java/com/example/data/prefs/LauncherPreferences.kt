@@ -100,10 +100,15 @@ data class LauncherSettings(
     val blackIconOutlineWidthDp: Float = IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
     val blackIconDarknessThreshold: Float = IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
     val lineIconProfilesJson: String = "",
+    val lineIconsEnabled: Boolean = false,
+    val lineIconDefaultColorHex: Long = 0xFFFFFFFFL,
+    val lineIconDefaultLineWidthPx: Float = 1.8f,
+    val lineIconDefaultOutlineEnabled: Boolean = false,
+    val lineIconDefaultOutlineColorHex: Long = 0xFF000000L,
+    val lineIconDefaultOutlineWidthPx: Float = 1.2f,
     val seededDefaults: Boolean = false,
 ) {
-    fun lineIconProfile(packageName: String): LineIconProfile? = LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName)
-
+    fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(\n        lineColorHex = lineIconDefaultColorHex,\n        lineWidthPx = lineIconDefaultLineWidthPx,\n        outlineEnabled = lineIconDefaultOutlineEnabled,\n        outlineColorHex = lineIconDefaultOutlineColorHex,\n        outlineWidthPx = lineIconDefaultOutlineWidthPx,\n    )\n\n    fun lineIconProfile(packageName: String): LineIconProfile? =\n        LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName) ?: defaultLineIconProfile().takeIf { lineIconsEnabled }\n
     fun iconPackOrder(): List<String> =
         iconPackOrderCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
@@ -201,6 +206,12 @@ class LauncherPreferencesRepository(private val context: Context) {
         val BLACK_ICON_OUTLINE_WIDTH = floatPreferencesKey("black_icon_outline_width")
         val BLACK_ICON_DARKNESS_THRESHOLD = floatPreferencesKey("black_icon_darkness_threshold")
         val LINE_ICON_PROFILES = stringPreferencesKey("line_icon_profiles_json")
+        val LINE_ICONS_ENABLED = booleanPreferencesKey("line_icons_enabled")
+        val LINE_ICON_DEFAULT_COLOR = longPreferencesKey("line_icon_default_color")
+        val LINE_ICON_DEFAULT_WIDTH = floatPreferencesKey("line_icon_default_width")
+        val LINE_ICON_DEFAULT_OUTLINE_ENABLED = booleanPreferencesKey("line_icon_default_outline_enabled")
+        val LINE_ICON_DEFAULT_OUTLINE_COLOR = longPreferencesKey("line_icon_default_outline_color")
+        val LINE_ICON_DEFAULT_OUTLINE_WIDTH = floatPreferencesKey("line_icon_default_outline_width")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -281,6 +292,12 @@ class LauncherPreferencesRepository(private val context: Context) {
         blackIconOutlineWidthDp = prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] ?: IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
         blackIconDarknessThreshold = prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] ?: IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
         lineIconProfilesJson = prefs[Keys.LINE_ICON_PROFILES] ?: "",
+        lineIconsEnabled = prefs[Keys.LINE_ICONS_ENABLED] ?: false,
+        lineIconDefaultColorHex = prefs[Keys.LINE_ICON_DEFAULT_COLOR] ?: 0xFFFFFFFFL,
+        lineIconDefaultLineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_WIDTH] ?: 1.8f,
+        lineIconDefaultOutlineEnabled = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] ?: false,
+        lineIconDefaultOutlineColorHex = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] ?: 0xFF000000L,
+        lineIconDefaultOutlineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] ?: 1.2f,
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -374,6 +391,12 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] = updated.blackIconOutlineWidthDp
             prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] = updated.blackIconDarknessThreshold
             prefs[Keys.LINE_ICON_PROFILES] = updated.lineIconProfilesJson
+            prefs[Keys.LINE_ICONS_ENABLED] = updated.lineIconsEnabled
+            prefs[Keys.LINE_ICON_DEFAULT_COLOR] = updated.lineIconDefaultColorHex
+            prefs[Keys.LINE_ICON_DEFAULT_WIDTH] = updated.lineIconDefaultLineWidthPx
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] = updated.lineIconDefaultOutlineEnabled
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] = updated.lineIconDefaultOutlineColorHex
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] = updated.lineIconDefaultOutlineWidthPx
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }
