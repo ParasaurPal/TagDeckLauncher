@@ -28,6 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
@@ -40,11 +43,14 @@ import coil.request.ImageRequest
 import com.example.data.db.AppEntity
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.NotificationBadgeStore
+import com.example.data.system.LineIconProfile
+import com.example.data.system.LineIconProcessor
 import java.io.File
 import kotlin.math.roundToInt
 
 val LocalIconPackOrder = staticCompositionLocalOf<List<String>> { emptyList() }
 val LocalNotificationBadgesEnabled = staticCompositionLocalOf { false }
+val LocalLineIconProfilesJson = staticCompositionLocalOf { "" }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
     "CIRCLE" -> CircleShape
@@ -64,6 +70,8 @@ fun AppIconView(
 ) {
     val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
+    val lineProfilesJson = LocalLineIconProfilesJson.current
+    val lineProfile = remember(app.packageName, lineProfilesJson) { LineIconProfile.decodeForPackage(lineProfilesJson, app.packageName) }
     val showNotificationBadges = LocalNotificationBadgesEnabled.current
     val notificationCounts by NotificationBadgeStore.counts.collectAsState()
     val notificationCount = if (showNotificationBadges) notificationCounts[app.packageName] ?: 0 else 0
@@ -107,6 +115,33 @@ fun AppIconView(
     }
 
     val rawBitmap: ImageBitmap? = packIcon ?: systemIcon
+    val customLineSource: ImageBitmap? by produceState(
+        initialValue = null,
+        customFile,
+        lineProfile,
+    ) {
+        value = if (customFile == null || lineProfile == null) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                runCatching { BitmapFactory.decodeFile(customFile.absolutePath)?.asImageBitmap() }.getOrNull()
+            }
+        }
+    }
+    val lineBaseBitmap = customLineSource ?: rawBitmap
+    val lineDisplayedBitmap: ImageBitmap? by produceState(
+        initialValue = null,
+        lineBaseBitmap,
+        lineProfile,
+    ) {
+        value = if (lineBaseBitmap == null || lineProfile == null) {
+            null
+        } else {
+            withContext(Dispatchers.Default) {
+                runCatching { LineIconProcessor.render(lineBaseBitmap, lineProfile).asImageBitmap() }.getOrNull()
+            }
+        }
+    }
     val bitmapKey = remember(app.packageName, app.componentName, iconPackOrder, packIcon != null, app.isInstalled) {
         if (packIcon != null) {
             "pack:${app.packageName}:${app.componentName}:${iconPackOrder.joinToString(",")}"
@@ -143,6 +178,19 @@ fun AppIconView(
         contentAlignment = Alignment.Center,
     ) {
         when {
+            lineProfile != null && lineDisplayedBitmap != null -> {
+                Image(
+                    bitmap = lineDisplayedBitmap!!,
+                    contentDescription = app.displayName,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = app.iconScale
+                            scaleY = app.iconScale
+                        },
+                )
+            }
             customFile != null -> {
                 val request = remember(customFile, iconStyle) {
                     ImageRequest.Builder(context)
