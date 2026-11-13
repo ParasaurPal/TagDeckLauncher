@@ -48,6 +48,8 @@ import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.LocalIconPackOrder
 import com.example.ui.components.LocalNotificationBadgesEnabled
+import com.example.ui.components.LocalLineIconProfilesJson
+import com.example.ui.components.LineIconStudioDialog
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
@@ -271,6 +273,7 @@ private fun TagDeckRoot(
     var inlineEditCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var inlineAssignAppsTag by remember { mutableStateOf<TagEntity?>(null) }
     var inlineCustomizeApp by remember { mutableStateOf<AppEntity?>(null) }
+    var inlineLineIconApp by remember { mutableStateOf<AppEntity?>(null) }
 
     val navigateTo: (LauncherRoute) -> Unit = { route ->
         if (navController.currentDestination?.route != route.route) {
@@ -286,6 +289,7 @@ private fun TagDeckRoot(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
+        LocalLineIconProfilesJson provides state.settings.lineIconProfilesJson,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -401,6 +405,7 @@ private fun TagDeckRoot(
                     onChangeSortOrder = { sort -> viewModel.updateSettings { it.copy(drawerSortOrder = sort) } },
                     onOpenAppInfo = { viewModel.openAppInfo(it) },
                     onUninstallApp = { viewModel.requestUninstall(it) },
+                    onEditLineIcon = { inlineLineIconApp = it },
                     onImportImage = { uri -> viewModel.importImagePreservingOriginal(uri, "Icons") },
                 )
             }
@@ -652,9 +657,24 @@ private fun TagDeckRoot(
                 onToggleHidden = { viewModel.setAppHidden(fresh.app.packageName, !fresh.app.hidden) },
                 onOpenAppInfo = { viewModel.openAppInfo(fresh.app.packageName) },
                 onUninstall = { viewModel.requestUninstall(fresh.app.packageName) },
+                onEditLineIcon = { inlineLineIconApp = fresh.app; inlineCustomizeApp = null },
                 onDismiss = { inlineCustomizeApp = null },
             )
         }
+    }
+
+    inlineLineIconApp?.let { app ->
+        LineIconStudioDialog(
+            app = app,
+            appDiscovery = viewModel.appDiscovery,
+            iconPackOrder = state.settings.iconPackOrder(),
+            initialProfile = state.settings.lineIconProfile(app.packageName),
+            onSave = { profile ->
+                viewModel.setLineIconProfile(app.packageName, profile)
+                inlineLineIconApp = null
+            },
+            onDismiss = { inlineLineIconApp = null },
+        )
     }
     }
 }
