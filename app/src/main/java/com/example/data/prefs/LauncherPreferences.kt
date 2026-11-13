@@ -88,7 +88,7 @@ data class LauncherSettings(
     val showStatusBar: Boolean = true,
     val showNavBar: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
-    val notificationsBadgeHint: Boolean = true,
+    val notificationsBadgeHint: Boolean = false,
     val recentSearchesCsv: String = "",
     val iconPackOrderCsv: String = "",
     // Black Icon Styling (Default: white fill with crisp black outline)
@@ -266,7 +266,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         showStatusBar = prefs[Keys.SHOW_STATUS_BAR] ?: true,
         showNavBar = prefs[Keys.SHOW_NAV_BAR] ?: true,
         hapticFeedbackEnabled = prefs[Keys.HAPTIC_FEEDBACK] ?: true,
-        notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: true,
+        notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: false,
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
         iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
         blackIconStyleEnabled = prefs[Keys.BLACK_ICON_STYLE_ENABLED] ?: true,
