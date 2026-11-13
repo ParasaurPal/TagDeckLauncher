@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -102,10 +103,19 @@ data class LineIconProfile(
 
 object LineIconProcessor {
     const val PREVIEW_SIZE = 192
+    private val renderedCache = LruCache<String, Bitmap>(64)
     private data class EdgeMap(val width: Int, val height: Int, val pixels: IntArray, val edges: BooleanArray)
 
     fun render(source: ImageBitmap, profile: LineIconProfile): Bitmap =
         render(source.asAndroidBitmap(), profile)
+
+    fun render(cacheKey: String, source: ImageBitmap, profile: LineIconProfile): Bitmap {
+        val key = "$cacheKey|${profile.hashCode()}"
+        synchronized(renderedCache) { renderedCache.get(key) }?.let { return it }
+        val rendered = render(source, profile)
+        synchronized(renderedCache) { renderedCache.put(key, rendered) }
+        return rendered
+    }
 
     fun render(source: Bitmap, profile: LineIconProfile): Bitmap {
         val edgeMap = buildEdgeMap(source)
