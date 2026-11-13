@@ -602,3 +602,44 @@ fun RecentAppsWidgetContent(
         }
     }
 }
+
+
+@Composable
+fun AtAGlanceWidgetContent(element: HomeElementEntity) {
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var weather by remember(element.elementId, element.label) { mutableStateOf<WeatherSnapshot?>(null) }
+    var weatherError by remember(element.elementId, element.label) { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMillis = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+    LaunchedEffect(element.label) {
+        if (element.label.isNotBlank()) {
+            while (true) {
+                runCatching { withContext(Dispatchers.IO) { loadCityWeather(element.label) } }
+                    .onSuccess { weather = it; weatherError = null }
+                    .onFailure { weatherError = it.message ?: "Weather unavailable" }
+                delay(30L * 60L * 1000L)
+            }
+        } else {
+            weatherError = "Set a city in the widget label"
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(14.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(nowMillis)), color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleSmall)
+        Text(SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(nowMillis)), color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+        val current = weather
+        if (current != null) {
+            Text("${current.city}  •  ${current.temperature}", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(current.condition, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text(weatherError ?: "Loading weather…", color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
