@@ -339,6 +339,8 @@ object BackupManager {
             put("lineIconDefaultOutlineColorHex", s.lineIconDefaultOutlineColorHex)
             put("lineIconDefaultOutlineWidthPx", s.lineIconDefaultOutlineWidthPx.toDouble())
             put("lockedAppsCsv", s.lockedAppsCsv)
+            put("cloudBackupEnabled", s.cloudBackupEnabled)
+            put("cloudBackupTreeUri", s.cloudBackupTreeUri ?: JSONObject.NULL)
         })
 
         return root.toString(2)
@@ -675,6 +677,8 @@ object BackupManager {
             lineIconDefaultOutlineColorHex = so.optLong("lineIconDefaultOutlineColorHex", 0xFF000000L),
             lineIconDefaultOutlineWidthPx = so.optDouble("lineIconDefaultOutlineWidthPx", 1.2).toFloat(),
             lockedAppsCsv = so.optString("lockedAppsCsv", ""),
+            cloudBackupEnabled = so.optBoolean("cloudBackupEnabled", false),
+            cloudBackupTreeUri = so.optString("cloudBackupTreeUri").takeIf { it.isNotBlank() && it != "null" },
             seededDefaults = true,
         )
 
