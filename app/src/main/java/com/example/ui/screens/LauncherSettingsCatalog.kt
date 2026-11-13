@@ -179,7 +179,8 @@ object LauncherSettingsCatalog {
             keywords = listOf("status bar", "navigation bar", "vibration", "notifications"),
             entries = listOf(
                 entry("system_bars", SECTION_SYSTEM_UI, "Show Status Bar & Navigation Bar", "Toggle Android status bar and system navigation bar visibility", listOf("status bar", "nav bar", "immersive", "fullscreen")),
-                entry("feedback_notifs", SECTION_SYSTEM_UI, "Haptic Feedback & Notification Hints", "Toggle vibration feedback and notification badge permission", listOf("haptic", "vibrate", "notification", "badge")),
+                entry("feedback_notifs", SECTION_SYSTEM_UI, "Haptic Feedback & Notification Badges", "Toggle haptics and access Android notification counts", listOf("haptic", "vibrate", "notification", "badge")),
+                entry("usage_access", SECTION_SYSTEM_UI, "App Usage Access", "Grant Android Usage Access for the screen-time widget", listOf("usage", "screen time", "app time", "statistics", "privacy")),
             ),
         ),
         section(
