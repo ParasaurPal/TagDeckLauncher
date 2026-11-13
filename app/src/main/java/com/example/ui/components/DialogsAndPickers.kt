@@ -748,6 +748,7 @@ fun AppActionAndCustomizeDialog(
         iconAlpha = alpha,
     )
     val primaryCategoryName = allCategories.find { it.categoryId == app.primaryCategoryId }?.name ?: "Tools"
+    val appShortcuts = remember(app.packageName) { appDiscovery.getAppShortcuts(app.packageName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -826,6 +827,22 @@ fun AppActionAndCustomizeDialog(
                     Icon(Icons.Rounded.LocalOffer, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Tags (${appWithTags.tags.size}): ${appWithTags.tags.joinToString { it.name }.ifBlank { "None" }}")
+                }
+
+                if (appShortcuts.isNotEmpty()) {
+                    Text("App Shortcuts", style = MaterialTheme.typography.labelLarge)
+                    appShortcuts.forEach { shortcut ->
+                        OutlinedButton(
+                            onClick = {
+                                if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id)) {
+                                    appDiscovery.launchApp(app.packageName, app.componentName)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(shortcut.shortLabel?.toString() ?: shortcut.id)
+                        }
+                    }
                 }
 
                 OutlinedButton(
