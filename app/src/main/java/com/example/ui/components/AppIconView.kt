@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import android.graphics.BitmapFactory
@@ -50,7 +51,7 @@ import kotlin.math.roundToInt
 
 val LocalIconPackOrder = staticCompositionLocalOf<List<String>> { emptyList() }
 val LocalNotificationBadgesEnabled = staticCompositionLocalOf { false }
-val LocalLineIconProfilesJson = staticCompositionLocalOf { "" }
+val LocalLineIconProfiles = staticCompositionLocalOf<Map<String, LineIconProfile>> { emptyMap() }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
     "CIRCLE" -> CircleShape
@@ -70,8 +71,7 @@ fun AppIconView(
 ) {
     val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
-    val lineProfilesJson = LocalLineIconProfilesJson.current
-    val lineProfile = remember(app.packageName, lineProfilesJson) { LineIconProfile.decodeForPackage(lineProfilesJson, app.packageName) }
+    val lineProfile = LocalLineIconProfiles.current[app.packageName]
     val showNotificationBadges = LocalNotificationBadgesEnabled.current
     val notificationCounts by NotificationBadgeStore.counts.collectAsState()
     val notificationCount = if (showNotificationBadges) notificationCounts[app.packageName] ?: 0 else 0
