@@ -905,6 +905,7 @@ fun TagTriggeredSidebarContent(
                         Icon(
                             imageVector = if (tag.sidebarLayoutMode == "GRID") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
                             contentDescription = "Toggle grid or list",
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     IconButton(
@@ -913,7 +914,7 @@ fun TagTriggeredSidebarContent(
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = smaller))
                         },
                     ) {
-                        Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons")
+                        Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(
                         onClick = {
@@ -921,13 +922,13 @@ fun TagTriggeredSidebarContent(
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = larger))
                         },
                     ) {
-                        Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons")
+                        Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(
                         onClick = onAssignApps,
                         modifier = Modifier.testTag("sidebar_assign_apps_button"),
                     ) {
-                        Icon(Icons.Rounded.Add, contentDescription = "Assign apps to tag")
+                        Icon(Icons.Rounded.Add, contentDescription = "Assign apps to tag", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
@@ -1205,20 +1206,20 @@ fun GenericSidebarContent(
                             Icon(
                                 imageVector = if (layoutMode == "GRID") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
                                 contentDescription = "Toggle layout",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                         IconButton(onClick = {
                             iconSize = (iconSize - 6).coerceAtLeast(36)
                             onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {
-                            Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = Color.White)
+                            Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = MaterialTheme.colorScheme.onSurface)
                         }
                         IconButton(onClick = {
                             iconSize = (iconSize + 6).coerceAtMost(72)
                             onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {
-                            Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = Color.White)
+                            Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
