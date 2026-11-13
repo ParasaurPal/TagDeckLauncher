@@ -960,6 +960,7 @@ fun WidgetPickerDialog(
         Triple("STORAGE_RAM_WIDGET", "Storage & RAM Monitor", 180f to 132f),
         Triple("COMPASS_WIDGET", "Hardware Compass", 136f to 136f),
         Triple("MEDIA_WIDGET", "Media Playback Controls", 260f to 96f),
+        Triple("APP_USAGE_WIDGET", "Top App Usage (24 Hours)", 230f to 150f),
         Triple("PHOTO_SLIDESHOW", "Photo Slideshow Frame", 220f to 148f),
     )
 
