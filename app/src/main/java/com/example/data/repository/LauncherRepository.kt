@@ -469,7 +469,7 @@ class LauncherRepository(
         val settings = prefsRepo.getSettingsOnce()
         val lockedPackages = settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toSet()
         val ok = if (app.packageName in lockedPackages) {
-            AppLockGateActivity.launch(appDiscovery.context, app.packageName)
+            AppLockGateActivity.launch(appDiscovery.context, app.packageName, app.componentName)
             true
         } else {
             appDiscovery.launchApp(app.packageName, app.componentName)
