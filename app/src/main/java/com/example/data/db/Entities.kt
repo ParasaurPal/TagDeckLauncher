@@ -51,6 +51,7 @@ data class CategoryEntity(
     val backgroundGradientEndHex: Long? = null,
     val backgroundImagePath: String? = null,
     val backgroundBlurDp: Float = 0f,
+    val backgroundAlpha: Float = 1f,
     val iconSizeDp: Int = 24,
     val parentCategoryId: Long? = null,
     val sortOrder: Int = 0,
