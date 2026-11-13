@@ -926,7 +926,7 @@ fun WidgetPickerDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().height(460.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
                 Text("TagDeck Built-in Live Widgets", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -984,18 +984,16 @@ fun WidgetPickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(6.dp))
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (filtered.isEmpty()) {
-                        item {
-                            Text(
-                                text = "No matching Android widgets found on device.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(12.dp),
-                            )
-                        }
+                        Text(
+                            text = "No matching Android widgets found on device.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp),
+                        )
                     } else {
-                        items(filtered) { p ->
+                        filtered.forEach { p ->
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
