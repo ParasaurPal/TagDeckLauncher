@@ -109,6 +109,7 @@ data class TagEntity(
     val sidebarIconSizeDp: Int = 52,
     val sidebarColumns: Int = 3,
     val showCountInSidebar: Boolean = true,
+    val showOnHome: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
 )
 
