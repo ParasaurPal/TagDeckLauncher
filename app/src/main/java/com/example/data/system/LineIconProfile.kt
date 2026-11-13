@@ -201,8 +201,15 @@ object LineIconProcessor {
         }
     }
 
-    fun snapToEdge(source: ImageBitmap, point: LineIconPoint, radiusFraction: Float = 0.09f): LineIconPoint {
+    fun createSnapper(source: ImageBitmap, radiusFraction: Float = 0.09f): (LineIconPoint) -> LineIconPoint {
         val map = buildEdgeMap(source.asAndroidBitmap())
+        return { point -> snapToEdge(map, point, radiusFraction) }
+    }
+
+    fun snapToEdge(source: ImageBitmap, point: LineIconPoint, radiusFraction: Float = 0.09f): LineIconPoint =
+        snapToEdge(buildEdgeMap(source.asAndroidBitmap()), point, radiusFraction)
+
+    private fun snapToEdge(map: EdgeMap, point: LineIconPoint, radiusFraction: Float): LineIconPoint {
         val x = (point.x.coerceIn(0f, 1f) * (map.width - 1)).toInt()
         val y = (point.y.coerceIn(0f, 1f) * (map.height - 1)).toInt()
         val radius = (min(map.width, map.height) * radiusFraction).toInt().coerceAtLeast(2)
