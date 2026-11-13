@@ -1433,7 +1433,7 @@ fun SettingsScreen(
                                 Text("Notification Badges", style = MaterialTheme.typography.bodyLarge)
                             }
                             Text(
-                                "Show active notification counts on app icons. Android requires separate Notification Access approval.",
+                                "Shows active counts only; TagDeck does not read notification text. Turning this off hides badges; revoke Notification Access in Android Settings to remove access.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
