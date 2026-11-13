@@ -684,6 +684,7 @@ fun AppActionAndCustomizeDialog(
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onEditLineIcon: () -> Unit,
+    onLaunchApp: () -> Unit = {},
     appLocked: Boolean = false,
     onToggleAppLock: () -> Unit = {},
     onDismiss: () -> Unit,
@@ -843,8 +844,10 @@ fun AppActionAndCustomizeDialog(
                     appShortcuts.forEach { shortcut ->
                         OutlinedButton(
                             onClick = {
-                                if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id)) {
-                                    appDiscovery.launchApp(app.packageName, app.componentName)
+                                if (appLocked) {
+                                    onLaunchApp()
+                                } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id)) {
+                                    onLaunchApp()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
