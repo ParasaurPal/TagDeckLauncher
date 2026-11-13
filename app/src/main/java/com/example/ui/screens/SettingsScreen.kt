@@ -1,9 +1,8 @@
 package com.example.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.net.Uri
-import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -98,11 +97,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
+import com.example.data.system.NotificationAccess
 import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.IconOutlineProcessor
@@ -189,13 +188,6 @@ fun SettingsScreen(
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        onUpdateSettings { it.copy(notificationsBadgeHint = granted) }
-        onShowMessage(if (granted) "Notification badges enabled" else "Notification permission denied")
-    }
 
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -1434,26 +1426,30 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Notification Hints", style = MaterialTheme.typography.bodyLarge)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Notification Badges", style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Text(
+                                "Show active notification counts on app icons. Android requires separate Notification Access approval.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         Switch(
                             checked = s.notificationsBadgeHint,
                             onCheckedChange = { enabled ->
-                                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    val granted = ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.POST_NOTIFICATIONS,
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                    if (granted) {
-                                        onUpdateSettings { it.copy(notificationsBadgeHint = true) }
-                                    } else {
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                onUpdateSettings { it.copy(notificationsBadgeHint = enabled) }
+                                if (enabled && !NotificationAccess.isEnabled(context)) {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                    } catch (_: Exception) {
+                                        onShowMessage("Could not open Android Notification Access settings")
                                     }
-                                } else {
-                                    onUpdateSettings { it.copy(notificationsBadgeHint = enabled) }
+                                } else if (enabled) {
+                                    onShowMessage("Notification badges enabled")
                                 }
                             },
                         )
