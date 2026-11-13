@@ -92,6 +92,7 @@ fun AppManagerScreen(
     onOpenAppInfo: (String) -> Unit,
     onUninstallApp: (String) -> Unit,
     onEditLineIcon: (AppEntity) -> Unit,
+    onToggleAppLock: (String, Boolean) -> Unit = { _, _ -> },
     onImportImage: suspend (Uri) -> String?,
 ) {
     BackHandler { onBack() }
@@ -484,6 +485,12 @@ fun AppManagerScreen(
             onOpenAppInfo = { onOpenAppInfo(fresh.app.packageName) },
             onUninstall = { onUninstallApp(fresh.app.packageName) },
             onEditLineIcon = { customizingApp = null; onEditLineIcon(fresh.app) },
+            appLocked = fresh.app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank),
+            onToggleAppLock = {
+                val current = state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toMutableSet()
+                val nowLocked = if (fresh.app.packageName in current) current.remove(fresh.app.packageName) else current.add(fresh.app.packageName)
+                onToggleAppLock(fresh.app.packageName, nowLocked)
+            },
             onDismiss = { customizingApp = null },
         )
     }
