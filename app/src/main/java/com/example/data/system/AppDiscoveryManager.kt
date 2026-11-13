@@ -194,13 +194,15 @@ class AppDiscoveryManager(val context: Context) {
     fun launchAppShortcut(packageName: String, shortcutId: String): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return false
         return try {
-            launcherApps?.startShortcut(
+            val manager = launcherApps ?: return false
+            manager.startShortcut(
                 packageName,
                 shortcutId,
                 null,
                 android.os.Bundle(),
                 Process.myUserHandle(),
-            ) ?: false
+            )
+            true
         } catch (_: Exception) {
             false
         }
