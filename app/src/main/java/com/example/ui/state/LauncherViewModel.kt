@@ -26,6 +26,7 @@ import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.ImageStorageManager
 import com.example.data.system.InstalledIconPack
 import com.example.data.system.LauncherWidgetHost
+import com.example.data.system.LineIconProfile
 import com.example.data.system.NotificationAccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -570,6 +571,17 @@ class LauncherViewModel(
 
     fun setAppCustomName(packageName: String, customName: String?) {
         viewModelScope.launch { repository.setAppCustomName(packageName, customName) }
+    }
+
+    fun setLineIconProfile(packageName: String, profile: LineIconProfile?) {
+        viewModelScope.launch {
+            repository.updateSettings { settings ->
+                val profiles = LineIconProfile.decodeMap(settings.lineIconProfilesJson).toMutableMap()
+                if (profile == null) profiles.remove(packageName) else profiles[packageName] = profile
+                settings.copy(lineIconProfilesJson = LineIconProfile.encodeMap(profiles))
+            }
+            showMessage(if (profile == null) "Line icon removed" else "Line icon saved")
+        }
     }
 
     fun setAppCustomIcon(
