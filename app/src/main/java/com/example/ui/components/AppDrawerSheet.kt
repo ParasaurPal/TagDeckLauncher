@@ -520,6 +520,8 @@ fun AppDrawerOverlay(
                                                 overflow = TextOverflow.Ellipsis,
                                                 textAlign = TextAlign.Center,
                                                 lineHeight = (state.settings.drawerLabelSizeSp + 2).sp,
+                                                color = Color.White,
+                                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
                                             )
                                         }
                                     }
