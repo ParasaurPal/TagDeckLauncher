@@ -753,10 +753,11 @@ private fun FreeformPageCanvas(
                 if (!state.isEditMode && !page.verticallyScrollable) {
                     var totalDy = 0f
                     var triggered = false
-                    detectDragGestures(
+                    detectVerticalDragGestures(
                         onDragStart = { totalDy = 0f; triggered = false },
-                        onDrag = { _, dragAmount ->
-                            totalDy += dragAmount.y
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            totalDy += dragAmount
                             if (!triggered && abs(totalDy) > 95f) {
                                 triggered = true
                                 onVerticalSwipe(totalDy < 0f)
