@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
@@ -172,9 +173,9 @@ fun LineIconStudioDialog(
                                     alpha = 0.18f,
                                 )
                             }
-                            if (profile.autoEdgesEnabled && edgePreview != null) {
+                            if (profile.autoEdgesEnabled && autoLinePreview != null) {
                                 drawImage(
-                                    edgePreview!!,
+                                    autoLinePreview!!,
                                     dstSize = IntSize(size.width.toInt(), size.height.toInt()),
                                     colorFilter = ColorFilter.tint(Color(profile.lineColorHex)),
                                 )

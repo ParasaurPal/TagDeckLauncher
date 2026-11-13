@@ -65,6 +65,15 @@ android {
   }
 }
 
+
+val copyDebugApk = tasks.register<org.gradle.api.tasks.Copy>("copyDebugApk") {
+    dependsOn("assembleDebug")
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(layout.buildDirectory.dir("outputs/apk/debug/named"))
+    rename { "TagDeck.apk" }
+}
+
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {
