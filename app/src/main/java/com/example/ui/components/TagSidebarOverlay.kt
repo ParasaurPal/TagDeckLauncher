@@ -302,6 +302,7 @@ fun ActiveOverlayHost(
                                     backgroundGradientEndHex = if (useCustomBg) cat.backgroundGradientEndHex else null,
                                     backgroundImagePath = if (useCustomBg) cat.backgroundImagePath else null,
                                     backgroundBlurDp = if (useCustomBg) cat.backgroundBlurDp else 0f,
+                                    backgroundAlpha = if (useCustomBg) cat.backgroundAlpha else 1f,
                                     side = configuredSide,
                                     widthFraction = 0.84f,
                                     heightFraction = 0.72f,
@@ -964,6 +965,7 @@ fun GenericSidebarContent(
     backgroundGradientEndHex: Long? = null,
     backgroundImagePath: String?,
     backgroundBlurDp: Float = 0f,
+    backgroundAlpha: Float = 1f,
     side: String = "LEFT",
     widthFraction: Float,
     heightFraction: Float = 0.72f,
@@ -1022,6 +1024,7 @@ fun GenericSidebarContent(
                 gradientEndHex = backgroundGradientEndHex,
                 imagePath = backgroundImagePath,
                 blurDp = backgroundBlurDp,
+                alpha = backgroundAlpha,
                 modifier = Modifier.testTag("sidebar_bg_$backgroundType"),
             )
 
