@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.ui.components.IconStyleConfig
+import com.example.data.system.LineIconProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -98,8 +99,11 @@ data class LauncherSettings(
     val blackIconOutlineColorHex: Long = IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
     val blackIconOutlineWidthDp: Float = IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
     val blackIconDarknessThreshold: Float = IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
+    val lineIconProfilesJson: String = "",
     val seededDefaults: Boolean = false,
 ) {
+    fun lineIconProfile(packageName: String): LineIconProfile? = LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName)
+
     fun iconPackOrder(): List<String> =
         iconPackOrderCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
@@ -196,6 +200,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         val BLACK_ICON_OUTLINE_COLOR = longPreferencesKey("black_icon_outline_color")
         val BLACK_ICON_OUTLINE_WIDTH = floatPreferencesKey("black_icon_outline_width")
         val BLACK_ICON_DARKNESS_THRESHOLD = floatPreferencesKey("black_icon_darkness_threshold")
+        val LINE_ICON_PROFILES = stringPreferencesKey("line_icon_profiles_json")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -275,6 +280,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         blackIconOutlineColorHex = prefs[Keys.BLACK_ICON_OUTLINE_COLOR] ?: IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
         blackIconOutlineWidthDp = prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] ?: IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
         blackIconDarknessThreshold = prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] ?: IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
+        lineIconProfilesJson = prefs[Keys.LINE_ICON_PROFILES] ?: "",
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -367,6 +373,7 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.BLACK_ICON_OUTLINE_COLOR] = updated.blackIconOutlineColorHex
             prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] = updated.blackIconOutlineWidthDp
             prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] = updated.blackIconDarknessThreshold
+            prefs[Keys.LINE_ICON_PROFILES] = updated.lineIconProfilesJson
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }
