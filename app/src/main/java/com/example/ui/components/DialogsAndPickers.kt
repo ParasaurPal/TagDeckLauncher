@@ -751,7 +751,7 @@ fun AppActionAndCustomizeDialog(
         iconAlpha = alpha,
     )
     val primaryCategoryName = allCategories.find { it.categoryId == app.primaryCategoryId }?.name ?: "Tools"
-    val appShortcuts = remember(app.packageName) { appDiscovery.getAppShortcuts(app.packageName) }
+    val appShortcuts = remember(app.packageName) { appDiscovery.getAppShortcuts(app.packageName, app.componentName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -846,7 +846,7 @@ fun AppActionAndCustomizeDialog(
                             onClick = {
                                 if (appLocked) {
                                     onLaunchApp()
-                                } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id)) {
+                                } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id, app.componentName)) {
                                     onLaunchApp()
                                 }
                             },
