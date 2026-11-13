@@ -683,6 +683,7 @@ fun AppActionAndCustomizeDialog(
     onToggleHidden: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
+    onEditLineIcon: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -825,6 +826,13 @@ fun AppActionAndCustomizeDialog(
                     Icon(Icons.Rounded.LocalOffer, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Tags (${appWithTags.tags.size}): ${appWithTags.tags.joinToString { it.name }.ifBlank { "None" }}")
+                }
+
+                OutlinedButton(
+                    onClick = onEditLineIcon,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Create / Edit Black & White Line Icon")
                 }
 
                 OutlinedTextField(
