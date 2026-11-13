@@ -18,12 +18,14 @@ class AppLockGateActivity : Activity() {
 
     companion object {
         private const val EXTRA_PACKAGE = "com.tagdeck.launcher.extra.LOCKED_PACKAGE"
+        private const val EXTRA_COMPONENT = "com.tagdeck.launcher.extra.LOCKED_COMPONENT"
         private const val REQUEST_CONFIRM_DEVICE = 7412
 
-        fun launch(context: Context, packageName: String) {
+        fun launch(context: Context, packageName: String, componentName: String? = null) {
             context.startActivity(
                 Intent(context, AppLockGateActivity::class.java)
                     .putExtra(EXTRA_PACKAGE, packageName)
+                    .putExtra(EXTRA_COMPONENT, componentName)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
@@ -68,11 +70,31 @@ class AppLockGateActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CONFIRM_DEVICE && resultCode == RESULT_OK) {
             val packageName = intent.getStringExtra(EXTRA_PACKAGE)
+            val componentName = intent.getStringExtra(EXTRA_COMPONENT)
             if (!packageName.isNullOrBlank()) {
-                val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { startActivity(launchIntent) }
+                val launchedFromProfile = runCatching {
+                    if (componentName.isNullOrBlank()) false else {
+                        val serial = if (componentName.startsWith("tdprofile:")) {
+                            componentName.substringAfter("tdprofile:").substringBefore("|").toLongOrNull()
+                        } else null
+                        val flattened = if (componentName.startsWith("tdprofile:")) componentName.substringAfter("|") else componentName
+                        val component = android.content.ComponentName.unflattenFromString(flattened)
+                        val user = if (serial != null) {
+                            (getSystemService(Context.USER_SERVICE) as? android.os.UserManager)?.getUserForSerialNumber(serial)
+                        } else android.os.Process.myUserHandle()
+                        val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as? android.content.pm.LauncherApps
+                        if (component != null && user != null && launcherApps != null) {
+                            launcherApps.startMainActivity(component, user, null, null)
+                            true
+                        } else false
+                    }
+                }.getOrDefault(false)
+                if (!launchedFromProfile) {
+                    val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { startActivity(launchIntent) }
+                    }
                 }
             }
         }
