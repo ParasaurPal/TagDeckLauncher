@@ -926,7 +926,7 @@ fun WidgetPickerDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().height(460.dp)) {
                 Text("TagDeck Built-in Live Widgets", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(6.dp))
                 Row(
