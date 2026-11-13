@@ -253,6 +253,8 @@ object LineIconProcessor {
             luminance[i] = (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
         }
         val magnitudes = FloatArray(width * height)
+        val gradientX = FloatArray(width * height)
+        val gradientY = FloatArray(width * height)
         var maxMagnitude = 0f
         for (y in 1 until height - 1) for (x in 1 until width - 1) {
             val i = y * width + x
@@ -260,16 +262,51 @@ object LineIconProcessor {
                 luminance[i - width + 1] + 2f * luminance[i + 1] + luminance[i + width + 1]
             val gy = -luminance[i - width - 1] - 2f * luminance[i - width] - luminance[i - width + 1] +
                 luminance[i + width - 1] + 2f * luminance[i + width] + luminance[i + width + 1]
-            val alphaEdge = max(
-                kotlin.math.abs(alpha[i] - alpha[i - 1]),
-                kotlin.math.abs(alpha[i] - alpha[i - width]),
-            ) * 1.6f
-            magnitudes[i] = max(hypot(gx, gy), alphaEdge)
+            val agx = -alpha[i - width - 1] - 2f * alpha[i - 1] - alpha[i + width - 1] +
+                alpha[i - width + 1] + 2f * alpha[i + 1] + alpha[i + width + 1]
+            val agy = -alpha[i - width - 1] - 2f * alpha[i - width] - alpha[i - width + 1] +
+                alpha[i + width - 1] + 2f * alpha[i + width] + alpha[i + width + 1]
+            val colorMagnitude = hypot(gx, gy)
+            val alphaMagnitude = hypot(agx, agy) * 1.6f
+            val useAlphaGradient = alphaMagnitude > colorMagnitude
+            gradientX[i] = if (useAlphaGradient) agx else gx
+            gradientY[i] = if (useAlphaGradient) agy else gy
+            magnitudes[i] = max(colorMagnitude, alphaMagnitude)
             if (magnitudes[i] > maxMagnitude) maxMagnitude = magnitudes[i]
         }
-        val threshold = (maxMagnitude * 0.18f).coerceIn(0.12f, 0.42f)
+
+        // Non-maximum suppression keeps contours thin instead of turning every gradient
+        // into a fuzzy band of pixels.
+        val suppressed = FloatArray(width * height)
+        for (y in 1 until height - 1) for (x in 1 until width - 1) {
+            val i = y * width + x
+            val gx = gradientX[i]
+            val gy = gradientY[i]
+            val ax = kotlin.math.abs(gx)
+            val ay = kotlin.math.abs(gy)
+            val (first, second) = when {
+                ax >= ay * 2f -> magnitudes[i - 1] to magnitudes[i + 1]
+                ay >= ax * 2f -> magnitudes[i - width] to magnitudes[i + width]
+                gx * gy >= 0f -> magnitudes[i - width - 1] to magnitudes[i + width + 1]
+                else -> magnitudes[i - width + 1] to magnitudes[i + width - 1]
+            }
+            if (magnitudes[i] >= first && magnitudes[i] >= second) {
+                suppressed[i] = magnitudes[i]
+            }
+        }
+
+        val threshold = (maxMagnitude * 0.16f).coerceIn(0.10f, 0.38f)
         val edges = BooleanArray(width * height)
-        for (i in magnitudes.indices) edges[i] = magnitudes[i] >= threshold
+        for (y in 1 until height - 1) for (x in 1 until width - 1) {
+            val i = y * width + x
+            if (suppressed[i] < threshold) continue
+            var neighbors = 0
+            for (dy in -1..1) for (dx in -1..1) {
+                if (dx == 0 && dy == 0) continue
+                if (suppressed[(y + dy) * width + x + dx] >= threshold) neighbors++
+            }
+            edges[i] = neighbors > 0
+        }
         return EdgeMap(width, height, pixels, edges)
     }
 }
