@@ -550,7 +550,7 @@ private fun WindowPopupHost(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 3.dp),
                         )
                         IconButton(onClick = onDismiss, modifier = Modifier.testTag("window_overlay_close")) {
                             Icon(Icons.Rounded.Close, "Close window", tint = Color.White)
@@ -614,8 +614,8 @@ private fun TagIconDock(
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (darkSurface) Color.White else MaterialTheme.colorScheme.onSurface,
-                    modifier = if (darkSurface) Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp) else Modifier,
+                    color = Color.White,
+                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 5.dp, vertical = 2.dp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -901,7 +901,7 @@ fun TagTriggeredSidebarContent(
                             val nextMode = if (tag.sidebarLayoutMode == "GRID") "LIST" else "GRID"
                             onUpdateTagLayout(tag.copy(sidebarLayoutMode = nextMode))
                         },
-                        modifier = Modifier.testTag("sidebar_toggle_layout"),
+                        modifier = Modifier.testTag("sidebar_toggle_layout").clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)),
                     ) {
                         Icon(
                             imageVector = if (tag.sidebarLayoutMode == "GRID") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
@@ -915,7 +915,7 @@ fun TagTriggeredSidebarContent(
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = smaller))
                         },
                     ) {
-                        Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = Color.White)
                     }
                     IconButton(
                         onClick = {
@@ -923,13 +923,13 @@ fun TagTriggeredSidebarContent(
                             onUpdateTagLayout(tag.copy(sidebarIconSizeDp = larger))
                         },
                     ) {
-                        Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Rounded.ZoomIn, contentDescription = "Larger icons", tint = Color.White)
                     }
                     IconButton(
                         onClick = onAssignApps,
                         modifier = Modifier.testTag("sidebar_assign_apps_button"),
                     ) {
-                        Icon(Icons.Rounded.Add, contentDescription = "Assign apps to tag", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Rounded.Add, contentDescription = "Assign apps to tag", tint = Color.White)
                     }
                 }
 
@@ -1203,7 +1203,7 @@ fun GenericSidebarContent(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row {
-                        IconButton(onClick = {
+                        IconButton(modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)), onClick = {
                             layoutMode = if (layoutMode == "GRID") "LIST" else "GRID"
                             onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {
@@ -1213,13 +1213,13 @@ fun GenericSidebarContent(
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
-                        IconButton(onClick = {
+                        IconButton(modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)), onClick = {
                             iconSize = (iconSize - 6).coerceAtLeast(36)
                             onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {
                             Icon(Icons.Rounded.ZoomOut, contentDescription = "Smaller icons", tint = MaterialTheme.colorScheme.onSurface)
                         }
-                        IconButton(onClick = {
+                        IconButton(modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.68f)), onClick = {
                             iconSize = (iconSize + 6).coerceAtMost(72)
                             onUpdateLayout?.invoke(layoutMode, iconSize)
                         }) {

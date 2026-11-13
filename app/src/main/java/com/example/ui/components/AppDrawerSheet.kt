@@ -344,7 +344,8 @@ fun AppDrawerOverlay(
                                     Text(
                                         text = "${visibleApps.size} apps • ${state.settings.drawerSortOrder.lowercase().replace('_', ' ')}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = Color.White,
+                                        modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 6.dp, vertical = 3.dp),
                                     )
                                 }
                                 IconButton(onClick = { showCustomizeDialog = true }) {
@@ -426,7 +427,7 @@ fun AppDrawerOverlay(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
                                                 .combinedClickable(
                                                     onClick = {
                                                         onLaunchApp(item.app)
@@ -470,7 +471,7 @@ fun AppDrawerOverlay(
                                                     Text(
                                                         text = subtitle,
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.primary,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis,
                                                     )

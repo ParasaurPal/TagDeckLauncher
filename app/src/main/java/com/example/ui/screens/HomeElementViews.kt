@@ -120,6 +120,12 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private fun contrastLabelModifier(textColor: Color): Modifier {
+    val luminance = 0.2126f * textColor.red + 0.7152f * textColor.green + 0.0722f * textColor.blue
+    val plate = if (luminance > 0.5f) Color.Black.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.94f)
+    return Modifier.clip(RoundedCornerShape(7.dp)).background(plate).padding(horizontal = 7.dp, vertical = 3.dp)
+}
+
 private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
     "CIRCLE" -> CircleShape
     "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
@@ -242,6 +248,7 @@ fun HomeElementBody(
                             fontSize = element.fontSizeSp.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
+                            modifier = contrastLabelModifier(Color(element.textColorHex)),
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -255,6 +262,7 @@ fun HomeElementBody(
                                 text = resolveDynamicTokens(element.label, context),
                                 color = Color(element.textColorHex),
                                 fontSize = element.fontSizeSp.sp,
+                                modifier = contrastLabelModifier(Color(element.textColorHex)),
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -279,6 +287,7 @@ fun HomeElementBody(
                             color = Color(element.textColorHex),
                             fontSize = element.fontSizeSp.sp,
                             fontWeight = FontWeight.Bold,
+                            modifier = contrastLabelModifier(Color(element.textColorHex)),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -338,11 +347,12 @@ fun HomeElementBody(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
+                                    modifier = contrastLabelModifier(Color(element.textColorHex)),
                                 )
                             }
                         } else {
                             Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-                            Text("Missing app", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
@@ -382,8 +392,9 @@ fun HomeElementBody(
                                 }
                                 Text(
                                     text = "$count",
-                                    color = Color.White.copy(alpha = 0.9f),
+                                    color = Color.White,
                                     style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
                                 )
                             }
                         } else {
@@ -434,6 +445,7 @@ fun HomeElementBody(
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = contrastLabelModifier(Color(element.textColorHex)),
                         )
                     }
                 }
@@ -459,6 +471,7 @@ fun HomeElementBody(
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = contrastLabelModifier(Color(element.textColorHex)),
                         )
                     }
                 }
@@ -483,6 +496,7 @@ fun HomeElementBody(
                             fontSize = element.fontSizeSp.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = contrastLabelModifier(Color(element.textColorHex)),
                         )
                     }
                 }
@@ -521,6 +535,7 @@ fun HomeElementBody(
                                 fontSize = element.fontSizeSp.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                                modifier = contrastLabelModifier(Color(element.textColorHex)),
                             )
                         }
                     }
@@ -549,12 +564,13 @@ fun HomeElementBody(
                                     color = Color(element.textColorHex),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f).then(contrastLabelModifier(Color(element.textColorHex))),
                                 )
                                 Text(
                                     text = "${apps.size} apps",
-                                    color = Color(tag.colorHex),
+                                    color = Color.White,
                                     style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
                                 )
                             }
                         }
@@ -578,6 +594,7 @@ fun HomeElementBody(
                                         text = app.displayName,
                                         color = Color(element.textColorHex),
                                         fontSize = 11.sp,
+                                        modifier = contrastLabelModifier(Color(element.textColorHex)),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
