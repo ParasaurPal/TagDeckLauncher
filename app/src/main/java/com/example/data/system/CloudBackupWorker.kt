@@ -31,13 +31,27 @@ class CloudBackupWorker(
         val json = runCatching { app.launcherRepository.exportFullBackupJson(includeEmbeddedImages = true) }
             .getOrElse { return@withContext Result.retry() }
         runCatching {
-            tree.findFile(FILE_NAME)?.delete()
-            val file = tree.createFile("application/json", FILE_NAME)
-                ?: error("Cloud provider could not create the backup file")
-            applicationContext.contentResolver.openOutputStream(file.uri, "wt")?.use {
-                it.write(json.toByteArray(Charsets.UTF_8))
-                it.flush()
-            } ?: error("Cloud provider did not open the backup file")
+            // Write a complete temporary document first. Never delete the last good
+            // backup until the provider confirms the replacement has been written
+            // and renamed successfully.
+            val temporaryName = "TagDeck-AutoBackup-\${System.currentTimeMillis()}.tmp"
+            val temporary = tree.createFile("application/octet-stream", temporaryName)
+                ?: error("Cloud provider could not create a temporary backup file")
+            try {
+                applicationContext.contentResolver.openOutputStream(temporary.uri, "wt")?.use {
+                    it.write(json.toByteArray(Charsets.UTF_8))
+                    it.flush()
+                } ?: error("Cloud provider did not open the temporary backup file")
+                if (!temporary.renameTo(FILE_NAME)) {
+                    error("Cloud provider could not safely publish the new backup")
+                }
+                tree.listFiles()
+                    .filter { it.name == FILE_NAME && it.uri != temporary.uri }
+                    .forEach { it.delete() }
+            } catch (error: Exception) {
+                temporary.delete()
+                throw error
+            }
         }.fold(
             onSuccess = { Result.success() },
             onFailure = { Result.retry() },
