@@ -365,17 +365,23 @@ fun HomeElementBody(
                             TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 38.dp)
                             if (element.showLabel) {
                                 Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = tag.name,
-                                    color = Color(element.textColorHex),
-                                    fontSize = element.fontSizeSp.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.64f),
+                                    shape = RoundedCornerShape(8.dp),
+                                ) {
+                                    Text(
+                                        text = tag.name,
+                                        color = Color.White,
+                                        fontSize = element.fontSizeSp.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    )
+                                }
                                 Text(
                                     text = "$count",
-                                    color = Color(tag.colorHex),
+                                    color = Color.White.copy(alpha = 0.9f),
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                             }
