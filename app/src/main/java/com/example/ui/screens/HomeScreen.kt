@@ -293,6 +293,10 @@ fun HomeScreen(
                         val elements = remember(state.homeElements, page.pageId) {
                             state.homeElements
                                 .filter { it.ownerType == "PAGE" && it.pageId == page.pageId && it.visible }
+                                .filter { element ->
+                                    element.type != "TAG_SHORTCUT" ||
+                                        state.allTags.find { it.tagId == element.targetTagId }?.showOnHome != false
+                                }
                                 .sortedBy { it.zIndex }
                         }
                         FreeformPageCanvas(
