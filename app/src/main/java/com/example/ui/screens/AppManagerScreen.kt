@@ -93,6 +93,7 @@ fun AppManagerScreen(
     onUninstallApp: (String) -> Unit,
     onEditLineIcon: (AppEntity) -> Unit,
     onToggleAppLock: (String, Boolean) -> Unit = { _, _ -> },
+    onAddShortcutToHome: (AppEntity, String, String) -> Unit = { _, _, _ -> },
     onImportImage: suspend (Uri) -> String?,
 ) {
     BackHandler { onBack() }
@@ -486,6 +487,7 @@ fun AppManagerScreen(
             onUninstall = { onUninstallApp(fresh.app.packageName) },
             onEditLineIcon = { customizingApp = null; onEditLineIcon(fresh.app) },
             onLaunchApp = { onLaunchApp(fresh.app) },
+            onAddShortcutToHome = { shortcutId, label -> onAddShortcutToHome(fresh.app, shortcutId, label) },
             appLocked = fresh.app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank),
             onToggleAppLock = {
                 val current = state.settings.lockedAppsCsv.split(",").map(String::trim).filter(String::isNotBlank).toMutableSet()
