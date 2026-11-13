@@ -42,6 +42,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -109,6 +110,9 @@ fun CategoryEditorDialog(
     var bgAlpha by remember(initialCategory?.categoryId) {
         mutableFloatStateOf(initialCategory?.backgroundAlpha ?: 1f)
     }
+    var showInMainBar by remember(initialCategory?.categoryId) {
+        mutableStateOf(initialCategory?.showInMainBar ?: true)
+    }
 
     val iconPhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -173,6 +177,7 @@ fun CategoryEditorDialog(
         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
         backgroundAlpha = bgAlpha,
+        showInMainBar = showInMainBar,
         iconSizeDp = iconSizeDp,
     )
 
@@ -327,6 +332,27 @@ fun CategoryEditorDialog(
                     valueRange = 18f..42f,
                 )
 
+                if (initialCategory?.isSystemDockTab != true) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Show in main category bar", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Turn off to hide this category without deleting it.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = showInMainBar,
+                            onCheckedChange = { showInMainBar = it },
+                        )
+                    }
+                }
+
                 HorizontalDivider()
 
                 Row(
@@ -458,6 +484,7 @@ fun CategoryEditorDialog(
                         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
                         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
                         backgroundAlpha = bgAlpha,
+                        showInMainBar = showInMainBar,
                         iconSizeDp = iconSizeDp,
                     )
                     onSave(saved)
