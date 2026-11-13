@@ -2,5 +2,5 @@
   "name": "TagDeck",
   "description": "Customizable Android home screen launcher with freeform layout builder, many-to-many tag-triggered sidebars, widgets, gestures, and local backup.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
