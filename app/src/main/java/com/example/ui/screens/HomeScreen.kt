@@ -466,34 +466,7 @@ fun HomeScreen(
 
                 
 
-                if (state.settings.showDockBar) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
-                        tonalElevation = 8.dp,
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            DockActionButton(Icons.Rounded.Apps, "Drawer", "dock_drawer_button", onClick = onOpenDrawer)
-                            DockActionButton(Icons.Rounded.Search, "Search", "dock_search_button", onClick = onOpenSearch)
-                            DockActionButton(Icons.Rounded.LocalOffer, "Tags", "dock_tags_button", onClick = { onNavigate(LauncherRoute.Tags) })
-                            DockActionButton(Icons.AutoMirrored.Rounded.ViewSidebar, "Drawers", "dock_sidebars_button", onClick = { onNavigate(LauncherRoute.Sidebars) })
-                            DockActionButton(
-                                icon = Icons.Rounded.DashboardCustomize,
-                                label = if (state.isEditMode) "Done" else "Builder",
-                                tag = "dock_builder_button",
-                                active = state.isEditMode,
-                                onClick = { onToggleEditMode(!state.isEditMode) },
-                            )
-                            DockActionButton(Icons.Rounded.Settings, "Settings", "dock_settings_button", onClick = { onNavigate(LauncherRoute.Settings) })
-                        }
-                    }
-                }
+
             }
         }
     }
