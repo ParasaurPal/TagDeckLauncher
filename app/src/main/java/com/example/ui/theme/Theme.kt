@@ -14,16 +14,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
-private fun buildDarkScheme(accent: Color) = darkColorScheme(
+private fun buildDarkScheme(
+    accent: Color,
+    secondary: Color,
+    tertiary: Color,
+) = darkColorScheme(
     primary = accent,
     onPrimary = Color(0xFF06131F),
     primaryContainer = accent.copy(alpha = 0.22f),
     onPrimaryContainer = TextOnDark,
-    secondary = PrismIndigo,
+    secondary = secondary,
     onSecondary = TextOnDark,
     secondaryContainer = ObsidianSurfaceBright,
     onSecondaryContainer = TextOnDark,
-    tertiary = PrismCoral,
+    tertiary = tertiary,
     onTertiary = TextOnDark,
     background = ObsidianBg,
     onBackground = TextOnDark,
@@ -38,16 +42,20 @@ private fun buildDarkScheme(accent: Color) = darkColorScheme(
     outlineVariant = OutlineDark.copy(alpha = 0.5f),
 )
 
-private fun buildLightScheme(accent: Color) = lightColorScheme(
+private fun buildLightScheme(
+    accent: Color,
+    secondary: Color,
+    tertiary: Color,
+) = lightColorScheme(
     primary = accent,
     onPrimary = Color.White,
     primaryContainer = accent.copy(alpha = 0.16f),
     onPrimaryContainer = TextOnLight,
-    secondary = PrismIndigo,
+    secondary = secondary,
     onSecondary = Color.White,
     secondaryContainer = PorcelainSurfaceVariant,
     onSecondaryContainer = TextOnLight,
-    tertiary = PrismCoral,
+    tertiary = tertiary,
     onTertiary = Color.White,
     background = PorcelainBg,
     onBackground = TextOnLight,
@@ -66,6 +74,10 @@ private fun buildLightScheme(accent: Color) = lightColorScheme(
 fun TagDeckTheme(
     themeMode: String = "DARK",
     accentColorHex: Long = 0xFF38BDF8L,
+    secondaryColorHex: Long = 0xFF6366F1L,
+    tertiaryColorHex: Long = 0xFFFB7185L,
+    fontStyle: String = "DEFAULT",
+    fontScale: Float = 1.0f,
     cornerRadiusDp: Float = 20f,
     content: @Composable () -> Unit,
 ) {
@@ -77,14 +89,16 @@ fun TagDeckTheme(
     }
     val useDynamic = themeMode == "DYNAMIC" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val accent = Color(accentColorHex)
+    val secondary = Color(secondaryColorHex)
+    val tertiary = Color(tertiaryColorHex)
 
     val colorScheme = when {
         useDynamic -> {
             val context = LocalContext.current
             if (systemDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        useDark -> buildDarkScheme(accent)
-        else -> buildLightScheme(accent)
+        useDark -> buildDarkScheme(accent, secondary, tertiary)
+        else -> buildLightScheme(accent, secondary, tertiary)
     }
 
     val radius = cornerRadiusDp.coerceIn(4f, 36f)
@@ -95,9 +109,11 @@ fun TagDeckTheme(
         extraLarge = RoundedCornerShape((radius * 1.5f).dp)
     )
 
+    val typography = buildTagDeckTypography(fontStyle = fontStyle, fontScale = fontScale)
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = TagDeckTypography,
+        typography = typography,
         shapes = shapes,
         content = content
     )

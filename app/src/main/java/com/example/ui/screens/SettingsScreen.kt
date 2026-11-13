@@ -12,10 +12,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,20 +34,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SortByAlpha
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -69,8 +82,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -78,6 +93,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -88,11 +104,18 @@ import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.ui.components.BackgroundPresetDialog
+import com.example.ui.components.ColorSwatchRow
+import com.example.ui.components.IconOutlineProcessor
+import com.example.ui.components.IconStyleConfig
 import com.example.ui.components.ImageLibraryDialog
+import com.example.ui.components.StudioDarkSurfaceSwatches
+import com.example.ui.components.StudioNeutralAndAccentSwatches
 import com.example.ui.state.LauncherUiState
 import com.example.ui.state.LauncherRoute
 import com.example.ui.theme.TagPresetColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 private val GestureLabels = listOf(
@@ -140,15 +163,32 @@ fun SettingsScreen(
     onExportBackupJson: suspend () -> String,
     onImportBackupJson: (String) -> Unit,
     onShowMessage: (String) -> Unit,
+    onRefreshIconPacks: () -> Unit = {},
+    onAddIconPack: (String) -> Unit = {},
+    onRemoveIconPack: (String) -> Unit = {},
+    onMoveIconPack: (String, Int) -> Unit = { _, _ -> },
+    initialSearchQuery: String = "",
+    onConsumeInitialSearchQuery: () -> Unit = {},
 ) {
     BackHandler { onBack() }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val s = state.settings
+    var searchQuery by remember { mutableStateOf(initialSearchQuery) }
+    LaunchedEffect(initialSearchQuery) {
+        if (initialSearchQuery.isNotBlank()) {
+            searchQuery = initialSearchQuery
+            onConsumeInitialSearchQuery()
+        }
+    }
+    val matchingSections = remember(searchQuery) {
+        LauncherSettingsCatalog.filterSections(searchQuery)
+    }
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -217,25 +257,70 @@ fun SettingsScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
         topBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back_button")) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back_button")) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                    Text("Launcher Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                 }
-                Text("Launcher Settings", style = MaterialTheme.typography.headlineMedium)
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search settings (theme, grid, icon outline, drawer...)") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { searchQuery = "" },
+                                modifier = Modifier.testTag("settings_search_clear"),
+                            ) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear settings search")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .testTag("settings_search_input"),
+                )
+                if (searchQuery.isNotBlank()) {
+                    val visibleCount = matchingSections.keys.count { id ->
+                        id != LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS || s.blackIconStyleEnabled
+                    }
+                    Text(
+                        text = "$visibleCount matching section${if (visibleCount == 1) "" else "s"}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 14.dp),
+                    )
+                }
             }
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp).testTag("settings_list"),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
             // Direct access to every editable launcher manager.
-            item {
-                SettingsCard(title = "Manage Your Launcher", icon = Icons.Rounded.Tune) {
+            if (LauncherSettingsCatalog.SECTION_MANAGE in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_MANAGE) {
+                    SettingsCard(
+                        title = "Manage Your Launcher",
+                        icon = Icons.Rounded.Tune,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_MANAGE].orEmpty() else emptyList(),
+                    ) {
                     Text(
                         "Open the editors for your tags, app icons and visibility, and independent sidebars.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -255,12 +340,18 @@ fun SettingsScreen(
                     ) {
                         Text("Sidebars & Floating Windows")
                     }
+                    }
                 }
             }
 
             // Default Home Launcher Card
-            item {
-                SettingsCard(title = "Default Home Application", icon = Icons.Rounded.Home) {
+            if (LauncherSettingsCatalog.SECTION_DEFAULT_HOME in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_DEFAULT_HOME) {
+                    SettingsCard(
+                        title = "Default Home Application",
+                        icon = Icons.Rounded.Home,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_DEFAULT_HOME].orEmpty() else emptyList(),
+                    ) {
                     if (state.isDefaultLauncher) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -278,12 +369,18 @@ fun SettingsScreen(
                             Text("Set as Default Launcher")
                         }
                     }
+                    }
                 }
             }
 
             // Image Library & Background Presets
-            item {
-                SettingsCard(title = "Media Library & Background Presets", icon = Icons.Rounded.Image) {
+            if (LauncherSettingsCatalog.SECTION_MEDIA in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_MEDIA) {
+                    SettingsCard(
+                        title = "Media Library & Background Presets",
+                        icon = Icons.Rounded.Image,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_MEDIA].orEmpty() else emptyList(),
+                    ) {
                     Text(
                         "Centralized non-destructive library (${state.imageResources.size} images, ${state.backgroundPresets.size} presets). Originals stay intact.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -303,16 +400,23 @@ fun SettingsScreen(
                             Text("BG Presets")
                         }
                     }
+                    }
                 }
             }
 
-            // Visual Theme & Appearance
-            item {
-                SettingsCard(title = "Theme & Visual Style", icon = Icons.Rounded.Palette) {
+            // Theme & Typography
+            if (LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY) {
+                    SettingsCard(
+                        title = "Theme & Typography",
+                        icon = Icons.Rounded.TextFields,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY].orEmpty() else emptyList(),
+                    ) {
                     Text("Theme Mode", style = MaterialTheme.typography.labelLarge)
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         listOf("DARK", "LIGHT", "SYSTEM", "DYNAMIC").forEach { mode ->
                             FilterChip(
@@ -323,19 +427,92 @@ fun SettingsScreen(
                         }
                     }
 
-                    Text("Accent Color", style = MaterialTheme.typography.labelLarge)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(TagPresetColors) { c ->
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(c))
-                                    .border(if (c == s.accentColorHex) 2.dp else 0.dp, Color.White, CircleShape)
-                                    .clickable { onUpdateSettings { it.copy(accentColorHex = c) } },
+                    Text("Font Family", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf(
+                            "DEFAULT" to "Default Mix",
+                            "SPACE_GROTESK" to "Space Grotesk",
+                            "PLUS_JAKARTA" to "Plus Jakarta",
+                            "JETBRAINS_MONO" to "JetBrains Mono",
+                            "SYSTEM" to "System",
+                        ).forEach { (key, label) ->
+                            FilterChip(
+                                selected = s.fontStyle == key,
+                                onClick = { onUpdateSettings { it.copy(fontStyle = key) } },
+                                label = { Text(label) },
+                                modifier = Modifier.testTag("settings_font_$key"),
                             )
                         }
                     }
+
+                    Text("Global Font Scale: ${"%.2f".format(s.fontScale)}x")
+                    Slider(
+                        value = s.fontScale,
+                        onValueChange = { v -> onUpdateSettings { it.copy(fontScale = v) } },
+                        valueRange = 0.80f..1.40f,
+                        modifier = Modifier.testTag("settings_font_scale_slider"),
+                    )
+
+                    Text("Home Element Default Text Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.globalTextColorHex,
+                        colors = StudioNeutralAndAccentSwatches,
+                        onSelect = { c -> onUpdateSettings { it.copy(globalTextColorHex = c) } },
+                        tagPrefix = "settings_text_color",
+                    )
+                    }
+                }
+            }
+
+            // Palette, Surfaces & Motion
+            if (LauncherSettingsCatalog.SECTION_PALETTE_SURFACES in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_PALETTE_SURFACES) {
+                    SettingsCard(
+                        title = "Palette, Surfaces & Motion",
+                        icon = Icons.Rounded.Palette,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_PALETTE_SURFACES].orEmpty() else emptyList(),
+                    ) {
+                    Text("Primary Accent Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.accentColorHex,
+                        colors = TagPresetColors,
+                        onSelect = { c -> onUpdateSettings { it.copy(accentColorHex = c) } },
+                        tagPrefix = "settings_accent",
+                    )
+
+                    Text("Secondary Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.secondaryColorHex,
+                        colors = TagPresetColors,
+                        onSelect = { c -> onUpdateSettings { it.copy(secondaryColorHex = c) } },
+                        tagPrefix = "settings_secondary",
+                    )
+
+                    Text("Tertiary Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.tertiaryColorHex,
+                        colors = TagPresetColors,
+                        onSelect = { c -> onUpdateSettings { it.copy(tertiaryColorHex = c) } },
+                        tagPrefix = "settings_tertiary",
+                    )
+
+                    Text("UI Surface Opacity: ${(s.surfaceOpacity * 100).roundToInt()}%")
+                    Slider(
+                        value = s.surfaceOpacity,
+                        onValueChange = { v -> onUpdateSettings { it.copy(surfaceOpacity = v) } },
+                        valueRange = 0.25f..1.0f,
+                    )
+
+                    Text("Global Border Width: ${"%.1f".format(s.globalBorderWidthDp)}dp")
+                    Slider(
+                        value = s.globalBorderWidthDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(globalBorderWidthDp = v) } },
+                        valueRange = 0f..4.0f,
+                    )
 
                     Text("Icon Shape", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -361,34 +538,512 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(animationSpeedScale = v) } },
                         valueRange = 0.2f..1.8f,
                     )
+                    }
+                }
+            }
+
+            // Icon Packs & Loading Hierarchy
+            if (LauncherSettingsCatalog.SECTION_ICON_PACKS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_ICON_PACKS) {
+                    val activePackOrder = remember(s.iconPackOrderCsv) { s.iconPackOrder() }
+                    val packLookup = remember(state.installedIconPacks) {
+                        state.installedIconPacks.associateBy { it.packageName }
+                    }
+                    val availableToAdd = remember(state.installedIconPacks, activePackOrder) {
+                        state.installedIconPacks.filter { it.packageName !in activePackOrder }
+                    }
+                    SettingsCard(
+                        title = "Icon Packs & Loading Hierarchy",
+                        icon = Icons.Rounded.Apps,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_ICON_PACKS].orEmpty() else emptyList(),
+                    ) {
+                    Text(
+                        text = "Icons resolve in priority order:\n1. Per-App Custom Icon  ->  2. Active Icon Packs (top to bottom)  ->  3. System Icon",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Active Pack Order (${activePackOrder.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        OutlinedButton(
+                            onClick = onRefreshIconPacks,
+                            modifier = Modifier.testTag("refresh_icon_packs_button"),
+                        ) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Rescan")
+                        }
+                    }
+
+                    if (activePackOrder.isEmpty()) {
+                        Text(
+                            text = "No icon packs active. Per-app custom icons fall back directly to system icons.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            activePackOrder.forEachIndexed { idx, pkg ->
+                                val info = packLookup[pkg]
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("active_icon_pack_$pkg"),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = "#${idx + 1}",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.width(28.dp),
+                                        )
+                                        if (info?.icon != null) {
+                                            Image(
+                                                bitmap = info.icon,
+                                                contentDescription = info.label,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = info?.label ?: pkg,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Text(
+                                                text = if (info != null) "${info.mappedEntryCount} mapped icons" else "Pack not installed",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { onMoveIconPack(pkg, -1) },
+                                            enabled = idx > 0,
+                                            modifier = Modifier.size(36.dp).testTag("move_pack_up_$pkg"),
+                                        ) {
+                                            Icon(Icons.Rounded.ArrowUpward, contentDescription = "Move pack higher", modifier = Modifier.size(18.dp))
+                                        }
+                                        IconButton(
+                                            onClick = { onMoveIconPack(pkg, 1) },
+                                            enabled = idx < activePackOrder.lastIndex,
+                                            modifier = Modifier.size(36.dp).testTag("move_pack_down_$pkg"),
+                                        ) {
+                                            Icon(Icons.Rounded.ArrowDownward, contentDescription = "Move pack lower", modifier = Modifier.size(18.dp))
+                                        }
+                                        IconButton(
+                                            onClick = { onRemoveIconPack(pkg) },
+                                            modifier = Modifier.size(36.dp).testTag("remove_pack_$pkg"),
+                                        ) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Remove pack", modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Text(
+                        text = "Installed Icon Packs (${availableToAdd.size} available)",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    if (state.installedIconPacks.isEmpty()) {
+                        Text(
+                            text = "No compatible icon pack APKs found on this device. Install any ADW/Nova/Smart Launcher icon pack APK and tap Rescan.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (availableToAdd.isEmpty()) {
+                        Text(
+                            text = "All discovered icon packs are already in your hierarchy above.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            availableToAdd.forEach { pack ->
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("available_icon_pack_${pack.packageName}"),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        if (pack.icon != null) {
+                                            Image(
+                                                bitmap = pack.icon,
+                                                contentDescription = pack.label,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(pack.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            Text(
+                                                text = "${pack.mappedEntryCount} icons • ${pack.packageName}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        Button(
+                                            onClick = { onAddIconPack(pack.packageName) },
+                                            modifier = Modifier.testTag("add_pack_${pack.packageName}"),
+                                        ) {
+                                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("Add")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+
+            // Black Launcher Icon Contrast & Outline Styling
+            if (LauncherSettingsCatalog.SECTION_BLACK_ICONS in matchingSections ||
+                (!s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections)
+            ) {
+                item(key = LauncherSettingsCatalog.SECTION_BLACK_ICONS) {
+                    val iconStyle = remember(
+                        s.blackIconStyleEnabled,
+                        s.blackIconMode,
+                        s.blackIconFillColorHex,
+                        s.blackIconOutlineColorHex,
+                        s.blackIconOutlineWidthDp,
+                        s.blackIconDarknessThreshold,
+                    ) { s.iconStyleConfig() }
+                    val sampleRawBitmap = remember { createSampleBlackLauncherIconBitmap() }
+                    val previewBitmap by produceState(
+                        initialValue = sampleRawBitmap.asImageBitmap(),
+                        iconStyle,
+                    ) {
+                        value = withContext(Dispatchers.Default) {
+                            IconOutlineProcessor.transformBitmap(sampleRawBitmap, iconStyle).asImageBitmap()
+                        }
+                    }
+
+                    SettingsCard(
+                        title = "Black Icon Contrast & Outline",
+                        icon = Icons.Rounded.Contrast,
+                        matchedEntries = if (searchQuery.isNotBlank()) {
+                            matchingSections[LauncherSettingsCatalog.SECTION_BLACK_ICONS].orEmpty()
+                        } else emptyList(),
+                    ) {
+                    Text(
+                        text = "Automatically converts black or dark launcher icons into white glyphs with a crisp black outline for legibility on any wallpaper.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "White + Black Outline for Black Icons",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = s.blackIconStyleEnabled,
+                            onCheckedChange = { enabled ->
+                                onUpdateSettings { it.copy(blackIconStyleEnabled = enabled) }
+                            },
+                            modifier = Modifier.testTag("toggle_black_icon_style"),
+                        )
+                    }
+
+                    // Live dark/light surface preview
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF0F172A),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Image(
+                                    bitmap = previewBitmap,
+                                    contentDescription = "Dark wallpaper preview",
+                                    modifier = Modifier.size(40.dp),
+                                )
+                                Column {
+                                    Text("Dark BG", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                                    Text(
+                                        if (s.blackIconStyleEnabled) "Outlined" else "Original",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.7f),
+                                    )
+                                }
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Image(
+                                    bitmap = previewBitmap,
+                                    contentDescription = "Light wallpaper preview",
+                                    modifier = Modifier.size(40.dp),
+                                )
+                                Column {
+                                    Text("Light BG", style = MaterialTheme.typography.labelMedium, color = Color(0xFF0F172A))
+                                    Text(
+                                        if (s.blackIconStyleEnabled) "Outlined" else "Original",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF475569),
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (s.blackIconStyleEnabled) {
+                        Text("Detection Mode", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf(
+                                IconStyleConfig.MODE_BLACK_ICONS to "Black Icons",
+                                IconStyleConfig.MODE_ALL_MONOCHROME to "All Monochrome",
+                                IconStyleConfig.MODE_ALL_ICONS_OUTLINE to "Outline All",
+                            ).forEach { (modeKey, modeLabel) ->
+                                FilterChip(
+                                    selected = s.blackIconMode == modeKey,
+                                    onClick = { onUpdateSettings { it.copy(blackIconMode = modeKey) } },
+                                    label = { Text(modeLabel) },
+                                    modifier = Modifier.testTag("black_icon_mode_$modeKey"),
+                                )
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+
+            if (s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS) {
+                    SettingsCard(
+                        title = "Black Icon Outline & Colors",
+                        icon = Icons.Rounded.Contrast,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS].orEmpty() else emptyList(),
+                    ) {
+                        Text("Outline Thickness: ${"%.1f".format(s.blackIconOutlineWidthDp)}dp")
+                        Slider(
+                            value = s.blackIconOutlineWidthDp,
+                            onValueChange = { v -> onUpdateSettings { it.copy(blackIconOutlineWidthDp = v) } },
+                            valueRange = 0.5f..5.0f,
+                            modifier = Modifier.testTag("slider_black_icon_outline_width"),
+                        )
+
+                        Text("Blackness Threshold: ${(s.blackIconDarknessThreshold * 100).roundToInt()}%")
+                        Slider(
+                            value = s.blackIconDarknessThreshold,
+                            onValueChange = { v -> onUpdateSettings { it.copy(blackIconDarknessThreshold = v) } },
+                            valueRange = 0.10f..0.60f,
+                            modifier = Modifier.testTag("slider_black_icon_threshold"),
+                        )
+
+                        Text("Icon Fill Color", style = MaterialTheme.typography.labelLarge)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(
+                                listOf(
+                                    0xFFFFFFFFL, // Pure White (default)
+                                    0xFFE2E8F0L, // Soft Slate White
+                                    0xFF38BDF8L, // Electric Cyan
+                                    0xFF34D399L, // Mint Emerald
+                                    0xFFFBBF24L, // Solar Amber
+                                    0xFFFB7185L, // Neon Coral
+                                )
+                            ) { fillHex ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(fillHex))
+                                        .border(
+                                            width = if (s.blackIconFillColorHex == fillHex) 2.5.dp else 1.dp,
+                                            color = if (s.blackIconFillColorHex == fillHex) MaterialTheme.colorScheme.primary else Color.Gray,
+                                            shape = CircleShape,
+                                        )
+                                        .clickable { onUpdateSettings { it.copy(blackIconFillColorHex = fillHex) } }
+                                        .testTag("black_icon_fill_$fillHex"),
+                                )
+                            }
+                        }
+
+                        Text("Outline Color", style = MaterialTheme.typography.labelLarge)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(
+                                listOf(
+                                    0xFF000000L, // Pure Black (default)
+                                    0xFF090D16L, // Deep Obsidian
+                                    0xFF1E293BL, // Slate Charcoal
+                                    0xFF1E1B4BL, // Midnight Indigo
+                                    0xFFFFFFFFL, // White
+                                )
+                            ) { outlineHex ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(outlineHex))
+                                        .border(
+                                            width = if (s.blackIconOutlineColorHex == outlineHex) 2.5.dp else 1.dp,
+                                            color = if (s.blackIconOutlineColorHex == outlineHex) MaterialTheme.colorScheme.primary else Color.Gray,
+                                            shape = CircleShape,
+                                        )
+                                        .clickable { onUpdateSettings { it.copy(blackIconOutlineColorHex = outlineHex) } }
+                                        .testTag("black_icon_outline_$outlineHex"),
+                                )
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                onUpdateSettings {
+                                    it.copy(
+                                        blackIconStyleEnabled = true,
+                                        blackIconMode = IconStyleConfig.MODE_BLACK_ICONS,
+                                        blackIconFillColorHex = IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
+                                        blackIconOutlineColorHex = IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
+                                        blackIconOutlineWidthDp = IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
+                                        blackIconDarknessThreshold = IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
+                                    )
+                                }
+                            },
+                            modifier = Modifier.testTag("reset_black_icon_style_button"),
+                        ) {
+                            Text("Reset to Default (White + Black Outline)")
+                        }
+                    }
                 }
             }
 
             // Wallpaper & Atmosphere
-            item {
-                SettingsCard(title = "Wallpaper & Atmosphere", icon = Icons.Rounded.Wallpaper) {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+            if (LauncherSettingsCatalog.SECTION_WALLPAPER in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_WALLPAPER) {
+                    SettingsCard(
+                        title = "Wallpaper & Atmosphere",
+                        icon = Icons.Rounded.Wallpaper,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_WALLPAPER].orEmpty() else emptyList(),
+                    ) {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         listOf(
                             "BUILTIN_PRISM" to "Prism",
                             "BUILTIN_TOPO" to "Topo",
                             "GRADIENT" to "Gradient",
                             "SOLID" to "Solid",
+                            "CUSTOM_IMAGE" to "Custom Image",
                         ).forEach { (key, label) ->
                             FilterChip(
                                 selected = s.wallpaperType == key,
                                 onClick = { onUpdateSettings { it.copy(wallpaperType = key) } },
                                 label = { Text(label) },
+                                modifier = Modifier.testTag("settings_wallpaper_$key"),
                             )
                         }
                     }
-                    OutlinedButton(onClick = {
-                        wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) {
-                        Text("Import Custom Wallpaper Image")
+
+                    if (s.wallpaperType == "GRADIENT") {
+                        Text("Gradient Direction", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("VERTICAL", "HORIZONTAL", "DIAGONAL").forEach { dir ->
+                                FilterChip(
+                                    selected = s.wallpaperGradientDirection == dir,
+                                    onClick = { onUpdateSettings { it.copy(wallpaperGradientDirection = dir) } },
+                                    label = { Text(dir) },
+                                    modifier = Modifier.testTag("settings_wp_dir_$dir"),
+                                )
+                            }
+                        }
+                        Text("Gradient Start Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.wallpaperGradientStartHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(wallpaperGradientStartHex = c) } },
+                            tagPrefix = "settings_wp_grad_start",
+                        )
+                        Text("Gradient End Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.wallpaperGradientEndHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(wallpaperGradientEndHex = c) } },
+                            tagPrefix = "settings_wp_grad_end",
+                        )
+                    } else if (s.wallpaperType == "SOLID") {
+                        Text("Solid Wallpaper Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.wallpaperSolidHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(wallpaperSolidHex = c) } },
+                            tagPrefix = "settings_wp_solid",
+                        )
                     }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }) {
+                            Text("Import Custom Wallpaper")
+                        }
+                        if (s.wallpaperCustomPath != null) {
+                            TextButton(onClick = {
+                                onUpdateSettings { it.copy(wallpaperCustomPath = null, wallpaperType = "BUILTIN_PRISM") }
+                            }) { Text("Clear Image") }
+                        }
+                    }
+
                     Text("Wallpaper Blur: ${s.wallpaperBlurDp.roundToInt()}dp")
                     Slider(
                         value = s.wallpaperBlurDp,
@@ -399,14 +1054,27 @@ fun SettingsScreen(
                     Slider(
                         value = s.wallpaperDimAlpha,
                         onValueChange = { v -> onUpdateSettings { it.copy(wallpaperDimAlpha = v) } },
-                        valueRange = 0f..0.8f,
+                        valueRange = 0f..0.85f,
                     )
+                    Text("Dim Overlay Tint", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.wallpaperDimColorHex,
+                        colors = StudioNeutralAndAccentSwatches,
+                        onSelect = { c -> onUpdateSettings { it.copy(wallpaperDimColorHex = c) } },
+                        tagPrefix = "settings_wp_dim",
+                    )
+                    }
                 }
             }
 
             // Universal All-Apps Sidebar
-            item {
-                SettingsCard(title = "Universal All-Apps Sidebar", icon = Icons.Rounded.Apps) {
+            if (LauncherSettingsCatalog.SECTION_DRAWER in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_DRAWER) {
+                    SettingsCard(
+                        title = "Universal All-Apps Drawer",
+                        icon = Icons.Rounded.Apps,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_DRAWER].orEmpty() else emptyList(),
+                    ) {
                     Text("Opening Side", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("RIGHT", "LEFT", "BOTTOM").forEach { edge ->
@@ -418,12 +1086,49 @@ fun SettingsScreen(
                         }
                     }
 
-                    Text("Sidebar Width: ${(s.allAppsSidebarWidthFraction * 100).roundToInt()}%")
+                    Text("Drawer Width: ${(s.allAppsSidebarWidthFraction * 100).roundToInt()}%")
                     Slider(
                         value = s.allAppsSidebarWidthFraction,
                         onValueChange = { v -> onUpdateSettings { it.copy(allAppsSidebarWidthFraction = v) } },
                         valueRange = 0.65f..1.0f,
                     )
+
+                    Text("Layout Mode", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("GRID", "LIST").forEach { mode ->
+                            FilterChip(
+                                selected = s.drawerLayoutMode == mode,
+                                onClick = { onUpdateSettings { it.copy(drawerLayoutMode = mode) } },
+                                label = { Text(mode) },
+                                modifier = Modifier.testTag("settings_drawer_layout_$mode"),
+                            )
+                        }
+                    }
+
+                    Text("App Sort Order", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf(
+                            "ALPHABETICAL" to "A–Z",
+                            "MOST_USED" to "Most Used",
+                            "RECENTLY_INSTALLED" to "Recent",
+                            "MANUAL" to "Manual",
+                        ).forEach { (key, label) ->
+                            FilterChip(
+                                selected = s.drawerSortOrder == key,
+                                onClick = { onUpdateSettings { it.copy(drawerSortOrder = key) } },
+                                label = { Text(label) },
+                                modifier = Modifier.testTag("settings_drawer_sort_$key"),
+                            )
+                        }
+                    }
+
+                    ToggleRow("Show Search Bar in Drawer", s.drawerSearchBarVisible) { v ->
+                        onUpdateSettings { it.copy(drawerSearchBarVisible = v) }
+                    }
 
                     Text("Background Style", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -435,9 +1140,35 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    OutlinedButton(onClick = {
-                        drawerBgPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text("Set Drawer Wallpaper Image") }
+
+                    Text("Drawer Background Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.allAppsBgColorHex,
+                        colors = StudioDarkSurfaceSwatches,
+                        onSelect = { c -> onUpdateSettings { it.copy(allAppsBgColorHex = c) } },
+                        tagPrefix = "settings_drawer_bg1",
+                    )
+
+                    if (s.allAppsBgType == "GRADIENT") {
+                        Text("Drawer Gradient End", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.allAppsBgGradientEndHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(allAppsBgGradientEndHex = c) } },
+                            tagPrefix = "settings_drawer_bg2",
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            drawerBgPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }) { Text("Set Drawer Image") }
+                        if (s.allAppsBgImagePath != null) {
+                            TextButton(onClick = {
+                                onUpdateSettings { it.copy(allAppsBgImagePath = null, allAppsBgType = "SOLID") }
+                            }) { Text("Clear") }
+                        }
+                    }
 
                     Text("Drawer Blur: ${s.allAppsBgBlurDp.roundToInt()}dp")
                     Slider(
@@ -445,7 +1176,18 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(allAppsBgBlurDp = v) } },
                         valueRange = 0f..24f,
                     )
-
+                    Text("Card Opacity: ${(s.drawerCardOpacity * 100).roundToInt()}%")
+                    Slider(
+                        value = s.drawerCardOpacity,
+                        onValueChange = { v -> onUpdateSettings { it.copy(drawerCardOpacity = v) } },
+                        valueRange = 0.25f..1.0f,
+                    )
+                    Text("Drawer Corner Radius: ${s.drawerCornerRadiusDp.roundToInt()}dp")
+                    Slider(
+                        value = s.drawerCornerRadiusDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(drawerCornerRadiusDp = v) } },
+                        valueRange = 8f..36f,
+                    )
                     Text("Grid Columns: ${s.drawerColumns}")
                     Slider(
                         value = s.drawerColumns.toFloat(),
@@ -465,12 +1207,18 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(drawerLabelSizeSp = v.roundToInt()) } },
                         valueRange = 9f..16f,
                     )
+                    }
                 }
             }
 
             // Niagara Wave Alphabet Navigation
-            item {
-                SettingsCard(title = "Niagara Wave Alphabet Index", icon = Icons.Rounded.SortByAlpha) {
+            if (LauncherSettingsCatalog.SECTION_NIAGARA in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_NIAGARA) {
+                    SettingsCard(
+                        title = "Niagara Wave Alphabet Index",
+                        icon = Icons.Rounded.SortByAlpha,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_NIAGARA].orEmpty() else emptyList(),
+                    ) {
                     ToggleRow("Show Alphabet Index Rail", s.niagaraIndexVisible) { v ->
                         onUpdateSettings { it.copy(niagaraIndexVisible = v) }
                     }
@@ -498,33 +1246,179 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(niagaraWaveIntensity = v) } },
                         valueRange = 0.2f..1.8f,
                     )
+                    Text("Base Letter Size: ${s.niagaraBaseFontSp.roundToInt()}sp")
+                    Slider(
+                        value = s.niagaraBaseFontSp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(niagaraBaseFontSp = v) } },
+                        valueRange = 8f..18f,
+                    )
                     Text("Selected Letter Size: ${s.niagaraSelectedFontSp.roundToInt()}sp")
                     Slider(
                         value = s.niagaraSelectedFontSp,
                         onValueChange = { v -> onUpdateSettings { it.copy(niagaraSelectedFontSp = v) } },
                         valueRange = 16f..34f,
                     )
+                    Text("Wave Accent Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.niagaraAccentColorHex,
+                        colors = TagPresetColors,
+                        onSelect = { c -> onUpdateSettings { it.copy(niagaraAccentColorHex = c) } },
+                        tagPrefix = "settings_niagara_accent",
+                    )
+                    }
                 }
             }
 
-            // Home Builder, System Bars & Notifications
-            item {
-                SettingsCard(title = "Home Studio & System UI", icon = Icons.Rounded.GridOn) {
+            // Home Canvas, Grid, Page Indicators & Edge Handles
+            if (LauncherSettingsCatalog.SECTION_HOME_CANVAS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_HOME_CANVAS) {
+                    SettingsCard(
+                        title = "Home Canvas, Grid & Indicators",
+                        icon = Icons.Rounded.ViewCarousel,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_HOME_CANVAS].orEmpty() else emptyList(),
+                    ) {
                     ToggleRow("Show Bottom Dock Bar", s.showDockBar) { v ->
                         onUpdateSettings { it.copy(showDockBar = v) }
                     }
                     ToggleRow("Show Quick Tag Strip", s.showTagStripOnHome) { v ->
                         onUpdateSettings { it.copy(showTagStripOnHome = v) }
                     }
-                    ToggleRow("Grid Snap", s.gridSnapEnabled) { v ->
-                        onUpdateSettings { it.copy(gridSnapEnabled = v) }
+                    ToggleRow("Show Labels on Home Shortcuts", s.showHomeAppLabels) { v ->
+                        onUpdateSettings { it.copy(showHomeAppLabels = v) }
                     }
-                    ToggleRow("Magnetic Alignment Guides", s.alignmentGuidesEnabled) { v ->
-                        onUpdateSettings { it.copy(alignmentGuidesEnabled = v) }
+                    ToggleRow("Show Default Home Prompt Banner", s.showDefaultHomeBanner) { v ->
+                        onUpdateSettings { it.copy(showDefaultHomeBanner = v) }
                     }
                     ToggleRow("Lock Entire Home Layout", s.layoutLocked) { v ->
                         onUpdateSettings { it.copy(layoutLocked = v) }
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    ToggleRow("Grid Snap", s.gridSnapEnabled) { v ->
+                        onUpdateSettings { it.copy(gridSnapEnabled = v) }
+                    }
+                    Text("Grid Snap Step: ${s.gridSnapStepDp}dp")
+                    Slider(
+                        value = s.gridSnapStepDp.toFloat(),
+                        onValueChange = { v -> onUpdateSettings { it.copy(gridSnapStepDp = v.roundToInt().coerceIn(8, 48)) } },
+                        valueRange = 8f..48f,
+                    )
+                    ToggleRow("Show Edit Mode Grid Lines", s.editGridVisible) { v ->
+                        onUpdateSettings { it.copy(editGridVisible = v) }
+                    }
+                    if (s.editGridVisible) {
+                        Text("Grid Line Opacity: ${(s.editGridOpacity * 100).roundToInt()}%")
+                        Slider(
+                            value = s.editGridOpacity,
+                            onValueChange = { v -> onUpdateSettings { it.copy(editGridOpacity = v) } },
+                            valueRange = 0.02f..0.40f,
+                        )
+                        Text("Grid Line Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.editGridColorHex,
+                            colors = StudioNeutralAndAccentSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(editGridColorHex = c) } },
+                            tagPrefix = "settings_grid_color",
+                        )
+                    }
+                    ToggleRow("Magnetic Alignment Guides", s.alignmentGuidesEnabled) { v ->
+                        onUpdateSettings { it.copy(alignmentGuidesEnabled = v) }
+                    }
+                    if (s.alignmentGuidesEnabled) {
+                        Text("Alignment Guide Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.alignmentGuideColorHex,
+                            colors = TagPresetColors,
+                            onSelect = { c -> onUpdateSettings { it.copy(alignmentGuideColorHex = c) } },
+                            tagPrefix = "settings_guide_color",
+                        )
+                    }
+                    }
+                }
+            }
+
+            // Page Transitions, Indicators & Edge Handles
+            if (LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES) {
+                    SettingsCard(
+                        title = "Page Indicators & Edge Handles",
+                        icon = Icons.Rounded.ViewCarousel,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES].orEmpty() else emptyList(),
+                    ) {
+                    Text("Page Transition Style", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("SLIDE", "DEPTH", "FADE").forEach { tr ->
+                            FilterChip(
+                                selected = s.pageTransitionStyle == tr,
+                                onClick = { onUpdateSettings { it.copy(pageTransitionStyle = tr) } },
+                                label = { Text(tr) },
+                            )
+                        }
+                    }
+
+                    Text("Page Indicator Style", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf("DOTS", "PILL", "NUMBERS", "HIDDEN").forEach { st ->
+                            FilterChip(
+                                selected = s.pageIndicatorStyle == st,
+                                onClick = { onUpdateSettings { it.copy(pageIndicatorStyle = st) } },
+                                label = { Text(st) },
+                                modifier = Modifier.testTag("settings_indicator_style_$st"),
+                            )
+                        }
+                    }
+                    if (s.pageIndicatorStyle != "HIDDEN") {
+                        Text("Page Indicator Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = s.pageIndicatorColorHex,
+                            colors = TagPresetColors,
+                            onSelect = { c -> onUpdateSettings { it.copy(pageIndicatorColorHex = c) } },
+                            tagPrefix = "settings_indicator_color",
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    ToggleRow("Show Edge Sidebar Handles", s.edgeHandlesVisible) { v ->
+                        onUpdateSettings { it.copy(edgeHandlesVisible = v) }
+                    }
+                    if (s.edgeHandlesVisible) {
+                        Text("Handle Opacity: ${(s.edgeHandleOpacity * 100).roundToInt()}%")
+                        Slider(
+                            value = s.edgeHandleOpacity,
+                            onValueChange = { v -> onUpdateSettings { it.copy(edgeHandleOpacity = v) } },
+                            valueRange = 0.10f..1.0f,
+                        )
+                        Text("Handle Thickness: ${s.edgeHandleWidthDp.roundToInt()}dp")
+                        Slider(
+                            value = s.edgeHandleWidthDp,
+                            onValueChange = { v -> onUpdateSettings { it.copy(edgeHandleWidthDp = v) } },
+                            valueRange = 2f..10f,
+                        )
+                        Text("Handle Length: ${s.edgeHandleHeightDp.roundToInt()}dp")
+                        Slider(
+                            value = s.edgeHandleHeightDp,
+                            onValueChange = { v -> onUpdateSettings { it.copy(edgeHandleHeightDp = v) } },
+                            valueRange = 24f..140f,
+                        )
+                    }
+                    }
+                }
+            }
+
+            // System Bars & Notifications
+            if (LauncherSettingsCatalog.SECTION_SYSTEM_UI in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_SYSTEM_UI) {
+                    SettingsCard(
+                        title = "System UI & Feedback",
+                        icon = Icons.Rounded.GridOn,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_SYSTEM_UI].orEmpty() else emptyList(),
+                    ) {
                     ToggleRow("Show Android Status Bar", s.showStatusBar) { v ->
                         onUpdateSettings { it.copy(showStatusBar = v) }
                     }
@@ -564,23 +1458,18 @@ fun SettingsScreen(
                             },
                         )
                     }
-
-                    Text("Page Transition Style", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("SLIDE", "DEPTH", "FADE").forEach { tr ->
-                            FilterChip(
-                                selected = s.pageTransitionStyle == tr,
-                                onClick = { onUpdateSettings { it.copy(pageTransitionStyle = tr) } },
-                                label = { Text(tr) },
-                            )
-                        }
                     }
                 }
             }
 
             // Gestures
-            item {
-                SettingsCard(title = "Gestures & Shortcuts", icon = Icons.Rounded.Gesture) {
+            if (LauncherSettingsCatalog.SECTION_GESTURES in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_GESTURES) {
+                    SettingsCard(
+                        title = "Gestures & Shortcuts",
+                        icon = Icons.Rounded.Gesture,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_GESTURES].orEmpty() else emptyList(),
+                    ) {
                     GestureLabels.forEach { (key, label) ->
                         val binding = state.gestures[key] ?: GestureBindingEntity(key, "NONE")
                         val actionLabel = ActionOptions.find { it.first == binding.actionType }?.second ?: binding.actionType
@@ -601,12 +1490,18 @@ fun SettingsScreen(
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     }
+                    }
                 }
             }
 
             // Backup & Restore
-            item {
-                SettingsCard(title = "Portable Local Backup & Restore", icon = Icons.Rounded.Backup) {
+            if (LauncherSettingsCatalog.SECTION_BACKUP in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_BACKUP) {
+                    SettingsCard(
+                        title = "Portable Local Backup & Restore",
+                        icon = Icons.Rounded.Backup,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_BACKUP].orEmpty() else emptyList(),
+                    ) {
                     Text(
                         "Export or restore all layouts, windows, tags, categories, manual overrides, images, sidebars, widgets, and preferences.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -628,6 +1523,72 @@ fun SettingsScreen(
                             Icon(Icons.Rounded.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Restore JSON")
+                        }
+                    }
+                    }
+                }
+            }
+
+            // Reset All Preferences
+            if (LauncherSettingsCatalog.SECTION_RESET in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_RESET) {
+                    SettingsCard(
+                        title = "Reset Preferences",
+                        icon = Icons.Rounded.RestartAlt,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_RESET].orEmpty() else emptyList(),
+                    ) {
+                        Text(
+                            "Restore theme, colors, fonts, wallpaper, grid, indicators, drawer, and icon outline preferences to defaults without removing your pages or apps.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedButton(
+                            onClick = { showResetConfirm = true },
+                            modifier = Modifier.fillMaxWidth().testTag("reset_all_settings_button"),
+                        ) {
+                            Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Reset All Launcher Preferences")
+                        }
+                    }
+                }
+            }
+
+            if (searchQuery.isNotBlank() && matchingSections.isEmpty()) {
+                item(key = "settings_search_empty") {
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth().testTag("settings_search_empty"),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                Icons.Rounded.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                            )
+                            Text(
+                                text = "No settings match \"$searchQuery\"",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "Try searching for theme, wallpaper, black outline, grid snap, drawer, gestures, or backup.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            OutlinedButton(
+                                onClick = { searchQuery = "" },
+                                modifier = Modifier.testTag("settings_search_reset_query"),
+                            ) {
+                                Text("Clear Search")
+                            }
                         }
                     }
                 }
@@ -692,12 +1653,43 @@ fun SettingsScreen(
             onDismiss = { editingGesture = null },
         )
     }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("Reset Launcher Preferences?") },
+            text = {
+                Text("This resets theme, fonts, palette, wallpaper, grid, page indicators, drawer, and icon outline settings to factory defaults. Your home pages, widgets, apps, and tags remain untouched.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdateSettings {
+                            LauncherSettings(
+                                seededDefaults = it.seededDefaults,
+                                recentSearchesCsv = it.recentSearchesCsv,
+                            )
+                        }
+                        showResetConfirm = false
+                        onShowMessage("All launcher preferences restored to defaults")
+                    },
+                    modifier = Modifier.testTag("confirm_reset_all_settings_button"),
+                ) {
+                    Text("Reset Defaults")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable
 private fun SettingsCard(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    matchedEntries: List<SettingEntrySpec> = emptyList(),
     content: @Composable () -> Unit,
 ) {
     Surface(
@@ -714,6 +1706,20 @@ private fun SettingsCard(
                 Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            if (matchedEntries.isNotEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                ) {
+                    Text(
+                        text = "Matched: ${matchedEntries.joinToString(" • ") { it.title }}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    )
+                }
             }
             content()
         }
@@ -859,4 +1865,21 @@ private fun GestureBindingDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+private fun createSampleBlackLauncherIconBitmap(): android.graphics.Bitmap {
+    val size = 96
+    val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bmp)
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.BLACK
+        style = android.graphics.Paint.Style.FILL
+    }
+    val rect = android.graphics.RectF(20f, 20f, 76f, 76f)
+    canvas.drawRoundRect(rect, 18f, 18f, paint)
+    val cutout = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
+    }
+    canvas.drawCircle(48f, 48f, 12f, cutout)
+    return bmp
 }

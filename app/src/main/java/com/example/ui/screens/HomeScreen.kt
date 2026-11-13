@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.res.Configuration
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -53,11 +54,14 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -72,6 +76,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,20 +85,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.db.AppEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
 import com.example.data.db.LayoutSnapshotEntity
+import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.InstalledWidgetProvider
 import com.example.data.system.LauncherWidgetHost
+import com.example.ui.components.LocalIconStyleConfig
+import com.example.ui.components.OutlinedVectorIcon
+import com.example.ui.components.StudioQuickCustomizerDialog
 import com.example.ui.components.TagBadgeIcon
 import com.example.ui.components.WallpaperBackground
 import com.example.ui.components.WidgetPickerDialog
@@ -127,6 +140,7 @@ fun HomeScreen(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onToggleGridSnap: () -> Unit,
+    onUpdateSettings: ((LauncherSettings) -> LauncherSettings) -> Unit = {},
     onSaveElement: (HomeElementEntity, Boolean) -> Unit,
     onDuplicateElement: (HomeElementEntity) -> Unit,
     onCopyElement: (HomeElementEntity) -> Unit,
@@ -173,8 +187,14 @@ fun HomeScreen(
     var showAddElementDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showStyleDialog by remember { mutableStateOf(false) }
     var inspectingElement by remember { mutableStateOf<HomeElementEntity?>(null) }
     var multiSelectActive by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = state.isEditMode) {
+        multiSelectActive = false
+        onToggleEditMode(false)
+    }
 
     val currentPage = visiblePages.getOrElse(pagerState.currentPage) { visiblePages.first() }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
@@ -232,56 +252,20 @@ fun HomeScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding(),
             ) {
-                if (!state.isEditMode) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Button(
-                            onClick = {
-                                onToggleEditMode(true)
-                                showAddElementDialog = true
-                            },
-                            modifier = Modifier.weight(1f).testTag("home_add_element_button"),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.Add, contentDescription = null)
-                            Spacer(Modifier.width(5.dp))
-                            Text("Add")
-                        }
-                        Button(
-                            onClick = {
-                                onToggleEditMode(true)
-                                showWidgetPicker = true
-                            },
-                            modifier = Modifier.weight(1f).testTag("home_widgets_button"),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.GridOn, contentDescription = null)
-                            Spacer(Modifier.width(5.dp))
-                            Text("Widgets")
-                        }
-                        Button(
-                            onClick = { onNavigate(LauncherRoute.Settings) },
-                            modifier = Modifier.weight(1f).testTag("home_settings_button"),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.Settings, contentDescription = null)
-                            Spacer(Modifier.width(5.dp))
-                            Text("Settings")
-                        }
-                    }
-                }
                 if (state.isEditMode) {
                     StudioEditToolbar(
                         pageTitle = currentPage.title,
+                        pageLocked = currentPage.isLocked,
+                        layoutLocked = state.settings.layoutLocked,
                         canUndo = state.canUndo,
                         canRedo = state.canRedo,
                         hasClipboard = state.clipboardElement != null,
                         gridSnap = state.settings.gridSnapEnabled,
                         multiSelectCount = state.multiSelectedIds.size,
                         multiSelectMode = multiSelectActive,
+                        surfaceOpacity = state.settings.surfaceOpacity,
+                        cornerRadiusDp = state.settings.globalCornerRadiusDp,
+                        borderWidthDp = state.settings.globalBorderWidthDp,
                         onUndo = onUndo,
                         onRedo = onRedo,
                         onToggleGridSnap = onToggleGridSnap,
@@ -290,8 +274,11 @@ fun HomeScreen(
                         onLockMulti = onLockMultiSelected,
                         onPaste = { onPasteElement(currentPage.pageId) },
                         onAddElement = { showAddElementDialog = true },
+                        onOpenWidgets = { showWidgetPicker = true },
                         onOpenPages = { showPagesDialog = true },
-                        onOpenAppearance = { onNavigate(LauncherRoute.Settings) },
+                        onOpenStyleStudio = { showStyleDialog = true },
+                        onOpenSettings = { onNavigate(LauncherRoute.Settings) },
+                        onUnlockPage = { onSavePage(currentPage.copy(isLocked = false)) },
                         onDone = {
                             multiSelectActive = false
                             onToggleEditMode(false)
@@ -302,9 +289,14 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.35f, 0.95f)),
+                        border = if (state.settings.globalBorderWidthDp > 0.05f) {
+                            BorderStroke(
+                                state.settings.globalBorderWidthDp.coerceIn(0.5f, 4f).dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            )
+                        } else null,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -328,10 +320,25 @@ fun HomeScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
+                        key = { idx -> visiblePages[idx].pageId },
                         userScrollEnabled = !state.isEditMode,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIdx ->
                         val page = visiblePages[pageIdx]
+                        val pageOffset = ((pagerState.currentPage - pageIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
+                        val pageTransitionMod = when (state.settings.pageTransitionStyle) {
+                            "FADE" -> Modifier.graphicsLayer {
+                                alpha = 1f - abs(pageOffset) * 0.72f
+                            }
+                            "DEPTH" -> Modifier.graphicsLayer {
+                                val absOff = abs(pageOffset)
+                                alpha = 1f - absOff * 0.45f
+                                val sc = 1f - absOff * 0.10f
+                                scaleX = sc
+                                scaleY = sc
+                            }
+                            else -> Modifier
+                        }
                         val elements = remember(state.homeElements, page.pageId) {
                             state.homeElements
                                 .filter { it.ownerType == "PAGE" && it.pageId == page.pageId && it.visible }
@@ -341,13 +348,15 @@ fun HomeScreen(
                                 }
                                 .sortedBy { it.zIndex }
                         }
-                        FreeformPageCanvas(
+                        Box(modifier = Modifier.fillMaxSize().then(pageTransitionMod)) {
+                            FreeformPageCanvas(
                             page = page,
                             elements = elements,
                             state = state,
                             multiSelectActive = multiSelectActive,
                             appDiscovery = appDiscovery,
                             widgetHost = widgetHost,
+                            onEnterEditMode = { onToggleEditMode(true) },
                             onCanvasTap = {
                                 if (state.isEditMode) {
                                     onSelectElement(null)
@@ -366,9 +375,7 @@ fun HomeScreen(
                             },
                             onCanvasLongPress = {
                                 if (!state.isEditMode) {
-                                    onTriggerGesture("LONG_PRESS") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target) }
-                                    }
+                                    onToggleEditMode(true)
                                 }
                             },
                             onVerticalSwipe = { isUp ->
@@ -396,6 +403,7 @@ fun HomeScreen(
                             onInspectElement = { inspectingElement = it },
                             onSaveElement = onSaveElement,
                         )
+                        }
                     }
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
@@ -413,10 +421,17 @@ fun HomeScreen(
                                 .clickable { onOpenConfiguredSidebar(leftEdgeSidebar.sidebarId) },
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            if (leftEdgeSidebar.showHandle) {
+                            if (state.settings.edgeHandlesVisible && leftEdgeSidebar.showHandle) {
                                 Box(
-                                    modifier = Modifier.width(4.dp).height(64.dp).clip(RoundedCornerShape(4.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
+                                    modifier = Modifier
+                                        .width(state.settings.edgeHandleWidthDp.coerceIn(2f, 12f).dp)
+                                        .height(state.settings.edgeHandleHeightDp.coerceIn(24f, 140f).dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.primary.copy(
+                                                alpha = state.settings.edgeHandleOpacity.coerceIn(0.05f, 1f),
+                                            )
+                                        )
                                 )
                             }
                         }
@@ -446,10 +461,17 @@ fun HomeScreen(
                                 .clickable { onOpenConfiguredSidebar(rightEdgeSidebar.sidebarId) },
                             contentAlignment = Alignment.CenterEnd,
                         ) {
-                            if (rightEdgeSidebar.showHandle) {
+                            if (state.settings.edgeHandlesVisible && rightEdgeSidebar.showHandle) {
                                 Box(
-                                    modifier = Modifier.width(4.dp).height(64.dp).clip(RoundedCornerShape(4.dp))
-                                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f))
+                                    modifier = Modifier
+                                        .width(state.settings.edgeHandleWidthDp.coerceIn(2f, 12f).dp)
+                                        .height(state.settings.edgeHandleHeightDp.coerceIn(24f, 140f).dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.secondary.copy(
+                                                alpha = state.settings.edgeHandleOpacity.coerceIn(0.05f, 1f),
+                                            )
+                                        )
                                 )
                             }
                         }
@@ -469,10 +491,17 @@ fun HomeScreen(
                                 .clickable { onOpenConfiguredSidebar(topEdgeSidebar.sidebarId) },
                             contentAlignment = Alignment.TopCenter,
                         ) {
-                            if (topEdgeSidebar.showHandle) {
+                            if (state.settings.edgeHandlesVisible && topEdgeSidebar.showHandle) {
                                 Box(
-                                    modifier = Modifier.height(4.dp).width(64.dp).clip(RoundedCornerShape(4.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
+                                    modifier = Modifier
+                                        .height(state.settings.edgeHandleWidthDp.coerceIn(2f, 12f).dp)
+                                        .width(state.settings.edgeHandleHeightDp.coerceIn(24f, 140f).dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.primary.copy(
+                                                alpha = state.settings.edgeHandleOpacity.coerceIn(0.05f, 1f),
+                                            )
+                                        )
                                 )
                             }
                         }
@@ -492,37 +521,154 @@ fun HomeScreen(
                                 .clickable { onOpenConfiguredSidebar(bottomEdgeSidebar.sidebarId) },
                             contentAlignment = Alignment.BottomCenter,
                         ) {
-                            if (bottomEdgeSidebar.showHandle) {
+                            if (state.settings.edgeHandlesVisible && bottomEdgeSidebar.showHandle) {
                                 Box(
-                                    modifier = Modifier.height(4.dp).width(64.dp).clip(RoundedCornerShape(4.dp))
-                                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f))
+                                    modifier = Modifier
+                                        .height(state.settings.edgeHandleWidthDp.coerceIn(2f, 12f).dp)
+                                        .width(state.settings.edgeHandleHeightDp.coerceIn(24f, 140f).dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.secondary.copy(
+                                                alpha = state.settings.edgeHandleOpacity.coerceIn(0.05f, 1f),
+                                            )
+                                        )
                                 )
                             }
                         }
                     }
                 }
 
-                if (visiblePages.size > 1) {
+                if (visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
+                    val indicatorColor = Color(state.settings.pageIndicatorColorHex)
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .testTag("home_page_indicator"),
                         horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        visiblePages.forEachIndexed { idx, _ ->
-                            val active = idx == pagerState.currentPage
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 4.dp)
-                                    .size(if (active) 10.dp else 6.dp)
-                                    .clip(CircleShape)
-                                    .background(if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.4f))
-                            )
+                        when (state.settings.pageIndicatorStyle) {
+                            "PILL" -> {
+                                visiblePages.forEachIndexed { idx, _ ->
+                                    val active = idx == pagerState.currentPage
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 3.dp)
+                                            .width(if (active) 22.dp else 7.dp)
+                                            .height(7.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
+                                    )
+                                }
+                            }
+                            "NUMBERS" -> {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = Color.Black.copy(alpha = 0.45f),
+                                    border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
+                                ) {
+                                    Text(
+                                        text = "${pagerState.currentPage + 1} / ${visiblePages.size}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = indicatorColor,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                            else -> {
+                                visiblePages.forEachIndexed { idx, _ ->
+                                    val active = idx == pagerState.currentPage
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 4.dp)
+                                            .size(if (active) 10.dp else 6.dp)
+                                            .clip(CircleShape)
+                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                
-
-
+                if (!state.isEditMode && state.settings.showDockBar) {
+                    val dockRadius = state.settings.globalCornerRadiusDp.coerceIn(12f, 32f).dp
+                    val dockAlpha = state.settings.surfaceOpacity.coerceIn(0.42f, 0.96f)
+                    val dockBorderWidth = state.settings.globalBorderWidthDp
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .testTag("home_dock_bar"),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            onClick = onOpenSearch,
+                            shape = RoundedCornerShape(dockRadius),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
+                            border = if (dockBorderWidth > 0.05f) {
+                                BorderStroke(
+                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                                )
+                            } else null,
+                            tonalElevation = 6.dp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("home_global_search_bar"),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Search,
+                                    contentDescription = "Global search",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = "Global search: apps, settings, tags...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Surface(
+                            onClick = onOpenDrawer,
+                            shape = RoundedCornerShape(dockRadius),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
+                            border = if (dockBorderWidth > 0.05f) {
+                                BorderStroke(
+                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                                )
+                            } else null,
+                            tonalElevation = 6.dp,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .testTag("home_open_drawer_button"),
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    Icons.Rounded.Apps,
+                                    contentDescription = "All Apps",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -589,6 +735,14 @@ fun HomeScreen(
         PagesAndSnapshotsDialog(
             pages = state.homePages,
             snapshots = state.snapshots,
+            currentPageId = currentPage.pageId,
+            onJumpToPage = { pageId ->
+                val idx = visiblePages.indexOfFirst { it.pageId == pageId }
+                if (idx >= 0) {
+                    onPageChanged(idx)
+                    scope.launch { pagerState.animateScrollToPage(idx) }
+                }
+            },
             onImportImage = onImportImage,
             onAddPage = onAddPage,
             onSavePage = onSavePage,
@@ -602,7 +756,8 @@ fun HomeScreen(
         )
     }
 
-    inspectingElement?.let { elem ->
+    inspectingElement?.let { snap ->
+        val elem = state.homeElements.find { it.elementId == snap.elementId } ?: snap
         ElementInspectorDialog(
             element = elem,
             state = state,
@@ -629,35 +784,15 @@ fun HomeScreen(
             onDismiss = { inspectingElement = null },
         )
     }
-}
 
-@Composable
-private fun DockActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    tag: String,
-    active: Boolean = false,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-            .testTag(tag),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(21.dp),
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+    if (showStyleDialog) {
+        StudioQuickCustomizerDialog(
+            currentPage = currentPage,
+            settings = state.settings,
+            onSavePage = onSavePage,
+            onUpdateSettings = onUpdateSettings,
+            onImportImage = onImportImage,
+            onDismiss = { showStyleDialog = false },
         )
     }
 }
@@ -665,12 +800,17 @@ private fun DockActionButton(
 @Composable
 private fun StudioEditToolbar(
     pageTitle: String,
+    pageLocked: Boolean,
+    layoutLocked: Boolean,
     canUndo: Boolean,
     canRedo: Boolean,
     hasClipboard: Boolean,
     gridSnap: Boolean,
     multiSelectCount: Int,
     multiSelectMode: Boolean,
+    surfaceOpacity: Float = 0.94f,
+    cornerRadiusDp: Float = 20f,
+    borderWidthDp: Float = 1f,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onToggleGridSnap: () -> Unit,
@@ -679,8 +819,11 @@ private fun StudioEditToolbar(
     onLockMulti: () -> Unit,
     onPaste: () -> Unit,
     onAddElement: () -> Unit,
+    onOpenWidgets: () -> Unit,
     onOpenPages: () -> Unit,
-    onOpenAppearance: () -> Unit,
+    onOpenStyleStudio: () -> Unit = {},
+    onOpenSettings: () -> Unit,
+    onUnlockPage: () -> Unit,
     onDone: () -> Unit,
 ) {
     Surface(
@@ -688,61 +831,181 @@ private fun StudioEditToolbar(
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 6.dp)
             .testTag("studio_edit_toolbar"),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(cornerRadiusDp.coerceIn(4f, 32f).dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = surfaceOpacity.coerceIn(0.35f, 0.98f)),
+        border = if (borderWidthDp > 0.05f) {
+            BorderStroke(borderWidthDp.coerceIn(0.5f, 4f).dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f))
+        } else null,
         tonalElevation = 10.dp,
     ) {
-        Column {
+        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Studio • $pageTitle",
+                    text = "Edit • $pageTitle",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    maxLines = 1,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onOpenPages)
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                 )
-                IconButton(onClick = onUndo, enabled = canUndo) {
-                    Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = "Undo")
-                }
-                IconButton(onClick = onRedo, enabled = canRedo) {
-                    Icon(Icons.AutoMirrored.Rounded.Redo, contentDescription = "Redo")
-                }
-                IconButton(onClick = onAddElement, modifier = Modifier.testTag("studio_add_element")) {
-                    Icon(Icons.Rounded.Add, contentDescription = "Add element")
-                }
-                IconButton(onClick = onToggleGridSnap) {
-                    Icon(
-                        Icons.Rounded.GridOn,
-                        contentDescription = "Toggle grid snap",
-                        tint = if (gridSnap) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                IconButton(
+                    onClick = onUndo,
+                    enabled = canUndo,
+                    modifier = Modifier.size(44.dp).testTag("studio_undo_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.AutoMirrored.Rounded.Undo,
+                        contentDescription = "Undo",
+                        iconSize = 20.dp,
+                        enabled = canUndo,
                     )
                 }
-                IconButton(onClick = onToggleMultiSelectMode) {
-                    Icon(
-                        Icons.Rounded.SelectAll,
+                IconButton(
+                    onClick = onRedo,
+                    enabled = canRedo,
+                    modifier = Modifier.size(44.dp).testTag("studio_redo_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.AutoMirrored.Rounded.Redo,
+                        contentDescription = "Redo",
+                        iconSize = 20.dp,
+                        enabled = canRedo,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.size(44.dp).testTag("studio_settings_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Settings",
+                        iconSize = 20.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onDone,
+                    modifier = Modifier.size(44.dp).testTag("studio_done_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = "Done editing",
+                        iconSize = 22.dp,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                IconButton(
+                    onClick = onAddElement,
+                    modifier = Modifier.size(48.dp).testTag("studio_add_element"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = "Add",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenWidgets,
+                    modifier = Modifier.size(48.dp).testTag("studio_widgets_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Widgets,
+                        contentDescription = "Widgets",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenPages,
+                    modifier = Modifier.size(48.dp).testTag("studio_pages_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Layers,
+                        contentDescription = "Pages",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenStyleStudio,
+                    modifier = Modifier.size(48.dp).testTag("studio_style_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Palette,
+                        contentDescription = "Style Studio",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onToggleGridSnap,
+                    modifier = Modifier.size(48.dp).testTag("studio_grid_snap_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.GridOn,
+                        contentDescription = "Toggle grid snap",
+                        iconSize = 22.dp,
+                        isActive = gridSnap,
+                    )
+                }
+                IconButton(
+                    onClick = onToggleMultiSelectMode,
+                    modifier = Modifier.size(48.dp).testTag("studio_multi_select_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.SelectAll,
                         contentDescription = "Multi-select mode",
-                        tint = if (multiSelectMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        iconSize = 22.dp,
+                        isActive = multiSelectMode,
                     )
                 }
                 if (hasClipboard) {
-                    IconButton(onClick = onPaste) {
-                        Icon(Icons.Rounded.ContentPaste, contentDescription = "Paste")
+                    IconButton(
+                        onClick = onPaste,
+                        modifier = Modifier.size(48.dp).testTag("studio_paste_button"),
+                    ) {
+                        EditToolbarOutlinedIcon(
+                            imageVector = Icons.Rounded.ContentPaste,
+                            contentDescription = "Paste",
+                            iconSize = 22.dp,
+                        )
                     }
                 }
-                IconButton(onClick = onOpenPages, modifier = Modifier.testTag("studio_pages_button")) {
-                    Icon(Icons.Rounded.Layers, contentDescription = "Pages and snapshots")
-                }
-                IconButton(onClick = onOpenAppearance) {
-                    Icon(Icons.Rounded.Tune, contentDescription = "Settings")
-                }
-                IconButton(onClick = onDone, modifier = Modifier.testTag("studio_done_button")) {
-                    Icon(Icons.Rounded.Check, contentDescription = "Done editing", tint = MaterialTheme.colorScheme.primary)
+            }
+            if (pageLocked || layoutLocked) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = if (layoutLocked) "Global layout is locked in Settings" else "This page is locked",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (pageLocked && !layoutLocked) {
+                        AssistChip(
+                            onClick = onUnlockPage,
+                            leadingIcon = { Icon(Icons.Rounded.LockOpen, null, Modifier.size(14.dp)) },
+                            label = { Text("Unlock Page") },
+                        )
+                    } else if (layoutLocked) {
+                        AssistChip(
+                            onClick = onOpenSettings,
+                            label = { Text("Settings") },
+                        )
+                    }
                 }
             }
             if (multiSelectCount > 0) {
@@ -761,6 +1024,41 @@ private fun StudioEditToolbar(
 }
 
 @Composable
+private fun EditToolbarOutlinedIcon(
+    imageVector: ImageVector,
+    contentDescription: String,
+    iconSize: Dp = 22.dp,
+    enabled: Boolean = true,
+    isActive: Boolean = false,
+) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .then(
+                if (isActive) {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
+                        .border(1.2.dp, Color.White.copy(alpha = 0.85f), CircleShape)
+                } else {
+                    Modifier
+                }
+            )
+            .alpha(if (enabled) 1f else 0.38f),
+        contentAlignment = Alignment.Center,
+    ) {
+        OutlinedVectorIcon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            fillColor = Color.White,
+            outlineColor = Color.Black,
+            outlineWidthDp = 1.3.dp,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
 private fun FreeformPageCanvas(
     page: HomePageEntity,
     elements: List<HomeElementEntity>,
@@ -768,6 +1066,7 @@ private fun FreeformPageCanvas(
     multiSelectActive: Boolean,
     appDiscovery: AppDiscoveryManager,
     widgetHost: LauncherWidgetHost,
+    onEnterEditMode: () -> Unit,
     onCanvasTap: () -> Unit,
     onCanvasDoubleTap: () -> Unit,
     onCanvasLongPress: () -> Unit,
@@ -786,231 +1085,312 @@ private fun FreeformPageCanvas(
 ) {
     val density = LocalDensity.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val latestIsEditMode by rememberUpdatedState(state.isEditMode)
+    val latestElements by rememberUpdatedState(elements)
+    val latestIsLandscape by rememberUpdatedState(isLandscape)
 
     var activeGuideX by remember { mutableStateOf<Float?>(null) }
     var activeGuideY by remember { mutableStateOf<Float?>(null) }
 
-    val scrollMod = if (page.verticallyScrollable && !state.isEditMode) {
-        Modifier.verticalScroll(rememberScrollState())
-    } else Modifier
-
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .then(scrollMod)
-            .pointerInput(state.isEditMode) {
-                detectTapGestures(
-                    onTap = { onCanvasTap() },
-                    onDoubleTap = { onCanvasDoubleTap() },
-                    onLongPress = { onCanvasLongPress() },
-                )
-            }
-            .pointerInput(state.isEditMode, page.verticallyScrollable) {
-                if (!state.isEditMode && !page.verticallyScrollable) {
-                    var totalDy = 0f
-                    var triggered = false
-                    detectVerticalDragGestures(
-                        onDragStart = { totalDy = 0f; triggered = false },
-                        onVerticalDrag = { change, dragAmount ->
-                            change.consume()
-                            totalDy += dragAmount
-                            if (!triggered && abs(totalDy) > 95f) {
-                                triggered = true
-                                onVerticalSwipe(totalDy < 0f)
-                            }
-                        },
-                    )
-                }
-            },
+            .padding(page.paddingDp.coerceIn(0f, 40f).dp),
     ) {
-        val canvasWidthPx = with(density) { maxWidth.toPx().coerceAtLeast(1f) }
-        val canvasHeightPx = with(density) { maxHeight.toPx().coerceAtLeast(1f) }
+        val viewportWidthDp = maxWidth
+        val viewportHeightDp = maxHeight
+        val canvasWidthPx = with(density) { viewportWidthDp.toPx().coerceAtLeast(1f) }
+        val canvasHeightPx = with(density) { viewportHeightDp.toPx().coerceAtLeast(1f) }
         val snapStepPx = with(density) { state.settings.gridSnapStepDp.dp.toPx().coerceAtLeast(8f) }
 
-        if (state.isEditMode) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val step = (state.settings.gridSnapStepDp.coerceAtLeast(12) * 2).dp.toPx()
-                var x = step
-                while (x < size.width) {
-                    drawLine(Color.White.copy(alpha = 0.08f), Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
-                    x += step
-                }
-                var y = step
-                while (y < size.height) {
-                    drawLine(Color.White.copy(alpha = 0.08f), Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-                    y += step
-                }
-
-                // Magnetic alignment guides during drag
-                activeGuideX?.let { gx ->
-                    drawLine(Color(0xFF38BDF8L), Offset(gx, 0f), Offset(gx, size.height), strokeWidth = 2.5f)
-                }
-                activeGuideY?.let { gy ->
-                    drawLine(Color(0xFF38BDF8L), Offset(0f, gy), Offset(size.width, gy), strokeWidth = 2.5f)
-                }
-            }
+        val scrollContainerMod = if (page.verticallyScrollable && !state.isEditMode) {
+            Modifier.verticalScroll(rememberScrollState())
+        } else Modifier
+        val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
+            val maxElemBottomDp = elements.maxOfOrNull { el ->
+                val yf = if (isLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
+                (yf * viewportHeightDp.value) + el.heightDp + 32f
+            }?.dp ?: viewportHeightDp
+            maxOf(viewportHeightDp, maxElemBottomDp)
+        } else {
+            viewportHeightDp
         }
 
-        elements.forEach { elem ->
-            val selected = state.isEditMode &&
-                (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
-            val baseXFrac = if (isLandscape && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
-            val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
-            var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
-            var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
-            var widthDp by remember(elem.elementId, elem.widthDp) { mutableFloatStateOf(elem.widthDp) }
-            var heightDp by remember(elem.elementId, elem.heightDp) { mutableFloatStateOf(elem.heightDp) }
-
-            val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
-            val dragModifier = if (canMove) {
-                Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
-                    detectDragGestures(
-                        onDragStart = { onSelectElement(elem.elementId) },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            var nextX = (dragX + dragAmount.x).coerceIn(0f, canvasWidthPx - 40f)
-                            var nextY = (dragY + dragAmount.y).coerceIn(0f, canvasHeightPx - 40f)
-
-                            if (state.settings.gridSnapEnabled) {
-                                nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
-                                nextY = (nextY / snapStepPx).roundToInt() * snapStepPx
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(scrollContainerMod),
+        ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(contentHeightDp)
+                .testTag("home_canvas_${page.pageId}")
+                .pointerInput(page.pageId, canvasWidthPx, canvasHeightPx) {
+                    detectTapGestures(
+                        onTap = { onCanvasTap() },
+                        onDoubleTap = { onCanvasDoubleTap() },
+                        onLongPress = { pressOffset ->
+                            val hitElement = latestElements.any { el ->
+                                val xf = if (latestIsLandscape && el.landscapeXFraction != null) el.landscapeXFraction else el.xFraction
+                                val yf = if (latestIsLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
+                                val left = xf * canvasWidthPx
+                                val top = yf * canvasHeightPx
+                                val wPx = with(density) { el.widthDp.dp.toPx() }
+                                val hPx = with(density) { el.heightDp.dp.toPx() }
+                                pressOffset.x in left..(left + wPx) && pressOffset.y in top..(top + hPx)
                             }
-
-                            if (state.settings.alignmentGuidesEnabled) {
-                                val centerCanvasX = canvasWidthPx / 2f
-                                val elemW = widthDp.dp.toPx()
-                                val matchX = elements.filter { it.elementId != elem.elementId }
-                                    .map { (if (isLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
-                                    .plus(centerCanvasX - elemW / 2f)
-                                    .firstOrNull { abs(it - nextX) < 12f }
-                                if (matchX != null) {
-                                    nextX = matchX
-                                    activeGuideX = matchX
-                                } else activeGuideX = null
-
-                                val matchY = elements.filter { it.elementId != elem.elementId }
-                                    .map { (if (isLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
-                                    .firstOrNull { abs(it - nextY) < 12f }
-                                if (matchY != null) {
-                                    nextY = matchY
-                                    activeGuideY = matchY
-                                } else activeGuideY = null
+                            if (!hitElement) {
+                                if (!latestIsEditMode) {
+                                    onEnterEditMode()
+                                } else {
+                                    onCanvasLongPress()
+                                }
                             }
-
-                            dragX = nextX
-                            dragY = nextY
-                        },
-                        onDragEnd = {
-                            activeGuideX = null
-                            activeGuideY = null
-                            val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
-                            val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
-                            val updated = if (isLandscape) {
-                                elem.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                            } else {
-                                elem.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                            }
-                            onSaveElement(updated, true)
                         },
                     )
                 }
-            } else Modifier
-
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
-                    .size(width = widthDp.dp, height = heightDp.dp)
-                    .graphicsLayer {
-                        rotationZ = elem.rotationDeg
-                        scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
-                        scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
+                .pointerInput(state.isEditMode, page.verticallyScrollable) {
+                    if (!state.isEditMode && !page.verticallyScrollable) {
+                        var totalDy = 0f
+                        var triggered = false
+                        detectVerticalDragGestures(
+                            onDragStart = { totalDy = 0f; triggered = false },
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDy += dragAmount
+                                if (!triggered && abs(totalDy) > 95f) {
+                                    triggered = true
+                                    onVerticalSwipe(totalDy < 0f)
+                                }
+                            },
+                        )
                     }
-                    .alpha(elem.alpha.coerceIn(0.1f, 1f))
-                    .then(dragModifier)
-                    .then(
-                        if (state.isEditMode) {
-                            Modifier
-                                .border(
+                },
+        ) {
+            if (state.isEditMode && (state.settings.editGridVisible || activeGuideX != null || activeGuideY != null)) {
+                val gridColor = Color(state.settings.editGridColorHex).copy(alpha = state.settings.editGridOpacity.coerceIn(0.01f, 0.5f))
+                val guideColor = Color(state.settings.alignmentGuideColorHex)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    if (state.settings.editGridVisible) {
+                        val step = (state.settings.gridSnapStepDp.coerceAtLeast(8) * 2).dp.toPx()
+                        var x = step
+                        while (x < size.width) {
+                            drawLine(gridColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+                            x += step
+                        }
+                        var y = step
+                        while (y < size.height) {
+                            drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+                            y += step
+                        }
+                    }
+
+                    // Magnetic alignment guides during drag
+                    activeGuideX?.let { gx ->
+                        drawLine(guideColor, Offset(gx, 0f), Offset(gx, size.height), strokeWidth = 2.5f)
+                    }
+                    activeGuideY?.let { gy ->
+                        drawLine(guideColor, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 2.5f)
+                    }
+                }
+            }
+
+            elements.forEach { elem ->
+                val latestElem by rememberUpdatedState(elem)
+                val selected = state.isEditMode &&
+                    (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
+                val baseXFrac = if (isLandscape && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
+                val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
+                var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
+                var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
+                var widthDp by remember(elem.elementId, elem.widthDp) { mutableFloatStateOf(elem.widthDp) }
+                var heightDp by remember(elem.elementId, elem.heightDp) { mutableFloatStateOf(elem.heightDp) }
+
+                val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
+                val dragModifier = if (canMove) {
+                    Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
+                        detectDragGestures(
+                            onDragStart = { onSelectElement(latestElem.elementId) },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
+                                var nextY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+
+                                if (state.settings.gridSnapEnabled) {
+                                    nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
+                                    nextY = (nextY / snapStepPx).roundToInt() * snapStepPx
+                                }
+
+                                if (state.settings.alignmentGuidesEnabled) {
+                                    val centerCanvasX = canvasWidthPx / 2f
+                                    val elemW = widthDp.dp.toPx()
+                                    val matchX = latestElements.filter { it.elementId != latestElem.elementId }
+                                        .map { (if (latestIsLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
+                                        .plus(centerCanvasX - elemW / 2f)
+                                        .firstOrNull { abs(it - nextX) < 12f }
+                                    if (matchX != null) {
+                                        nextX = matchX
+                                        activeGuideX = matchX
+                                    } else activeGuideX = null
+
+                                    val matchY = latestElements.filter { it.elementId != latestElem.elementId }
+                                        .map { (if (latestIsLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
+                                        .firstOrNull { abs(it - nextY) < 12f }
+                                    if (matchY != null) {
+                                        nextY = matchY
+                                        activeGuideY = matchY
+                                    } else activeGuideY = null
+                                }
+
+                                dragX = nextX
+                                dragY = nextY
+                            },
+                            onDragEnd = {
+                                activeGuideX = null
+                                activeGuideY = null
+                                val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                                val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                                val cur = latestElem
+                                val updated = if (latestIsLandscape) {
+                                    cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                                } else {
+                                    cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                                }
+                                onSaveElement(updated, true)
+                            },
+                        )
+                    }
+                } else Modifier
+
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                        .size(width = widthDp.dp, height = heightDp.dp)
+                        .graphicsLayer {
+                            rotationZ = elem.rotationDeg
+                            scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
+                            scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
+                        }
+                        .alpha(elem.alpha.coerceIn(0.1f, 1f))
+                        .then(
+                            if (state.isEditMode) {
+                                Modifier.border(
                                     width = if (selected) 2.dp else 1.dp,
                                     color = if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.25f),
                                     shape = RoundedCornerShape(elem.cornerRadiusDp.dp),
                                 )
-                                .clickable {
-                                    if (selected && !multiSelectActive) onInspectElement(elem) else onSelectElement(elem.elementId)
-                                }
-                        } else Modifier
-                    ),
-            ) {
-                HomeElementBody(
-                    element = elem,
-                    state = state,
-                    appDiscovery = appDiscovery,
-                    widgetHost = widgetHost,
-                    onLaunchApp = onLaunchApp,
-                    onOpenTagSidebar = onOpenTagSidebar,
-                    onOpenCategorySidebar = onOpenCategorySidebar,
-                    onOpenRuleSidebar = onOpenRuleSidebar,
-                    onOpenSidebar = onOpenSidebar,
-                    onOpenWindow = onOpenWindow,
-                    onOpenFolder = onOpenFolder,
-                    onElementTrigger = onElementTrigger,
-                )
-
-                if (state.isEditMode) {
-                    if (elem.locked || page.isLocked) {
-                        Icon(
-                            Icons.Rounded.Lock,
-                            contentDescription = "Locked",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
+                            } else Modifier
                         )
-                    }
-                    if (selected) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 6.dp, y = (-6).dp)
-                                .size(24.dp)
-                                .clickable { onInspectElement(elem) },
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Rounded.Tune, contentDescription = "Inspect", tint = Color.Black, modifier = Modifier.size(14.dp))
-                            }
-                        }
+                        .testTag("home_element_${elem.elementId}"),
+                ) {
+                    HomeElementBody(
+                        element = elem,
+                        state = state,
+                        appDiscovery = appDiscovery,
+                        widgetHost = widgetHost,
+                        onLaunchApp = onLaunchApp,
+                        onOpenTagSidebar = onOpenTagSidebar,
+                        onOpenCategorySidebar = onOpenCategorySidebar,
+                        onOpenRuleSidebar = onOpenRuleSidebar,
+                        onOpenSidebar = onOpenSidebar,
+                        onOpenWindow = onOpenWindow,
+                        onOpenFolder = onOpenFolder,
+                        onElementTrigger = onElementTrigger,
+                    )
 
-                        if (canMove) {
+                    if (state.isEditMode) {
+                        // Touch shield sits above AndroidView / LazyVerticalGrid / widget buttons
+                        // so any placed element can be reliably tapped, dragged, or inspected in edit mode.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(dragModifier)
+                                .clickable {
+                                    val cur = latestElem
+                                    if (selected && !multiSelectActive) onInspectElement(cur) else onSelectElement(cur.elementId)
+                                }
+                                .testTag("edit_shield_${elem.elementId}"),
+                        )
+
+                        if (elem.locked || page.isLocked) {
+                            Icon(
+                                Icons.Rounded.Lock,
+                                contentDescription = "Locked",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
+                            )
+                        }
+                        if (selected) {
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .offset(x = 6.dp, y = 6.dp)
-                                    .size(26.dp)
-                                    .pointerInput(elem.elementId) {
-                                        detectDragGestures(
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                val dxDp = with(density) { dragAmount.x.toDp().value }
-                                                val dyDp = with(density) { dragAmount.y.toDp().value }
-                                                widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
-                                                heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
-                                            },
-                                            onDragEnd = {
-                                                onSaveElement(elem.copy(widthDp = widthDp, heightDp = heightDp), true)
-                                            },
-                                        )
-                                    },
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 6.dp, y = (-6).dp)
+                                    .size(28.dp)
+                                    .clickable { onInspectElement(latestElem) }
+                                    .testTag("inspect_element_${elem.elementId}"),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Rounded.OpenInFull, contentDescription = "Resize", tint = Color.White, modifier = Modifier.size(14.dp))
+                                    val iconStyle = LocalIconStyleConfig.current
+                                    if (iconStyle.enabled) {
+                                        OutlinedVectorIcon(
+                                            imageVector = Icons.Rounded.Tune,
+                                            contentDescription = "Inspect",
+                                            fillColor = Color(iconStyle.fillColorHex),
+                                            outlineColor = Color(iconStyle.outlineColorHex),
+                                            outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                                            modifier = Modifier.size(15.dp),
+                                        )
+                                    } else {
+                                        Icon(Icons.Rounded.Tune, contentDescription = "Inspect", tint = Color.Black, modifier = Modifier.size(15.dp))
+                                    }
+                                }
+                            }
+
+                            if (canMove) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .offset(x = 6.dp, y = 6.dp)
+                                        .size(28.dp)
+                                        .pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx) {
+                                            detectDragGestures(
+                                                onDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    val dxDp = with(density) { dragAmount.x.toDp().value }
+                                                    val dyDp = with(density) { dragAmount.y.toDp().value }
+                                                    widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
+                                                    heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
+                                                },
+                                                onDragEnd = {
+                                                    val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                                                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                                                    val cur = latestElem
+                                                    val updated = if (latestIsLandscape) {
+                                                        cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                                                    } else {
+                                                        cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                                                    }
+                                                    onSaveElement(updated, true)
+                                                },
+                                            )
+                                        }
+                                        .testTag("resize_element_${elem.elementId}"),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Rounded.OpenInFull, contentDescription = "Resize", tint = Color.White, modifier = Modifier.size(15.dp))
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        }
         }
     }
 }

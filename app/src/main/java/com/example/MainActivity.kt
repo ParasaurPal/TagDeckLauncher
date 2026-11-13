@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,8 @@ import com.example.ui.components.AppActionAndCustomizeDialog
 import com.example.ui.components.AppDrawerOverlay
 import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryEditorDialog
+import com.example.ui.components.LocalIconPackOrder
+import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
 import com.example.ui.screens.AppManagerScreen
@@ -108,6 +111,10 @@ class MainActivity : ComponentActivity() {
             TagDeckTheme(
                 themeMode = state.settings.themeMode,
                 accentColorHex = state.settings.accentColorHex,
+                secondaryColorHex = state.settings.secondaryColorHex,
+                tertiaryColorHex = state.settings.tertiaryColorHex,
+                fontStyle = state.settings.fontStyle,
+                fontScale = state.settings.fontScale,
                 cornerRadiusDp = state.settings.globalCornerRadiusDp,
             ) {
                 TagDeckRoot(
@@ -163,8 +170,28 @@ private fun TagDeckRoot(
         }
     }
 
-    var pendingWidgetInfo by remember { mutableStateOf<Pair<InstalledWidgetProvider, Long>?>(null) }
+    var pendingWidgetInfo by remember { mutableStateOf<Triple<InstalledWidgetProvider, Long, Long?>?>(null) }
     var pendingWidgetId by remember { mutableStateOf<Int?>(null) }
+
+    val saveBoundSystemWidget: (InstalledWidgetProvider, Long, Long?, Int) -> Unit = { provider, pageId, windowId, widgetId ->
+        viewModel.saveHomeElement(
+            HomeElementEntity(
+                pageId = pageId,
+                ownerType = if (windowId != null) "WINDOW" else "PAGE",
+                ownerWindowId = windowId,
+                type = "APP_WIDGET",
+                xFraction = 0.06f,
+                yFraction = 0.12f,
+                widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
+                heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
+                label = provider.label,
+                appWidgetId = widgetId,
+                backgroundColorHex = 0x220F172AL,
+                cornerRadiusDp = 22f,
+            ),
+            selectAfter = true,
+        )
+    }
 
     val defaultHomeLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -176,24 +203,10 @@ private fun TagDeckRoot(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val widgetId = pendingWidgetId
-        val infoPair = pendingWidgetInfo
-        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoPair != null) {
-            val (provider, pageId) = infoPair
-            viewModel.saveHomeElement(
-                HomeElementEntity(
-                    pageId = pageId,
-                    type = "APP_WIDGET",
-                    xFraction = 0.06f,
-                    yFraction = 0.12f,
-                    widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
-                    heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
-                    label = provider.label,
-                    appWidgetId = widgetId,
-                    backgroundColorHex = 0x220F172AL,
-                    cornerRadiusDp = 22f,
-                ),
-                selectAfter = true,
-            )
+        val infoTriple = pendingWidgetInfo
+        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoTriple != null) {
+            val (provider, pageId, windowId) = infoTriple
+            saveBoundSystemWidget(provider, pageId, windowId, widgetId)
         } else if (widgetId != null) {
             viewModel.widgetHost.deleteAppWidgetId(widgetId)
         }
@@ -205,9 +218,9 @@ private fun TagDeckRoot(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val widgetId = pendingWidgetId
-        val infoPair = pendingWidgetInfo
-        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoPair != null) {
-            val (provider, pageId) = infoPair
+        val infoTriple = pendingWidgetInfo
+        if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoTriple != null) {
+            val (provider, pageId, windowId) = infoTriple
             val configComp = provider.info.configure
             if (configComp != null) {
                 val cfgIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
@@ -217,36 +230,12 @@ private fun TagDeckRoot(
                 try {
                     configureWidgetLauncher.launch(cfgIntent)
                 } catch (_: Exception) {
-                    viewModel.saveHomeElement(
-                        HomeElementEntity(
-                            pageId = pageId,
-                            type = "APP_WIDGET",
-                            xFraction = 0.06f,
-                            yFraction = 0.12f,
-                            widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
-                            heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
-                            label = provider.label,
-                            appWidgetId = widgetId,
-                        ),
-                        selectAfter = true,
-                    )
+                    saveBoundSystemWidget(provider, pageId, windowId, widgetId)
                     pendingWidgetId = null
                     pendingWidgetInfo = null
                 }
             } else {
-                viewModel.saveHomeElement(
-                    HomeElementEntity(
-                        pageId = pageId,
-                        type = "APP_WIDGET",
-                        xFraction = 0.06f,
-                        yFraction = 0.12f,
-                        widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
-                        heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
-                        label = provider.label,
-                        appWidgetId = widgetId,
-                    ),
-                    selectAfter = true,
-                )
+                saveBoundSystemWidget(provider, pageId, windowId, widgetId)
                 pendingWidgetId = null
                 pendingWidgetInfo = null
             }
@@ -254,6 +243,25 @@ private fun TagDeckRoot(
             viewModel.widgetHost.deleteAppWidgetId(widgetId)
             pendingWidgetId = null
             pendingWidgetInfo = null
+        }
+    }
+
+    val startSystemWidgetBind: (InstalledWidgetProvider, Long, Long?) -> Unit = { provider, pageId, windowId ->
+        val allocatedId = viewModel.widgetHost.allocateAppWidgetId()
+        if (allocatedId == null) {
+            viewModel.showMessage("Widget host unavailable")
+        } else {
+            pendingWidgetId = allocatedId
+            pendingWidgetInfo = Triple(provider, pageId, windowId)
+            if (viewModel.widgetHost.bindIfAllowed(allocatedId, provider.info.provider)) {
+                saveBoundSystemWidget(provider, pageId, windowId, allocatedId)
+                pendingWidgetId = null
+                pendingWidgetInfo = null
+            } else {
+                bindWidgetLauncher.launch(
+                    viewModel.widgetHost.createBindIntent(allocatedId, provider.info.provider)
+                )
+            }
         }
     }
 
@@ -270,6 +278,12 @@ private fun TagDeckRoot(
         }
     }
 
+    val installedWidgetProviders = remember { viewModel.widgetHost.getInstalledProviders() }
+
+    CompositionLocalProvider(
+        LocalIconPackOrder provides state.settings.iconPackOrder(),
+        LocalIconStyleConfig provides state.settings.iconStyleConfig(),
+    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
@@ -299,6 +313,7 @@ private fun TagDeckRoot(
                     onUndo = { viewModel.undoLayout() },
                     onRedo = { viewModel.redoLayout() },
                     onToggleGridSnap = { viewModel.updateSettings { it.copy(gridSnapEnabled = !it.gridSnapEnabled) } },
+                    onUpdateSettings = { viewModel.updateSettings(it) },
                     onSaveElement = { elem, sel -> viewModel.saveHomeElement(elem, sel) },
                     onDuplicateElement = { viewModel.duplicateElement(it) },
                     onCopyElement = { viewModel.copyElementToClipboard(it) },
@@ -333,34 +348,7 @@ private fun TagDeckRoot(
                         viewModel.updateSettings { it.copy(showDefaultHomeBanner = false) }
                     },
                     onStartSystemWidgetBind = { provider, pageId ->
-                        val allocatedId = viewModel.widgetHost.allocateAppWidgetId()
-                        if (allocatedId == null) {
-                            viewModel.showMessage("Widget host unavailable")
-                        } else {
-                            pendingWidgetId = allocatedId
-                            pendingWidgetInfo = provider to pageId
-                            if (viewModel.widgetHost.bindIfAllowed(allocatedId, provider.info.provider)) {
-                                viewModel.saveHomeElement(
-                                    HomeElementEntity(
-                                        pageId = pageId,
-                                        type = "APP_WIDGET",
-                                        xFraction = 0.06f,
-                                        yFraction = 0.12f,
-                                        widthDp = provider.minWidthDp.toFloat().coerceIn(140f, 340f),
-                                        heightDp = provider.minHeightDp.toFloat().coerceIn(110f, 320f),
-                                        label = provider.label,
-                                        appWidgetId = allocatedId,
-                                    ),
-                                    selectAfter = true,
-                                )
-                                pendingWidgetId = null
-                                pendingWidgetInfo = null
-                            } else {
-                                bindWidgetLauncher.launch(
-                                    viewModel.widgetHost.createBindIntent(allocatedId, provider.info.provider)
-                                )
-                            }
-                        }
+                        startSystemWidgetBind(provider, pageId, null)
                     },
                 )
             }
@@ -428,6 +416,15 @@ private fun TagDeckRoot(
                     onAddWindowElement = { viewModel.saveHomeElement(it, selectAfter = false) },
                     onDeleteWindowElement = { viewModel.deleteHomeElement(it) },
                     onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+                    installedWidgetProviders = installedWidgetProviders,
+                    onDuplicateWindowElement = { viewModel.duplicateElement(it) },
+                    onCopyWindowElement = { viewModel.copyElementToClipboard(it) },
+                    onCutWindowElement = { viewModel.cutElementToClipboard(it) },
+                    onBringWindowElementForward = { viewModel.bringElementForward(it) },
+                    onSendWindowElementBackward = { viewModel.sendElementBackward(it) },
+                    onStartSystemWidgetBindForWindow = { provider, pageId, winId ->
+                        startSystemWidgetBind(provider, pageId, winId)
+                    },
                 )
             }
 
@@ -453,6 +450,12 @@ private fun TagDeckRoot(
                     onExportBackupJson = { viewModel.exportFullBackupJson() },
                     onImportBackupJson = { viewModel.importFullBackupJson(it) },
                     onShowMessage = { viewModel.showMessage(it) },
+                    onRefreshIconPacks = { viewModel.refreshInstalledIconPacks() },
+                    onAddIconPack = { viewModel.addIconPackToHierarchy(it) },
+                    onRemoveIconPack = { viewModel.removeIconPackFromHierarchy(it) },
+                    onMoveIconPack = { pkg, delta -> viewModel.moveIconPackInHierarchy(pkg, delta) },
+                    initialSearchQuery = state.pendingSettingsSearchQuery,
+                    onConsumeInitialSearchQuery = { viewModel.consumePendingSettingsSearchQuery() },
                 )
             }
         }
@@ -482,6 +485,7 @@ private fun TagDeckRoot(
                 viewModel.showMessage("Sort: $next")
             },
             onUpdateSettings = { viewModel.updateSettings(it) },
+            onOpenGlobalSearch = { query -> viewModel.setUniversalSearchOpen(true, initialQuery = query) },
         )
 
         // Universal Search Overlay
@@ -501,6 +505,15 @@ private fun TagDeckRoot(
             },
             onAddHistory = { viewModel.addSearchHistory(it) },
             onClearHistory = { viewModel.clearSearchHistory() },
+            onOpenConfiguredSidebar = { viewModel.openConfiguredSidebar(it) },
+            onOpenWindow = { viewModel.openWindow(it) },
+            onOpenSettingsSearch = { settingsQuery ->
+                viewModel.openSettingsWithSearch(settingsQuery, navigateTo)
+            },
+            onNavigate = navigateTo,
+            onOpenDrawer = { viewModel.setDrawerOpen(true) },
+            onToggleEditMode = { viewModel.setEditMode(true) },
+            onConsumePendingQuery = { viewModel.consumePendingGlobalSearchQuery() },
         )
 
         // Tag, Play Category, 4-Edge Configured Sidebars, Nested Folders & Independent Windows
@@ -523,10 +536,24 @@ private fun TagDeckRoot(
                 }
             },
             onSaveSidebar = { viewModel.saveSidebar(it) },
-            windowElementRenderer = { el, _, _ ->
+            onSaveWindow = { viewModel.saveWindow(it) },
+            installedWidgetProviders = installedWidgetProviders,
+            onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
+            onSaveWindowElement = { el, sel -> viewModel.saveHomeElement(el, sel) },
+            onDuplicateWindowElement = { viewModel.duplicateElement(it) },
+            onCopyWindowElement = { viewModel.copyElementToClipboard(it) },
+            onCutWindowElement = { viewModel.cutElementToClipboard(it) },
+            onPasteToWindow = { pageId, winId -> viewModel.pasteElementFromClipboard(pageId, winId) },
+            onBringWindowElementForward = { viewModel.bringElementForward(it) },
+            onSendWindowElementBackward = { viewModel.sendElementBackward(it) },
+            onDeleteWindowElement = { viewModel.deleteHomeElement(it) },
+            onStartSystemWidgetBindForWindow = { provider, pageId, winId ->
+                startSystemWidgetBind(provider, pageId, winId)
+            },
+            windowElementRenderer = { el, windowEditMode ->
                 HomeElementBody(
                     element = el,
-                    state = state,
+                    state = state.copy(isEditMode = windowEditMode),
                     appDiscovery = viewModel.appDiscovery,
                     widgetHost = viewModel.widgetHost,
                     onLaunchApp = { viewModel.launchApp(it) },
@@ -625,5 +652,6 @@ private fun TagDeckRoot(
                 onDismiss = { inlineCustomizeApp = null },
             )
         }
+    }
     }
 }

@@ -56,16 +56,19 @@ import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.data.db.CategoryEntity
 import java.io.File
 
@@ -138,6 +141,8 @@ fun TagBadgeIcon(
     contentDescription: String? = null,
     circular: Boolean = false,
 ) {
+    val context = LocalContext.current
+    val iconStyle = LocalIconStyleConfig.current
     val accent = Color(colorHex)
     val shape = if (circular) CircleShape else RoundedCornerShape(size * 0.3f)
     Box(
@@ -148,11 +153,30 @@ fun TagBadgeIcon(
         contentAlignment = Alignment.Center,
     ) {
         if (!customImagePath.isNullOrBlank() && File(customImagePath).exists()) {
+            val request = remember(customImagePath, iconStyle) {
+                ImageRequest.Builder(context)
+                    .data(File(customImagePath))
+                    .allowHardware(false)
+                    .apply {
+                        if (iconStyle.enabled) transformations(BlackIconCoilTransformation(iconStyle))
+                    }
+                    .build()
+            }
             AsyncImage(
-                model = File(customImagePath),
+                model = request,
                 contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
+                contentScale = if (iconStyle.enabled) ContentScale.Fit else ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+        } else if (iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE)) {
+            val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
+            OutlinedVectorIcon(
+                imageVector = tagIconVector(iconKey),
+                contentDescription = contentDescription,
+                fillColor = fill,
+                outlineColor = Color(iconStyle.outlineColorHex),
+                outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                modifier = Modifier.size(size * 0.56f),
             )
         } else {
             Icon(
@@ -171,6 +195,8 @@ fun CategoryBadgeIcon(
     size: Dp = category.iconSizeDp.dp,
     contentDescription: String? = category.name,
 ) {
+    val context = LocalContext.current
+    val iconStyle = LocalIconStyleConfig.current
     val accent = Color(category.colorHex)
     val storedBg = Color(category.backgroundColorHex)
     val bg = if (category.backgroundType != "INHERIT" || storedBg.alpha > 0.45f) {
@@ -188,10 +214,19 @@ fun CategoryBadgeIcon(
     ) {
         when {
             !category.customIconPath.isNullOrBlank() && File(category.customIconPath).exists() -> {
+                val request = remember(category.customIconPath, iconStyle) {
+                    ImageRequest.Builder(context)
+                        .data(File(category.customIconPath))
+                        .allowHardware(false)
+                        .apply {
+                            if (iconStyle.enabled) transformations(BlackIconCoilTransformation(iconStyle))
+                        }
+                        .build()
+                }
                 AsyncImage(
-                    model = File(category.customIconPath),
+                    model = request,
                     contentDescription = contentDescription,
-                    contentScale = ContentScale.Crop,
+                    contentScale = if (iconStyle.enabled) ContentScale.Fit else ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -199,6 +234,17 @@ fun CategoryBadgeIcon(
                 Text(
                     text = category.customEmoji,
                     fontSize = (size.value * 0.54f).sp,
+                )
+            }
+            iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
+                val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
+                OutlinedVectorIcon(
+                    imageVector = tagIconVector(category.iconKey),
+                    contentDescription = contentDescription,
+                    fillColor = fill,
+                    outlineColor = Color(iconStyle.outlineColorHex),
+                    outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                    modifier = Modifier.size(size * 0.58f),
                 )
             }
             else -> {

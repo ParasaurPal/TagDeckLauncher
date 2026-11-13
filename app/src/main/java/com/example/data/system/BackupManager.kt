@@ -14,6 +14,7 @@ import com.example.data.db.SavedTagRuleEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.db.TagEntity
 import com.example.data.prefs.LauncherSettings
+import com.example.ui.components.IconStyleConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -259,13 +260,23 @@ object BackupManager {
         root.put("settings", JSONObject().apply {
             put("themeMode", s.themeMode)
             put("accentColorHex", s.accentColorHex)
+            put("secondaryColorHex", s.secondaryColorHex)
+            put("tertiaryColorHex", s.tertiaryColorHex)
+            put("fontStyle", s.fontStyle)
+            put("fontScale", s.fontScale.toDouble())
+            put("surfaceOpacity", s.surfaceOpacity.toDouble())
+            put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
+            put("globalTextColorHex", s.globalTextColorHex)
+            put("showHomeAppLabels", s.showHomeAppLabels)
             put("wallpaperType", s.wallpaperType)
             put("wallpaperCustomPath", s.wallpaperCustomPath ?: JSONObject.NULL)
             put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
             put("wallpaperGradientEndHex", s.wallpaperGradientEndHex)
+            put("wallpaperGradientDirection", s.wallpaperGradientDirection)
             put("wallpaperSolidHex", s.wallpaperSolidHex)
             put("wallpaperBlurDp", s.wallpaperBlurDp.toDouble())
             put("wallpaperDimAlpha", s.wallpaperDimAlpha.toDouble())
+            put("wallpaperDimColorHex", s.wallpaperDimColorHex)
             put("allAppsSidebarEdge", s.allAppsSidebarEdge)
             put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
             put("allAppsBgType", s.allAppsBgType)
@@ -278,6 +289,9 @@ object BackupManager {
             put("drawerIconSizeDp", s.drawerIconSizeDp)
             put("drawerLabelSizeSp", s.drawerLabelSizeSp)
             put("drawerSortOrder", s.drawerSortOrder)
+            put("drawerCardOpacity", s.drawerCardOpacity.toDouble())
+            put("drawerCornerRadiusDp", s.drawerCornerRadiusDp.toDouble())
+            put("drawerSearchBarVisible", s.drawerSearchBarVisible)
             put("niagaraWaveEnabled", s.niagaraWaveEnabled)
             put("niagaraIndexVisible", s.niagaraIndexVisible)
             put("niagaraEdge", s.niagaraEdge)
@@ -288,17 +302,35 @@ object BackupManager {
             put("niagaraHapticFeedback", s.niagaraHapticFeedback)
             put("gridSnapEnabled", s.gridSnapEnabled)
             put("alignmentGuidesEnabled", s.alignmentGuidesEnabled)
+            put("alignmentGuideColorHex", s.alignmentGuideColorHex)
             put("gridSnapStepDp", s.gridSnapStepDp)
+            put("editGridVisible", s.editGridVisible)
+            put("editGridOpacity", s.editGridOpacity.toDouble())
+            put("editGridColorHex", s.editGridColorHex)
             put("layoutLocked", s.layoutLocked)
             put("pageTransitionStyle", s.pageTransitionStyle)
+            put("pageIndicatorStyle", s.pageIndicatorStyle)
+            put("pageIndicatorColorHex", s.pageIndicatorColorHex)
+            put("edgeHandlesVisible", s.edgeHandlesVisible)
+            put("edgeHandleOpacity", s.edgeHandleOpacity.toDouble())
+            put("edgeHandleWidthDp", s.edgeHandleWidthDp.toDouble())
+            put("edgeHandleHeightDp", s.edgeHandleHeightDp.toDouble())
             put("animationSpeedScale", s.animationSpeedScale.toDouble())
             put("globalCornerRadiusDp", s.globalCornerRadiusDp.toDouble())
             put("globalIconShape", s.globalIconShape)
             put("showDockBar", s.showDockBar)
             put("showTagStripOnHome", s.showTagStripOnHome)
+            put("showDefaultHomeBanner", s.showDefaultHomeBanner)
             put("showStatusBar", s.showStatusBar)
             put("showNavBar", s.showNavBar)
             put("hapticFeedbackEnabled", s.hapticFeedbackEnabled)
+            put("iconPackOrderCsv", s.iconPackOrderCsv)
+            put("blackIconStyleEnabled", s.blackIconStyleEnabled)
+            put("blackIconMode", s.blackIconMode)
+            put("blackIconFillColorHex", s.blackIconFillColorHex)
+            put("blackIconOutlineColorHex", s.blackIconOutlineColorHex)
+            put("blackIconOutlineWidthDp", s.blackIconOutlineWidthDp.toDouble())
+            put("blackIconDarknessThreshold", s.blackIconDarknessThreshold.toDouble())
         })
 
         return root.toString(2)
@@ -556,13 +588,23 @@ object BackupManager {
         val settings = LauncherSettings(
             themeMode = so.optString("themeMode", "DARK"),
             accentColorHex = so.optLong("accentColorHex", 0xFF38BDF8L),
+            secondaryColorHex = so.optLong("secondaryColorHex", 0xFF6366F1L),
+            tertiaryColorHex = so.optLong("tertiaryColorHex", 0xFFFB7185L),
+            fontStyle = so.optString("fontStyle", "DEFAULT"),
+            fontScale = so.optDouble("fontScale", 1.0).toFloat(),
+            surfaceOpacity = so.optDouble("surfaceOpacity", 0.86).toFloat(),
+            globalBorderWidthDp = so.optDouble("globalBorderWidthDp", 1.0).toFloat(),
+            globalTextColorHex = so.optLong("globalTextColorHex", 0xFFF8FAFC),
+            showHomeAppLabels = so.optBoolean("showHomeAppLabels", true),
             wallpaperType = so.optString("wallpaperType", "BUILTIN_PRISM"),
             wallpaperCustomPath = so.optNullableString("wallpaperCustomPath"),
             wallpaperGradientStartHex = so.optLong("wallpaperGradientStartHex", 0xFF0A1124L),
             wallpaperGradientEndHex = so.optLong("wallpaperGradientEndHex", 0xFF1A1038L),
+            wallpaperGradientDirection = so.optString("wallpaperGradientDirection", "VERTICAL"),
             wallpaperSolidHex = so.optLong("wallpaperSolidHex", 0xFF090D16L),
             wallpaperBlurDp = so.optDouble("wallpaperBlurDp", 0.0).toFloat(),
             wallpaperDimAlpha = so.optDouble("wallpaperDimAlpha", 0.25).toFloat(),
+            wallpaperDimColorHex = so.optLong("wallpaperDimColorHex", 0xFF000000L),
             allAppsSidebarEdge = so.optString("allAppsSidebarEdge", "RIGHT"),
             allAppsSidebarWidthFraction = so.optDouble("allAppsSidebarWidthFraction", 0.90).toFloat(),
             allAppsBgType = so.optString("allAppsBgType", "SOLID"),
@@ -575,6 +617,9 @@ object BackupManager {
             drawerIconSizeDp = so.optInt("drawerIconSizeDp", 50),
             drawerLabelSizeSp = so.optInt("drawerLabelSizeSp", 12),
             drawerSortOrder = so.optString("drawerSortOrder", "ALPHABETICAL"),
+            drawerCardOpacity = so.optDouble("drawerCardOpacity", 0.88).toFloat(),
+            drawerCornerRadiusDp = so.optDouble("drawerCornerRadiusDp", 26.0).toFloat(),
+            drawerSearchBarVisible = so.optBoolean("drawerSearchBarVisible", true),
             niagaraWaveEnabled = so.optBoolean("niagaraWaveEnabled", true),
             niagaraIndexVisible = so.optBoolean("niagaraIndexVisible", true),
             niagaraEdge = so.optString("niagaraEdge", "RIGHT"),
@@ -585,17 +630,35 @@ object BackupManager {
             niagaraHapticFeedback = so.optBoolean("niagaraHapticFeedback", true),
             gridSnapEnabled = so.optBoolean("gridSnapEnabled", false),
             alignmentGuidesEnabled = so.optBoolean("alignmentGuidesEnabled", true),
+            alignmentGuideColorHex = so.optLong("alignmentGuideColorHex", 0xFF38BDF8L),
             gridSnapStepDp = so.optInt("gridSnapStepDp", 16),
+            editGridVisible = so.optBoolean("editGridVisible", true),
+            editGridOpacity = so.optDouble("editGridOpacity", 0.08).toFloat(),
+            editGridColorHex = so.optLong("editGridColorHex", 0xFFFFFFFFL),
             layoutLocked = so.optBoolean("layoutLocked", false),
             pageTransitionStyle = so.optString("pageTransitionStyle", "SLIDE"),
+            pageIndicatorStyle = so.optString("pageIndicatorStyle", "DOTS"),
+            pageIndicatorColorHex = so.optLong("pageIndicatorColorHex", 0xFF38BDF8L),
+            edgeHandlesVisible = so.optBoolean("edgeHandlesVisible", true),
+            edgeHandleOpacity = so.optDouble("edgeHandleOpacity", 0.45).toFloat(),
+            edgeHandleWidthDp = so.optDouble("edgeHandleWidthDp", 4.0).toFloat(),
+            edgeHandleHeightDp = so.optDouble("edgeHandleHeightDp", 64.0).toFloat(),
             animationSpeedScale = so.optDouble("animationSpeedScale", 1.0).toFloat(),
             globalCornerRadiusDp = so.optDouble("globalCornerRadiusDp", 20.0).toFloat(),
             globalIconShape = so.optString("globalIconShape", "SQUIRCLE"),
             showDockBar = so.optBoolean("showDockBar", true),
             showTagStripOnHome = so.optBoolean("showTagStripOnHome", true),
+            showDefaultHomeBanner = so.optBoolean("showDefaultHomeBanner", true),
             showStatusBar = so.optBoolean("showStatusBar", true),
             showNavBar = so.optBoolean("showNavBar", true),
             hapticFeedbackEnabled = so.optBoolean("hapticFeedbackEnabled", true),
+            iconPackOrderCsv = so.optString("iconPackOrderCsv", ""),
+            blackIconStyleEnabled = so.optBoolean("blackIconStyleEnabled", true),
+            blackIconMode = so.optString("blackIconMode", IconStyleConfig.MODE_BLACK_ICONS),
+            blackIconFillColorHex = so.optLong("blackIconFillColorHex", IconStyleConfig.DEFAULT_FILL_COLOR_HEX),
+            blackIconOutlineColorHex = so.optLong("blackIconOutlineColorHex", IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX),
+            blackIconOutlineWidthDp = so.optDouble("blackIconOutlineWidthDp", IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP.toDouble()).toFloat(),
+            blackIconDarknessThreshold = so.optDouble("blackIconDarknessThreshold", IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD.toDouble()).toFloat(),
             seededDefaults = true,
         )
 

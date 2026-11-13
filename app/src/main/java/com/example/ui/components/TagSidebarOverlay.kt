@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import com.example.data.db.SidebarConfigEntity
 import androidx.compose.animation.AnimatedVisibility
@@ -15,10 +16,13 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -43,17 +48,25 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.ZoomOut
 import androidx.compose.material3.Button
@@ -67,20 +80,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -93,9 +112,13 @@ import com.example.data.db.TagEntity
 import com.example.data.repository.TagFilterEngine
 import com.example.data.repository.TagMatchMode
 import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.InstalledWidgetProvider
+import com.example.ui.screens.AddHomeElementDialog
+import com.example.ui.screens.ElementInspectorDialog
 import com.example.ui.state.ActiveOverlay
 import com.example.ui.state.LauncherUiState
 import java.io.File
+import kotlin.math.roundToInt
 
 @Composable
 fun ActiveOverlayHost(
@@ -113,7 +136,19 @@ fun ActiveOverlayHost(
     onAppLongPress: (AppEntity) -> Unit,
     onToggleSidebarPin: (Long, Boolean) -> Unit,
     onSaveSidebar: (SidebarConfigEntity) -> Unit = {},
-    windowElementRenderer: @Composable (HomeElementEntity, Float, Float) -> Unit = { _, _, _ -> },
+    onSaveWindow: (LauncherWindowEntity) -> Unit = {},
+    installedWidgetProviders: List<InstalledWidgetProvider> = emptyList(),
+    onImportImage: suspend (Uri, String, String?) -> String? = { _, _, _ -> null },
+    onSaveWindowElement: (HomeElementEntity, Boolean) -> Unit = { _, _ -> },
+    onDuplicateWindowElement: (HomeElementEntity) -> Unit = {},
+    onCopyWindowElement: (HomeElementEntity) -> Unit = {},
+    onCutWindowElement: (HomeElementEntity) -> Unit = {},
+    onPasteToWindow: (Long, Long) -> Unit = { _, _ -> },
+    onBringWindowElementForward: (HomeElementEntity) -> Unit = {},
+    onSendWindowElementBackward: (HomeElementEntity) -> Unit = {},
+    onDeleteWindowElement: (HomeElementEntity) -> Unit = {},
+    onStartSystemWidgetBindForWindow: (InstalledWidgetProvider, Long, Long) -> Unit = { _, _, _ -> },
+    windowElementRenderer: @Composable (HomeElementEntity, Boolean) -> Unit = { _, _ -> },
 ) {
     val visible = state.activeOverlay !is ActiveOverlay.None
     if (visible) {
@@ -188,12 +223,28 @@ fun ActiveOverlayHost(
                 val win = state.windows.find { it.windowId == overlay.windowId }
                 if (win != null) {
                     val innerElements = state.homeElements
-                        .filter { it.ownerType == "WINDOW" && it.ownerWindowId == win.windowId }
+                        .filter { it.ownerType == "WINDOW" && it.ownerWindowId == win.windowId && it.visible }
                         .sortedBy { it.zIndex }
+                    val defaultPageId = state.homePages.firstOrNull()?.pageId ?: 1L
                     WindowPopupHost(
                         window = win,
                         innerElements = innerElements,
+                        state = state,
+                        appDiscovery = appDiscovery,
+                        defaultPageId = defaultPageId,
+                        installedWidgetProviders = installedWidgetProviders,
                         onDismiss = onDismiss,
+                        onSaveWindow = onSaveWindow,
+                        onImportImage = onImportImage,
+                        onSaveElement = onSaveWindowElement,
+                        onDuplicateElement = onDuplicateWindowElement,
+                        onCopyElement = onCopyWindowElement,
+                        onCutElement = onCutWindowElement,
+                        onPasteToWindow = onPasteToWindow,
+                        onBringForward = onBringWindowElementForward,
+                        onSendBackward = onSendWindowElementBackward,
+                        onDeleteElement = onDeleteWindowElement,
+                        onStartSystemWidgetBind = onStartSystemWidgetBindForWindow,
                         elementRenderer = windowElementRenderer,
                     )
                 }
@@ -501,9 +552,40 @@ fun ActiveOverlayHost(
 private fun WindowPopupHost(
     window: LauncherWindowEntity,
     innerElements: List<HomeElementEntity>,
+    state: LauncherUiState,
+    appDiscovery: AppDiscoveryManager,
+    defaultPageId: Long,
+    installedWidgetProviders: List<InstalledWidgetProvider>,
     onDismiss: () -> Unit,
-    elementRenderer: @Composable (HomeElementEntity, Float, Float) -> Unit,
+    onSaveWindow: (LauncherWindowEntity) -> Unit,
+    onImportImage: suspend (Uri, String, String?) -> String?,
+    onSaveElement: (HomeElementEntity, Boolean) -> Unit,
+    onDuplicateElement: (HomeElementEntity) -> Unit,
+    onCopyElement: (HomeElementEntity) -> Unit,
+    onCutElement: (HomeElementEntity) -> Unit,
+    onPasteToWindow: (Long, Long) -> Unit,
+    onBringForward: (HomeElementEntity) -> Unit,
+    onSendBackward: (HomeElementEntity) -> Unit,
+    onDeleteElement: (HomeElementEntity) -> Unit,
+    onStartSystemWidgetBind: (InstalledWidgetProvider, Long, Long) -> Unit,
+    elementRenderer: @Composable (HomeElementEntity, Boolean) -> Unit,
 ) {
+    val density = LocalDensity.current
+    var isWindowEditMode by remember(window.windowId) { mutableStateOf(false) }
+    var selectedElementId by remember(window.windowId) { mutableStateOf<Long?>(null) }
+    var inspectingElement by remember(window.windowId) { mutableStateOf<HomeElementEntity?>(null) }
+    var showAddDialog by remember(window.windowId) { mutableStateOf(false) }
+    var showWidgetPicker by remember(window.windowId) { mutableStateOf(false) }
+    var showWindowStyleDialog by remember(window.windowId) { mutableStateOf(false) }
+
+    BackHandler(enabled = isWindowEditMode) {
+        isWindowEditMode = false
+        selectedElementId = null
+    }
+
+    val latestEditMode by rememberUpdatedState(isWindowEditMode)
+    val latestElements by rememberUpdatedState(innerElements)
+
     val align = when (window.alignment) {
         "TOP" -> Alignment.TopCenter
         "BOTTOM" -> Alignment.BottomCenter
@@ -525,7 +607,10 @@ private fun WindowPopupHost(
                 .testTag("window_overlay_${window.windowId}"),
             shape = RoundedCornerShape(if (window.fullScreen) 0.dp else window.cornerRadiusDp.dp),
             color = Color(window.backgroundColorHex),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
+            border = BorderStroke(
+                width = if (isWindowEditMode) 2.dp else 1.dp,
+                color = if (isWindowEditMode) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.22f),
+            ),
             shadowElevation = 24.dp,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -543,30 +628,458 @@ private fun WindowPopupHost(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Rounded.Layers, null, tint = MaterialTheme.colorScheme.primary)
+                        if (isWindowEditMode) {
+                            OutlinedVectorIcon(
+                                imageVector = Icons.Rounded.Layers,
+                                contentDescription = null,
+                                fillColor = Color.White,
+                                outlineColor = Color.Black,
+                                outlineWidthDp = 1.3.dp,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        } else {
+                            Icon(Icons.Rounded.Layers, null, tint = MaterialTheme.colorScheme.primary)
+                        }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = window.title,
-                            style = MaterialTheme.typography.titleLarge,
+                            text = if (isWindowEditMode) "Edit • ${window.title}" else window.title,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 3.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(Color.Black.copy(alpha = 0.72f))
+                                .padding(horizontal = 7.dp, vertical = 3.dp),
                         )
-                        IconButton(onClick = onDismiss, modifier = Modifier.testTag("window_overlay_close")) {
-                            Icon(Icons.Rounded.Close, "Close window", tint = Color.White)
+                        if (isWindowEditMode) {
+                            IconButton(
+                                onClick = {
+                                    isWindowEditMode = false
+                                    selectedElementId = null
+                                },
+                                modifier = Modifier.size(44.dp).testTag("window_done_button"),
+                            ) {
+                                OutlinedVectorIcon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = "Done editing",
+                                    fillColor = Color.White,
+                                    outlineColor = Color.Black,
+                                    outlineWidthDp = 1.3.dp,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = { isWindowEditMode = true },
+                                modifier = Modifier.size(44.dp).testTag("window_edit_button"),
+                            ) {
+                                Icon(Icons.Rounded.Edit, "Edit window layout", tint = Color.White)
+                            }
+                        }
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(44.dp).testTag("window_overlay_close"),
+                        ) {
+                            if (isWindowEditMode) {
+                                OutlinedVectorIcon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Close window",
+                                    fillColor = Color.White,
+                                    outlineColor = Color.Black,
+                                    outlineWidthDp = 1.3.dp,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            } else {
+                                Icon(Icons.Rounded.Close, "Close window", tint = Color.White)
+                            }
+                        }
+                    }
+                    if (isWindowEditMode) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            IconButton(
+                                onClick = { showWindowStyleDialog = true },
+                                modifier = Modifier.size(48.dp).testTag("window_style_button"),
+                            ) {
+                                OutlinedVectorIcon(
+                                    imageVector = Icons.Rounded.Tune,
+                                    contentDescription = "Customize window style",
+                                    fillColor = Color.White,
+                                    outlineColor = Color.Black,
+                                    outlineWidthDp = 1.3.dp,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            IconButton(
+                                onClick = { showAddDialog = true },
+                                modifier = Modifier.size(48.dp).testTag("window_add_element"),
+                            ) {
+                                OutlinedVectorIcon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = "Add element",
+                                    fillColor = Color.White,
+                                    outlineColor = Color.Black,
+                                    outlineWidthDp = 1.3.dp,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            IconButton(
+                                onClick = { showWidgetPicker = true },
+                                modifier = Modifier.size(48.dp).testTag("window_widgets_button"),
+                            ) {
+                                OutlinedVectorIcon(
+                                    imageVector = Icons.Rounded.Widgets,
+                                    contentDescription = "Add widget",
+                                    fillColor = Color.White,
+                                    outlineColor = Color.Black,
+                                    outlineWidthDp = 1.3.dp,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            if (state.clipboardElement != null) {
+                                IconButton(
+                                    onClick = { onPasteToWindow(defaultPageId, window.windowId) },
+                                    modifier = Modifier.size(48.dp).testTag("window_paste_button"),
+                                ) {
+                                    OutlinedVectorIcon(
+                                        imageVector = Icons.Rounded.ContentPaste,
+                                        contentDescription = "Paste",
+                                        fillColor = Color.White,
+                                        outlineColor = Color.Black,
+                                        outlineWidthDp = 1.3.dp,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                     HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-                    BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        val wDp = maxWidth.value
-                        val hDp = maxHeight.value
-                        innerElements.forEach { el ->
-                            elementRenderer(el, wDp, hDp)
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                        val canvasWidthPx = with(density) { maxWidth.toPx().coerceAtLeast(1f) }
+                        val canvasHeightPx = with(density) { maxHeight.toPx().coerceAtLeast(1f) }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(window.windowId, canvasWidthPx, canvasHeightPx) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            if (latestEditMode) selectedElementId = null
+                                        },
+                                        onLongPress = { pressOffset ->
+                                            val hit = latestElements.any { el ->
+                                                val left = el.xFraction * canvasWidthPx
+                                                val top = el.yFraction * canvasHeightPx
+                                                val wPx = with(density) { el.widthDp.dp.toPx() }
+                                                val hPx = with(density) { el.heightDp.dp.toPx() }
+                                                pressOffset.x in left..(left + wPx) && pressOffset.y in top..(top + hPx)
+                                            }
+                                            if (!hit && !latestEditMode) {
+                                                isWindowEditMode = true
+                                            }
+                                        },
+                                    )
+                                },
+                        ) {
+                            if (innerElements.isEmpty()) {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = if (isWindowEditMode) "Tap + or Widgets above to place items" else "Empty window — tap Edit or long-press canvas",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    if (!isWindowEditMode) {
+                                        OutlinedButton(onClick = { isWindowEditMode = true }) {
+                                            Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Edit Window")
+                                        }
+                                    }
+                                }
+                            }
+
+                            innerElements.forEach { el ->
+                                val latestEl by rememberUpdatedState(el)
+                                val selected = isWindowEditMode && selectedElementId == el.elementId
+                                var dragX by remember(el.elementId, el.xFraction, canvasWidthPx) {
+                                    mutableFloatStateOf(el.xFraction * canvasWidthPx)
+                                }
+                                var dragY by remember(el.elementId, el.yFraction, canvasHeightPx) {
+                                    mutableFloatStateOf(el.yFraction * canvasHeightPx)
+                                }
+                                var widthDp by remember(el.elementId, el.widthDp) {
+                                    mutableFloatStateOf(el.widthDp)
+                                }
+                                var heightDp by remember(el.elementId, el.heightDp) {
+                                    mutableFloatStateOf(el.heightDp)
+                                }
+
+                                val canMove = isWindowEditMode && !el.locked
+                                val dragModifier = if (canMove) {
+                                    Modifier.pointerInput(el.elementId, canvasWidthPx, canvasHeightPx) {
+                                        detectDragGestures(
+                                            onDragStart = { selectedElementId = latestEl.elementId },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                dragX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
+                                                dragY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+                                            },
+                                            onDragEnd = {
+                                                val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                                                val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                                                onSaveElement(
+                                                    latestEl.copy(
+                                                        xFraction = fx,
+                                                        yFraction = fy,
+                                                        widthDp = widthDp,
+                                                        heightDp = heightDp,
+                                                    ),
+                                                    true,
+                                                )
+                                            },
+                                        )
+                                    }
+                                } else Modifier
+
+                                Box(
+                                    modifier = Modifier
+                                        .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                                        .size(width = widthDp.dp, height = heightDp.dp)
+                                        .graphicsLayer {
+                                            rotationZ = el.rotationDeg
+                                            scaleX = el.scaleX * (if (el.flipHorizontal) -1f else 1f)
+                                            scaleY = el.scaleY * (if (el.flipVertical) -1f else 1f)
+                                        }
+                                        .alpha(el.alpha.coerceIn(0.1f, 1f))
+                                        .then(
+                                            if (isWindowEditMode) {
+                                                Modifier.border(
+                                                    width = if (selected) 2.dp else 1.dp,
+                                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.28f),
+                                                    shape = RoundedCornerShape(el.cornerRadiusDp.dp),
+                                                )
+                                            } else Modifier
+                                        )
+                                        .testTag("window_element_${el.elementId}"),
+                                ) {
+                                    elementRenderer(el, isWindowEditMode)
+
+                                    if (isWindowEditMode) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .then(dragModifier)
+                                                .clickable {
+                                                    val cur = latestEl
+                                                    if (selected) inspectingElement = cur else selectedElementId = cur.elementId
+                                                }
+                                                .testTag("window_shield_${el.elementId}"),
+                                        )
+
+                                        if (el.locked) {
+                                            Icon(
+                                                Icons.Rounded.Lock,
+                                                contentDescription = "Locked",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
+                                            )
+                                        }
+
+                                        if (selected) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = 6.dp, y = (-6).dp)
+                                                    .size(28.dp)
+                                                    .clickable { inspectingElement = latestEl }
+                                                    .testTag("window_inspect_element_${el.elementId}"),
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    val iconStyle = LocalIconStyleConfig.current
+                                                    if (iconStyle.enabled) {
+                                                        OutlinedVectorIcon(
+                                                            imageVector = Icons.Rounded.Tune,
+                                                            contentDescription = "Inspect",
+                                                            fillColor = Color(iconStyle.fillColorHex),
+                                                            outlineColor = Color(iconStyle.outlineColorHex),
+                                                            outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                                                            modifier = Modifier.size(15.dp),
+                                                        )
+                                                    } else {
+                                                        Icon(Icons.Rounded.Tune, contentDescription = "Inspect", tint = Color.Black, modifier = Modifier.size(15.dp))
+                                                    }
+                                                }
+                                            }
+
+                                            if (canMove) {
+                                                Surface(
+                                                    shape = CircleShape,
+                                                    color = MaterialTheme.colorScheme.secondary,
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomEnd)
+                                                        .offset(x = 6.dp, y = 6.dp)
+                                                        .size(28.dp)
+                                                        .pointerInput(el.elementId, canvasWidthPx, canvasHeightPx) {
+                                                            detectDragGestures(
+                                                                onDrag = { change, dragAmount ->
+                                                                    change.consume()
+                                                                    val dxDp = with(density) { dragAmount.x.toDp().value }
+                                                                    val dyDp = with(density) { dragAmount.y.toDp().value }
+                                                                    widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
+                                                                    heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
+                                                                },
+                                                                onDragEnd = {
+                                                                    val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                                                                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                                                                    onSaveElement(
+                                                                        latestEl.copy(
+                                                                            xFraction = fx,
+                                                                            yFraction = fy,
+                                                                            widthDp = widthDp,
+                                                                            heightDp = heightDp,
+                                                                        ),
+                                                                        true,
+                                                                    )
+                                                                },
+                                                            )
+                                                        }
+                                                        .testTag("window_resize_element_${el.elementId}"),
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Icon(Icons.Rounded.OpenInFull, contentDescription = "Resize", tint = Color.White, modifier = Modifier.size(15.dp))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        AddHomeElementDialog(
+            pageId = defaultPageId,
+            ownerWindowId = window.windowId,
+            state = state,
+            appDiscovery = appDiscovery,
+            onImportImage = { uri -> onImportImage(uri, "Windows", null) },
+            onAddElement = {
+                onSaveElement(it, true)
+            },
+            onOpenWidgetPicker = { showWidgetPicker = true },
+            onDismiss = { showAddDialog = false },
+        )
+    }
+
+    if (showWidgetPicker) {
+        WidgetPickerDialog(
+            providers = installedWidgetProviders,
+            tags = state.allTags,
+            onPickSystemWidget = { provider ->
+                showWidgetPicker = false
+                onStartSystemWidgetBind(provider, defaultPageId, window.windowId)
+            },
+            onPickBuiltinType = { type, label, wDp, hDp ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = defaultPageId,
+                        ownerType = "WINDOW",
+                        ownerWindowId = window.windowId,
+                        type = type,
+                        xFraction = 0.08f,
+                        yFraction = 0.08f,
+                        widthDp = wDp,
+                        heightDp = hDp,
+                        label = label,
+                    ),
+                    true,
+                )
+                showWidgetPicker = false
+            },
+            onPickBuiltinTagWidget = { tag ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = defaultPageId,
+                        ownerType = "WINDOW",
+                        ownerWindowId = window.windowId,
+                        type = "TAG_COLLECTION_WIDGET",
+                        xFraction = 0.06f,
+                        yFraction = 0.14f,
+                        widthDp = 280f,
+                        heightDp = 220f,
+                        label = tag.name,
+                        targetTagId = tag.tagId,
+                        backgroundColorHex = 0x660F172AL,
+                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
+                    ),
+                    true,
+                )
+                showWidgetPicker = false
+            },
+            onDismiss = { showWidgetPicker = false },
+        )
+    }
+
+    inspectingElement?.let { snap ->
+        val elem = innerElements.find { it.elementId == snap.elementId } ?: snap
+        ElementInspectorDialog(
+            element = elem,
+            state = state,
+            onImportImage = onImportImage,
+            onUpdate = { onSaveElement(it, true) },
+            onDuplicate = {
+                onDuplicateElement(elem)
+                inspectingElement = null
+            },
+            onCopy = {
+                onCopyElement(elem)
+                inspectingElement = null
+            },
+            onCut = {
+                onCutElement(elem)
+                inspectingElement = null
+            },
+            onBringForward = { onBringForward(elem) },
+            onSendBackward = { onSendBackward(elem) },
+            onDelete = {
+                onDeleteElement(elem)
+                inspectingElement = null
+            },
+            onDismiss = { inspectingElement = null },
+        )
+    }
+
+    if (showWindowStyleDialog) {
+        WindowStyleQuickDialog(
+            window = window,
+            onSaveWindow = onSaveWindow,
+            onImportImage = onImportImage,
+            onDismiss = { showWindowStyleDialog = false },
+        )
     }
 }
 

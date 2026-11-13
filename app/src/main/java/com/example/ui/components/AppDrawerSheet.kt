@@ -105,6 +105,7 @@ fun AppDrawerOverlay(
     onToggleLayout: () -> Unit,
     onCycleSort: () -> Unit,
     onUpdateSettings: ((LauncherSettings) -> LauncherSettings) -> Unit = {},
+    onOpenGlobalSearch: (String) -> Unit = {},
 ) {
     if (visible) {
         BackHandler { onClose() }
@@ -285,7 +286,7 @@ fun AppDrawerOverlay(
                     .fillMaxHeight()
                     .pointerInput(Unit) { detectTapGestures {} } // prevent scrim pass-through without merging child semantics
                     .testTag("app_drawer_container"),
-                shape = if (drawerFraction < 0.99f) RoundedCornerShape(26.dp) else RoundedCornerShape(0.dp),
+                shape = if (drawerFraction < 0.99f) RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(0f, 40f).dp) else RoundedCornerShape(0.dp),
                 color = Color.Transparent,
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -348,6 +349,12 @@ fun AppDrawerOverlay(
                                         modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 6.dp, vertical = 3.dp),
                                     )
                                 }
+                                IconButton(
+                                    onClick = { onOpenGlobalSearch(query) },
+                                    modifier = Modifier.testTag("drawer_global_search_button"),
+                                ) {
+                                    Icon(Icons.Rounded.Search, contentDescription = "Global Search")
+                                }
                                 IconButton(onClick = { showCustomizeDialog = true }) {
                                     Icon(Icons.Rounded.Tune, contentDescription = "Customize drawer")
                                 }
@@ -372,24 +379,36 @@ fun AppDrawerOverlay(
                                 }
                             }
 
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = { query = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("drawer_search_input"),
-                                placeholder = { Text("Search apps, categories, tags...") },
-                                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                                trailingIcon = {
-                                    if (query.isNotEmpty()) {
-                                        IconButton(onClick = { query = "" }) {
-                                            Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                            if (state.settings.drawerSearchBarVisible) {
+                                OutlinedTextField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("drawer_search_input"),
+                                    placeholder = { Text("Search apps, categories, tags...") },
+                                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                                    trailingIcon = {
+                                        if (query.isNotEmpty()) {
+                                            IconButton(onClick = { query = "" }) {
+                                                Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                                            }
                                         }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
+                                )
+                                if (query.isNotBlank()) {
+                                    TextButton(
+                                        onClick = { onOpenGlobalSearch(query) },
+                                        modifier = Modifier.testTag("drawer_search_global_chip"),
+                                    ) {
+                                        Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Search everywhere (Settings, Pages, Tags) for \"$query\"")
                                     }
-                                },
-                                singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
-                            )
+                                }
+                            }
                         }
 
                         // CENTER SECTION: Scrollable App Grid/List + Niagara Wave Index
@@ -406,11 +425,26 @@ fun AppDrawerOverlay(
 
                             if (visibleApps.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = "No apps match \"$headerTitle\"",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Text(
+                                            text = if (query.isNotBlank()) "No apps match \"$query\"" else "No apps match \"$headerTitle\"",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        if (query.isNotBlank()) {
+                                            OutlinedButton(
+                                                onClick = { onOpenGlobalSearch(query) },
+                                                modifier = Modifier.testTag("drawer_search_global_fallback"),
+                                            ) {
+                                                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("Search Settings & Launcher")
+                                            }
+                                        }
+                                    }
                                 }
                             } else if (state.settings.drawerLayoutMode == "LIST") {
                                 LazyColumn(
@@ -427,7 +461,7 @@ fun AppDrawerOverlay(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)))
                                                 .combinedClickable(
                                                     onClick = {
                                                         onLaunchApp(item.app)
@@ -560,7 +594,7 @@ fun AppDrawerOverlay(
 
                         // MANDATORY BOTTOM SECTION: Persistent Horizontal Category & Tag Bar
                         Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)),
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -767,46 +801,151 @@ private fun DrawerCustomizeQuickDialog(
         onDismissRequest = onDismiss,
         title = { Text("All-Apps Sidebar Settings") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Opening Side", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("LEFT", "RIGHT", "BOTTOM").forEach { edge ->
-                        FilterChip(
-                            selected = settings.allAppsSidebarEdge == edge,
-                            onClick = { onUpdateSettings { it.copy(allAppsSidebarEdge = edge) } },
-                            label = { Text(edge) },
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp)
+                    .background(Color.Transparent),
+            ) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item {
+                        Text("Opening Side", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("LEFT", "RIGHT", "BOTTOM").forEach { edge ->
+                                FilterChip(
+                                    selected = settings.allAppsSidebarEdge == edge,
+                                    onClick = { onUpdateSettings { it.copy(allAppsSidebarEdge = edge) } },
+                                    label = { Text(edge) },
+                                )
+                            }
+                        }
+                    }
+                    if (settings.allAppsSidebarEdge != "BOTTOM") {
+                        item {
+                            Text("Sidebar Width: ${(settings.allAppsSidebarWidthFraction * 100).roundToInt()}%")
+                            Slider(
+                                value = settings.allAppsSidebarWidthFraction,
+                                onValueChange = { v -> onUpdateSettings { it.copy(allAppsSidebarWidthFraction = v) } },
+                                valueRange = 0.65f..1f,
+                            )
+                        }
+                    }
+                    item {
+                        Text("Layout & Sort", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("GRID", "LIST").forEach { mode ->
+                                FilterChip(
+                                    selected = settings.drawerLayoutMode == mode,
+                                    onClick = { onUpdateSettings { it.copy(drawerLayoutMode = mode) } },
+                                    label = { Text(mode) },
+                                )
+                            }
+                        }
+                        if (settings.drawerLayoutMode == "GRID") {
+                            Text("Grid Columns: ${settings.drawerColumns}")
+                            Slider(
+                                value = settings.drawerColumns.toFloat(),
+                                onValueChange = { v -> onUpdateSettings { it.copy(drawerColumns = v.roundToInt().coerceIn(3, 6)) } },
+                                valueRange = 3f..6f,
+                            )
+                        }
+                        Text("App Icon Size: ${settings.drawerIconSizeDp}dp")
+                        Slider(
+                            value = settings.drawerIconSizeDp.toFloat(),
+                            onValueChange = { v -> onUpdateSettings { it.copy(drawerIconSizeDp = v.roundToInt().coerceIn(36, 76)) } },
+                            valueRange = 36f..76f,
+                        )
+                        Text("App Label Size: ${settings.drawerLabelSizeSp}sp")
+                        Slider(
+                            value = settings.drawerLabelSizeSp.toFloat(),
+                            onValueChange = { v -> onUpdateSettings { it.copy(drawerLabelSizeSp = v.roundToInt().coerceIn(9, 16)) } },
+                            valueRange = 9f..16f,
                         )
                     }
-                }
-                if (settings.allAppsSidebarEdge != "BOTTOM") {
-                    Text("Sidebar Width: ${(settings.allAppsSidebarWidthFraction * 100).roundToInt()}%")
-                    Slider(
-                        value = settings.allAppsSidebarWidthFraction,
-                        onValueChange = { v -> onUpdateSettings { it.copy(allAppsSidebarWidthFraction = v) } },
-                        valueRange = 0.65f..1f,
-                    )
-                }
-                HorizontalDivider()
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("Niagara A-Z Index Bar")
-                    Switch(
-                        checked = settings.niagaraIndexVisible,
-                        onCheckedChange = { v -> onUpdateSettings { it.copy(niagaraIndexVisible = v) } },
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("Niagara Wave Magnification")
-                    Switch(
-                        checked = settings.niagaraWaveEnabled,
-                        onCheckedChange = { v -> onUpdateSettings { it.copy(niagaraWaveEnabled = v) } },
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onUpdateSettings { it.copy(niagaraEdge = "LEFT") } }) {
-                        Text("Index Left")
+                    item {
+                        Text("Background Style", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("SOLID", "GRADIENT", "IMAGE").forEach { bg ->
+                                FilterChip(
+                                    selected = settings.allAppsBgType == bg,
+                                    onClick = { onUpdateSettings { it.copy(allAppsBgType = bg) } },
+                                    label = { Text(bg) },
+                                )
+                            }
+                        }
+                        Text("Background Start Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = settings.allAppsBgColorHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            onSelect = { c -> onUpdateSettings { it.copy(allAppsBgColorHex = c) } },
+                            tagPrefix = "drawer_quick_bg1",
+                        )
+                        if (settings.allAppsBgType == "GRADIENT") {
+                            Text("Background End Color", style = MaterialTheme.typography.labelLarge)
+                            ColorSwatchRow(
+                                selectedColorHex = settings.allAppsBgGradientEndHex,
+                                colors = StudioDarkSurfaceSwatches,
+                                onSelect = { c -> onUpdateSettings { it.copy(allAppsBgGradientEndHex = c) } },
+                                tagPrefix = "drawer_quick_bg2",
+                            )
+                        }
+                        Text("Card & Dock Opacity: ${(settings.drawerCardOpacity * 100).roundToInt()}%")
+                        Slider(
+                            value = settings.drawerCardOpacity,
+                            onValueChange = { v -> onUpdateSettings { it.copy(drawerCardOpacity = v) } },
+                            valueRange = 0.25f..1.0f,
+                        )
+                        Text("Drawer Corner Radius: ${settings.drawerCornerRadiusDp.roundToInt()}dp")
+                        Slider(
+                            value = settings.drawerCornerRadiusDp,
+                            onValueChange = { v -> onUpdateSettings { it.copy(drawerCornerRadiusDp = v) } },
+                            valueRange = 0f..40f,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Show Search Bar")
+                            Switch(
+                                checked = settings.drawerSearchBarVisible,
+                                onCheckedChange = { v -> onUpdateSettings { it.copy(drawerSearchBarVisible = v) } },
+                            )
+                        }
                     }
-                    OutlinedButton(onClick = { onUpdateSettings { it.copy(niagaraEdge = "RIGHT") } }) {
-                        Text("Index Right")
+                    item {
+                        HorizontalDivider()
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Niagara A-Z Index Bar")
+                            Switch(
+                                checked = settings.niagaraIndexVisible,
+                                onCheckedChange = { v -> onUpdateSettings { it.copy(niagaraIndexVisible = v) } },
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Niagara Wave Magnification")
+                            Switch(
+                                checked = settings.niagaraWaveEnabled,
+                                onCheckedChange = { v -> onUpdateSettings { it.copy(niagaraWaveEnabled = v) } },
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { onUpdateSettings { it.copy(niagaraEdge = "LEFT") } }) {
+                                Text("Index Left")
+                            }
+                            OutlinedButton(onClick = { onUpdateSettings { it.copy(niagaraEdge = "RIGHT") } }) {
+                                Text("Index Right")
+                            }
+                        }
+                        Text("Niagara Wave Intensity: ${"%.1f".format(settings.niagaraWaveIntensity)}x")
+                        Slider(
+                            value = settings.niagaraWaveIntensity,
+                            onValueChange = { v -> onUpdateSettings { it.copy(niagaraWaveIntensity = v) } },
+                            valueRange = 0.2f..1.8f,
+                        )
+                        Text("Niagara Accent Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = settings.niagaraAccentColorHex,
+                            colors = com.example.ui.theme.TagPresetColors,
+                            onSelect = { c -> onUpdateSettings { it.copy(niagaraAccentColorHex = c) } },
+                            tagPrefix = "drawer_quick_niagara_color",
+                        )
                     }
                 }
             }

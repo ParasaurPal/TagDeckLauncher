@@ -13,22 +13,31 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.data.db.AppEntity
 import com.example.data.system.AppDiscoveryManager
 import java.io.File
 import kotlin.math.roundToInt
+
+val LocalIconPackOrder = staticCompositionLocalOf<List<String>> { emptyList() }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
     "CIRCLE" -> CircleShape
@@ -43,13 +52,77 @@ fun AppIconView(
     size: Dp = 52.dp,
     iconShapeKey: String = "SQUIRCLE",
     modifier: Modifier = Modifier,
+    iconPackOrder: List<String> = LocalIconPackOrder.current,
+    iconStyle: IconStyleConfig = LocalIconStyleConfig.current,
 ) {
+    val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
     val customFile = remember(app.customIconPath) {
         app.customIconPath?.let { File(it) }?.takeIf { it.exists() }
     }
+    val initialPackIcon = remember(app.packageName, app.componentName, iconPackOrder, customFile) {
+        if (customFile == null && iconPackOrder.isNotEmpty()) {
+            appDiscovery.iconPackManager.getCachedIconFromHierarchy(
+                app.packageName,
+                app.componentName,
+                iconPackOrder,
+            )
+        } else {
+            null
+        }
+    }
+    val packIcon: ImageBitmap? by produceState(
+        initialValue = initialPackIcon,
+        app.packageName,
+        app.componentName,
+        iconPackOrder,
+        customFile,
+    ) {
+        value = if (customFile != null || iconPackOrder.isEmpty()) {
+            null
+        } else {
+            appDiscovery.iconPackManager.getCachedIconFromHierarchy(
+                app.packageName,
+                app.componentName,
+                iconPackOrder,
+            ) ?: appDiscovery.iconPackManager.resolveIconFromHierarchy(
+                app.packageName,
+                app.componentName,
+                iconPackOrder,
+            )
+        }
+    }
     val systemIcon = remember(app.packageName, app.isInstalled) {
         appDiscovery.getCachedIcon(app.packageName)
+    }
+
+    val rawBitmap: ImageBitmap? = packIcon ?: systemIcon
+    val bitmapKey = remember(app.packageName, app.componentName, iconPackOrder, packIcon != null, app.isInstalled) {
+        if (packIcon != null) {
+            "pack:${app.packageName}:${app.componentName}:${iconPackOrder.joinToString(",")}"
+        } else {
+            "sys:${app.packageName}:${app.isInstalled}"
+        }
+    }
+    val cachedStyled = remember(bitmapKey, rawBitmap, iconStyle) {
+        if (rawBitmap != null && iconStyle.enabled) {
+            IconOutlineProcessor.getCached(bitmapKey, iconStyle)
+        } else {
+            null
+        }
+    }
+    val displayedBitmap: ImageBitmap? by produceState(
+        initialValue = cachedStyled ?: rawBitmap,
+        bitmapKey,
+        rawBitmap,
+        iconStyle,
+    ) {
+        value = when {
+            rawBitmap == null -> null
+            !iconStyle.enabled -> rawBitmap
+            else -> IconOutlineProcessor.getCached(bitmapKey, iconStyle)
+                ?: IconOutlineProcessor.processImageBitmap(bitmapKey, rawBitmap, iconStyle)
+        }
     }
 
     Box(
@@ -61,10 +134,21 @@ fun AppIconView(
     ) {
         when {
             customFile != null -> {
+                val request = remember(customFile, iconStyle) {
+                    ImageRequest.Builder(context)
+                        .data(customFile)
+                        .allowHardware(false)
+                        .apply {
+                            if (iconStyle.enabled) {
+                                transformations(BlackIconCoilTransformation(iconStyle))
+                            }
+                        }
+                        .build()
+                }
                 AsyncImage(
-                    model = customFile,
+                    model = request,
                     contentDescription = app.displayName,
-                    contentScale = ContentScale.Crop,
+                    contentScale = if (iconStyle.enabled) ContentScale.Fit else ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
                         .offset {
@@ -79,11 +163,11 @@ fun AppIconView(
                         },
                 )
             }
-            systemIcon != null -> {
+            displayedBitmap != null -> {
                 Image(
-                    bitmap = systemIcon,
+                    bitmap = displayedBitmap!!,
                     contentDescription = app.displayName,
-                    contentScale = ContentScale.Crop,
+                    contentScale = if (iconStyle.enabled) ContentScale.Fit else ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
@@ -93,18 +177,30 @@ fun AppIconView(
                 )
             }
             else -> {
+                val primaryTint = MaterialTheme.colorScheme.primary
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Apps,
-                        contentDescription = app.displayName,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(size * 0.56f),
-                    )
+                    if (iconStyle.enabled && isColorDark(primaryTint, iconStyle.darknessThreshold)) {
+                        OutlinedVectorIcon(
+                            imageVector = Icons.Rounded.Apps,
+                            contentDescription = app.displayName,
+                            fillColor = Color(iconStyle.fillColorHex),
+                            outlineColor = Color(iconStyle.outlineColorHex),
+                            outlineWidthDp = (iconStyle.outlineWidthDp * 0.6f).dp,
+                            modifier = Modifier.size(size * 0.56f),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.Apps,
+                            contentDescription = app.displayName,
+                            tint = primaryTint,
+                            modifier = Modifier.size(size * 0.56f),
+                        )
+                    }
                 }
             }
         }

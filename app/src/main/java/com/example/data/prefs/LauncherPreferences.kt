@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.ui.components.IconStyleConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -19,13 +20,23 @@ private val Context.launcherDataStore: DataStore<Preferences> by preferencesData
 data class LauncherSettings(
     val themeMode: String = "DARK", // DARK, LIGHT, SYSTEM, DYNAMIC
     val accentColorHex: Long = 0xFF38BDF8L,
+    val secondaryColorHex: Long = 0xFF6366F1L,
+    val tertiaryColorHex: Long = 0xFFFB7185L,
+    val fontStyle: String = "DEFAULT", // DEFAULT, SPACE_GROTESK, PLUS_JAKARTA, JETBRAINS_MONO, SYSTEM
+    val fontScale: Float = 1.0f, // 0.8f..1.4f
+    val surfaceOpacity: Float = 0.86f, // 0.2f..1.0f
+    val globalBorderWidthDp: Float = 1.0f, // 0f..4.0f
+    val globalTextColorHex: Long = 0xFFF8FAFC,
+    val showHomeAppLabels: Boolean = true,
     val wallpaperType: String = "BUILTIN_PRISM", // BUILTIN_PRISM, BUILTIN_TOPO, CUSTOM_IMAGE, GRADIENT, SOLID
     val wallpaperCustomPath: String? = null,
     val wallpaperGradientStartHex: Long = 0xFF0A1124L,
     val wallpaperGradientEndHex: Long = 0xFF1A1038L,
+    val wallpaperGradientDirection: String = "VERTICAL", // VERTICAL, HORIZONTAL, DIAGONAL
     val wallpaperSolidHex: Long = 0xFF090D16L,
     val wallpaperBlurDp: Float = 0f,
     val wallpaperDimAlpha: Float = 0.25f,
+    val wallpaperDimColorHex: Long = 0xFF000000L,
     // Universal All-Apps Sidebar & Drawer
     val allAppsSidebarEdge: String = "RIGHT", // LEFT, RIGHT, BOTTOM
     val allAppsSidebarWidthFraction: Float = 0.90f,
@@ -39,6 +50,9 @@ data class LauncherSettings(
     val drawerIconSizeDp: Int = 50,
     val drawerLabelSizeSp: Int = 12,
     val drawerSortOrder: String = "ALPHABETICAL", // ALPHABETICAL, MANUAL, MOST_USED, RECENTLY_INSTALLED
+    val drawerCardOpacity: Float = 0.88f,
+    val drawerCornerRadiusDp: Float = 26f,
+    val drawerSearchBarVisible: Boolean = true,
     // Niagara Wave Alphabet Navigation
     val niagaraWaveEnabled: Boolean = true,
     val niagaraIndexVisible: Boolean = true,
@@ -51,9 +65,19 @@ data class LauncherSettings(
     // Edit Mode & Canvas
     val gridSnapEnabled: Boolean = false,
     val alignmentGuidesEnabled: Boolean = true,
+    val alignmentGuideColorHex: Long = 0xFF38BDF8L,
     val gridSnapStepDp: Int = 16,
+    val editGridVisible: Boolean = true,
+    val editGridOpacity: Float = 0.08f,
+    val editGridColorHex: Long = 0xFFFFFFFFL,
     val layoutLocked: Boolean = false,
     val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE
+    val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
+    val pageIndicatorColorHex: Long = 0xFF38BDF8L,
+    val edgeHandlesVisible: Boolean = true,
+    val edgeHandleOpacity: Float = 0.45f,
+    val edgeHandleWidthDp: Float = 4f,
+    val edgeHandleHeightDp: Float = 64f,
     // Appearance & System Integration
     val animationSpeedScale: Float = 1f,
     val globalCornerRadiusDp: Float = 20f,
@@ -66,21 +90,51 @@ data class LauncherSettings(
     val hapticFeedbackEnabled: Boolean = true,
     val notificationsBadgeHint: Boolean = true,
     val recentSearchesCsv: String = "",
+    val iconPackOrderCsv: String = "",
+    // Black Icon Styling (Default: white fill with crisp black outline)
+    val blackIconStyleEnabled: Boolean = true,
+    val blackIconMode: String = IconStyleConfig.MODE_BLACK_ICONS, // BLACK_ICONS, ALL_MONOCHROME, ALL_ICONS_OUTLINE
+    val blackIconFillColorHex: Long = IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
+    val blackIconOutlineColorHex: Long = IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
+    val blackIconOutlineWidthDp: Float = IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
+    val blackIconDarknessThreshold: Float = IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
     val seededDefaults: Boolean = false,
-)
+) {
+    fun iconPackOrder(): List<String> =
+        iconPackOrderCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
+    fun iconStyleConfig(): IconStyleConfig = IconStyleConfig(
+        enabled = blackIconStyleEnabled,
+        mode = blackIconMode,
+        fillColorHex = blackIconFillColorHex,
+        outlineColorHex = blackIconOutlineColorHex,
+        outlineWidthDp = blackIconOutlineWidthDp,
+        darknessThreshold = blackIconDarknessThreshold,
+    )
+}
 
 class LauncherPreferencesRepository(private val context: Context) {
 
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT_COLOR = longPreferencesKey("accent_color")
+        val SECONDARY_COLOR = longPreferencesKey("secondary_color")
+        val TERTIARY_COLOR = longPreferencesKey("tertiary_color")
+        val FONT_STYLE = stringPreferencesKey("font_style")
+        val FONT_SCALE = floatPreferencesKey("font_scale")
+        val SURFACE_OPACITY = floatPreferencesKey("surface_opacity")
+        val GLOBAL_BORDER_WIDTH = floatPreferencesKey("global_border_width")
+        val GLOBAL_TEXT_COLOR = longPreferencesKey("global_text_color")
+        val SHOW_HOME_APP_LABELS = booleanPreferencesKey("show_home_app_labels")
         val WALLPAPER_TYPE = stringPreferencesKey("wallpaper_type")
         val WALLPAPER_CUSTOM_PATH = stringPreferencesKey("wallpaper_custom_path")
         val WALLPAPER_GRADIENT_START = longPreferencesKey("wallpaper_gradient_start")
         val WALLPAPER_GRADIENT_END = longPreferencesKey("wallpaper_gradient_end")
+        val WALLPAPER_GRADIENT_DIR = stringPreferencesKey("wallpaper_gradient_dir")
         val WALLPAPER_SOLID = longPreferencesKey("wallpaper_solid")
         val WALLPAPER_BLUR_DP = floatPreferencesKey("wallpaper_blur_dp")
         val WALLPAPER_DIM_ALPHA = floatPreferencesKey("wallpaper_dim_alpha")
+        val WALLPAPER_DIM_COLOR = longPreferencesKey("wallpaper_dim_color")
 
         val ALL_APPS_SIDEBAR_EDGE = stringPreferencesKey("all_apps_sidebar_edge")
         val ALL_APPS_SIDEBAR_WIDTH = floatPreferencesKey("all_apps_sidebar_width")
@@ -95,6 +149,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         val DRAWER_ICON_SIZE_DP = intPreferencesKey("drawer_icon_size_dp")
         val DRAWER_LABEL_SIZE_SP = intPreferencesKey("drawer_label_size_sp")
         val DRAWER_SORT_ORDER = stringPreferencesKey("drawer_sort_order")
+        val DRAWER_CARD_OPACITY = floatPreferencesKey("drawer_card_opacity")
+        val DRAWER_CORNER_RADIUS = floatPreferencesKey("drawer_corner_radius")
+        val DRAWER_SEARCH_BAR_VISIBLE = booleanPreferencesKey("drawer_search_bar_visible")
 
         val NIAGARA_WAVE_ENABLED = booleanPreferencesKey("niagara_wave_enabled")
         val NIAGARA_INDEX_VISIBLE = booleanPreferencesKey("niagara_index_visible")
@@ -107,9 +164,19 @@ class LauncherPreferencesRepository(private val context: Context) {
 
         val GRID_SNAP = booleanPreferencesKey("grid_snap")
         val ALIGNMENT_GUIDES = booleanPreferencesKey("alignment_guides")
+        val ALIGNMENT_GUIDE_COLOR = longPreferencesKey("alignment_guide_color")
         val GRID_SNAP_STEP = intPreferencesKey("grid_snap_step")
+        val EDIT_GRID_VISIBLE = booleanPreferencesKey("edit_grid_visible")
+        val EDIT_GRID_OPACITY = floatPreferencesKey("edit_grid_opacity")
+        val EDIT_GRID_COLOR = longPreferencesKey("edit_grid_color")
         val LAYOUT_LOCKED = booleanPreferencesKey("layout_locked")
         val PAGE_TRANSITION = stringPreferencesKey("page_transition")
+        val PAGE_INDICATOR_STYLE = stringPreferencesKey("page_indicator_style")
+        val PAGE_INDICATOR_COLOR = longPreferencesKey("page_indicator_color")
+        val EDGE_HANDLES_VISIBLE = booleanPreferencesKey("edge_handles_visible")
+        val EDGE_HANDLE_OPACITY = floatPreferencesKey("edge_handle_opacity")
+        val EDGE_HANDLE_WIDTH = floatPreferencesKey("edge_handle_width")
+        val EDGE_HANDLE_HEIGHT = floatPreferencesKey("edge_handle_height")
 
         val ANIMATION_SPEED_SCALE = floatPreferencesKey("animation_speed_scale")
         val GLOBAL_CORNER_RADIUS_DP = floatPreferencesKey("global_corner_radius_dp")
@@ -122,19 +189,36 @@ class LauncherPreferencesRepository(private val context: Context) {
         val HAPTIC_FEEDBACK = booleanPreferencesKey("haptic_feedback")
         val NOTIFICATIONS_BADGE = booleanPreferencesKey("notifications_badge")
         val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
+        val ICON_PACK_ORDER_CSV = stringPreferencesKey("icon_pack_order_csv")
+        val BLACK_ICON_STYLE_ENABLED = booleanPreferencesKey("black_icon_style_enabled")
+        val BLACK_ICON_MODE = stringPreferencesKey("black_icon_mode")
+        val BLACK_ICON_FILL_COLOR = longPreferencesKey("black_icon_fill_color")
+        val BLACK_ICON_OUTLINE_COLOR = longPreferencesKey("black_icon_outline_color")
+        val BLACK_ICON_OUTLINE_WIDTH = floatPreferencesKey("black_icon_outline_width")
+        val BLACK_ICON_DARKNESS_THRESHOLD = floatPreferencesKey("black_icon_darkness_threshold")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
     private fun fromPrefs(prefs: Preferences): LauncherSettings = LauncherSettings(
         themeMode = prefs[Keys.THEME_MODE] ?: "DARK",
         accentColorHex = prefs[Keys.ACCENT_COLOR] ?: 0xFF38BDF8L,
+        secondaryColorHex = prefs[Keys.SECONDARY_COLOR] ?: 0xFF6366F1L,
+        tertiaryColorHex = prefs[Keys.TERTIARY_COLOR] ?: 0xFFFB7185L,
+        fontStyle = prefs[Keys.FONT_STYLE] ?: "DEFAULT",
+        fontScale = prefs[Keys.FONT_SCALE] ?: 1.0f,
+        surfaceOpacity = prefs[Keys.SURFACE_OPACITY] ?: 0.86f,
+        globalBorderWidthDp = prefs[Keys.GLOBAL_BORDER_WIDTH] ?: 1.0f,
+        globalTextColorHex = prefs[Keys.GLOBAL_TEXT_COLOR] ?: 0xFFF8FAFC,
+        showHomeAppLabels = prefs[Keys.SHOW_HOME_APP_LABELS] ?: true,
         wallpaperType = prefs[Keys.WALLPAPER_TYPE] ?: "BUILTIN_PRISM",
         wallpaperCustomPath = prefs[Keys.WALLPAPER_CUSTOM_PATH],
         wallpaperGradientStartHex = prefs[Keys.WALLPAPER_GRADIENT_START] ?: 0xFF0A1124L,
         wallpaperGradientEndHex = prefs[Keys.WALLPAPER_GRADIENT_END] ?: 0xFF1A1038L,
+        wallpaperGradientDirection = prefs[Keys.WALLPAPER_GRADIENT_DIR] ?: "VERTICAL",
         wallpaperSolidHex = prefs[Keys.WALLPAPER_SOLID] ?: 0xFF090D16L,
         wallpaperBlurDp = prefs[Keys.WALLPAPER_BLUR_DP] ?: 0f,
         wallpaperDimAlpha = prefs[Keys.WALLPAPER_DIM_ALPHA] ?: 0.25f,
+        wallpaperDimColorHex = prefs[Keys.WALLPAPER_DIM_COLOR] ?: 0xFF000000L,
         allAppsSidebarEdge = prefs[Keys.ALL_APPS_SIDEBAR_EDGE] ?: "RIGHT",
         allAppsSidebarWidthFraction = prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] ?: 0.90f,
         allAppsBgType = prefs[Keys.ALL_APPS_BG_TYPE] ?: "SOLID",
@@ -147,6 +231,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         drawerIconSizeDp = prefs[Keys.DRAWER_ICON_SIZE_DP] ?: 50,
         drawerLabelSizeSp = prefs[Keys.DRAWER_LABEL_SIZE_SP] ?: 12,
         drawerSortOrder = prefs[Keys.DRAWER_SORT_ORDER] ?: "ALPHABETICAL",
+        drawerCardOpacity = prefs[Keys.DRAWER_CARD_OPACITY] ?: 0.88f,
+        drawerCornerRadiusDp = prefs[Keys.DRAWER_CORNER_RADIUS] ?: 26f,
+        drawerSearchBarVisible = prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] ?: true,
         niagaraWaveEnabled = prefs[Keys.NIAGARA_WAVE_ENABLED] ?: true,
         niagaraIndexVisible = prefs[Keys.NIAGARA_INDEX_VISIBLE] ?: true,
         niagaraEdge = prefs[Keys.NIAGARA_EDGE] ?: "RIGHT",
@@ -157,9 +244,19 @@ class LauncherPreferencesRepository(private val context: Context) {
         niagaraHapticFeedback = prefs[Keys.NIAGARA_HAPTIC] ?: true,
         gridSnapEnabled = prefs[Keys.GRID_SNAP] ?: false,
         alignmentGuidesEnabled = prefs[Keys.ALIGNMENT_GUIDES] ?: true,
+        alignmentGuideColorHex = prefs[Keys.ALIGNMENT_GUIDE_COLOR] ?: 0xFF38BDF8L,
         gridSnapStepDp = prefs[Keys.GRID_SNAP_STEP] ?: 16,
+        editGridVisible = prefs[Keys.EDIT_GRID_VISIBLE] ?: true,
+        editGridOpacity = prefs[Keys.EDIT_GRID_OPACITY] ?: 0.08f,
+        editGridColorHex = prefs[Keys.EDIT_GRID_COLOR] ?: 0xFFFFFFFFL,
         layoutLocked = prefs[Keys.LAYOUT_LOCKED] ?: false,
         pageTransitionStyle = prefs[Keys.PAGE_TRANSITION] ?: "SLIDE",
+        pageIndicatorStyle = prefs[Keys.PAGE_INDICATOR_STYLE] ?: "DOTS",
+        pageIndicatorColorHex = prefs[Keys.PAGE_INDICATOR_COLOR] ?: 0xFF38BDF8L,
+        edgeHandlesVisible = prefs[Keys.EDGE_HANDLES_VISIBLE] ?: true,
+        edgeHandleOpacity = prefs[Keys.EDGE_HANDLE_OPACITY] ?: 0.45f,
+        edgeHandleWidthDp = prefs[Keys.EDGE_HANDLE_WIDTH] ?: 4f,
+        edgeHandleHeightDp = prefs[Keys.EDGE_HANDLE_HEIGHT] ?: 64f,
         animationSpeedScale = prefs[Keys.ANIMATION_SPEED_SCALE] ?: 1f,
         globalCornerRadiusDp = prefs[Keys.GLOBAL_CORNER_RADIUS_DP] ?: 20f,
         globalIconShape = prefs[Keys.GLOBAL_ICON_SHAPE] ?: "SQUIRCLE",
@@ -171,6 +268,13 @@ class LauncherPreferencesRepository(private val context: Context) {
         hapticFeedbackEnabled = prefs[Keys.HAPTIC_FEEDBACK] ?: true,
         notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: true,
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
+        iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
+        blackIconStyleEnabled = prefs[Keys.BLACK_ICON_STYLE_ENABLED] ?: true,
+        blackIconMode = prefs[Keys.BLACK_ICON_MODE] ?: IconStyleConfig.MODE_BLACK_ICONS,
+        blackIconFillColorHex = prefs[Keys.BLACK_ICON_FILL_COLOR] ?: IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
+        blackIconOutlineColorHex = prefs[Keys.BLACK_ICON_OUTLINE_COLOR] ?: IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
+        blackIconOutlineWidthDp = prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] ?: IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
+        blackIconDarknessThreshold = prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] ?: IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -183,14 +287,24 @@ class LauncherPreferencesRepository(private val context: Context) {
             val updated = transform(fromPrefs(prefs))
             prefs[Keys.THEME_MODE] = updated.themeMode
             prefs[Keys.ACCENT_COLOR] = updated.accentColorHex
+            prefs[Keys.SECONDARY_COLOR] = updated.secondaryColorHex
+            prefs[Keys.TERTIARY_COLOR] = updated.tertiaryColorHex
+            prefs[Keys.FONT_STYLE] = updated.fontStyle
+            prefs[Keys.FONT_SCALE] = updated.fontScale
+            prefs[Keys.SURFACE_OPACITY] = updated.surfaceOpacity
+            prefs[Keys.GLOBAL_BORDER_WIDTH] = updated.globalBorderWidthDp
+            prefs[Keys.GLOBAL_TEXT_COLOR] = updated.globalTextColorHex
+            prefs[Keys.SHOW_HOME_APP_LABELS] = updated.showHomeAppLabels
             prefs[Keys.WALLPAPER_TYPE] = updated.wallpaperType
             if (updated.wallpaperCustomPath != null) prefs[Keys.WALLPAPER_CUSTOM_PATH] = updated.wallpaperCustomPath
             else prefs.remove(Keys.WALLPAPER_CUSTOM_PATH)
             prefs[Keys.WALLPAPER_GRADIENT_START] = updated.wallpaperGradientStartHex
             prefs[Keys.WALLPAPER_GRADIENT_END] = updated.wallpaperGradientEndHex
+            prefs[Keys.WALLPAPER_GRADIENT_DIR] = updated.wallpaperGradientDirection
             prefs[Keys.WALLPAPER_SOLID] = updated.wallpaperSolidHex
             prefs[Keys.WALLPAPER_BLUR_DP] = updated.wallpaperBlurDp
             prefs[Keys.WALLPAPER_DIM_ALPHA] = updated.wallpaperDimAlpha
+            prefs[Keys.WALLPAPER_DIM_COLOR] = updated.wallpaperDimColorHex
 
             prefs[Keys.ALL_APPS_SIDEBAR_EDGE] = updated.allAppsSidebarEdge
             prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] = updated.allAppsSidebarWidthFraction
@@ -206,6 +320,9 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.DRAWER_ICON_SIZE_DP] = updated.drawerIconSizeDp
             prefs[Keys.DRAWER_LABEL_SIZE_SP] = updated.drawerLabelSizeSp
             prefs[Keys.DRAWER_SORT_ORDER] = updated.drawerSortOrder
+            prefs[Keys.DRAWER_CARD_OPACITY] = updated.drawerCardOpacity
+            prefs[Keys.DRAWER_CORNER_RADIUS] = updated.drawerCornerRadiusDp
+            prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] = updated.drawerSearchBarVisible
 
             prefs[Keys.NIAGARA_WAVE_ENABLED] = updated.niagaraWaveEnabled
             prefs[Keys.NIAGARA_INDEX_VISIBLE] = updated.niagaraIndexVisible
@@ -218,9 +335,19 @@ class LauncherPreferencesRepository(private val context: Context) {
 
             prefs[Keys.GRID_SNAP] = updated.gridSnapEnabled
             prefs[Keys.ALIGNMENT_GUIDES] = updated.alignmentGuidesEnabled
+            prefs[Keys.ALIGNMENT_GUIDE_COLOR] = updated.alignmentGuideColorHex
             prefs[Keys.GRID_SNAP_STEP] = updated.gridSnapStepDp
+            prefs[Keys.EDIT_GRID_VISIBLE] = updated.editGridVisible
+            prefs[Keys.EDIT_GRID_OPACITY] = updated.editGridOpacity
+            prefs[Keys.EDIT_GRID_COLOR] = updated.editGridColorHex
             prefs[Keys.LAYOUT_LOCKED] = updated.layoutLocked
             prefs[Keys.PAGE_TRANSITION] = updated.pageTransitionStyle
+            prefs[Keys.PAGE_INDICATOR_STYLE] = updated.pageIndicatorStyle
+            prefs[Keys.PAGE_INDICATOR_COLOR] = updated.pageIndicatorColorHex
+            prefs[Keys.EDGE_HANDLES_VISIBLE] = updated.edgeHandlesVisible
+            prefs[Keys.EDGE_HANDLE_OPACITY] = updated.edgeHandleOpacity
+            prefs[Keys.EDGE_HANDLE_WIDTH] = updated.edgeHandleWidthDp
+            prefs[Keys.EDGE_HANDLE_HEIGHT] = updated.edgeHandleHeightDp
 
             prefs[Keys.ANIMATION_SPEED_SCALE] = updated.animationSpeedScale
             prefs[Keys.GLOBAL_CORNER_RADIUS_DP] = updated.globalCornerRadiusDp
@@ -233,6 +360,13 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.HAPTIC_FEEDBACK] = updated.hapticFeedbackEnabled
             prefs[Keys.NOTIFICATIONS_BADGE] = updated.notificationsBadgeHint
             prefs[Keys.RECENT_SEARCHES] = updated.recentSearchesCsv
+            prefs[Keys.ICON_PACK_ORDER_CSV] = updated.iconPackOrderCsv
+            prefs[Keys.BLACK_ICON_STYLE_ENABLED] = updated.blackIconStyleEnabled
+            prefs[Keys.BLACK_ICON_MODE] = updated.blackIconMode
+            prefs[Keys.BLACK_ICON_FILL_COLOR] = updated.blackIconFillColorHex
+            prefs[Keys.BLACK_ICON_OUTLINE_COLOR] = updated.blackIconOutlineColorHex
+            prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] = updated.blackIconOutlineWidthDp
+            prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] = updated.blackIconDarknessThreshold
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }

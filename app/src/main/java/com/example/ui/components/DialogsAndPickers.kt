@@ -185,7 +185,19 @@ fun TagEditorDialog(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (selected) {
-                                Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                                val iconStyle = LocalIconStyleConfig.current
+                                if (iconStyle.enabled) {
+                                    OutlinedVectorIcon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        fillColor = Color(iconStyle.fillColorHex),
+                                        outlineColor = Color(iconStyle.outlineColorHex),
+                                        outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                } else {
+                                    Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }

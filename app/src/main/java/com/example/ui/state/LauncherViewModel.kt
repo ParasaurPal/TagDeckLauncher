@@ -24,6 +24,7 @@ import com.example.data.prefs.LauncherSettings
 import com.example.data.repository.LauncherRepository
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.ImageStorageManager
+import com.example.data.system.InstalledIconPack
 import com.example.data.system.LauncherWidgetHost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,7 @@ import org.json.JSONObject
 
 private data class TransientLauncherState(
     val isLoading: Boolean = true,
+    val installedIconPacks: List<InstalledIconPack> = emptyList(),
     val isDefaultLauncher: Boolean = false,
     val currentPageIndex: Int = 0,
     val isEditMode: Boolean = false,
@@ -49,6 +51,8 @@ private data class TransientLauncherState(
     val activeOverlay: ActiveOverlay = ActiveOverlay.None,
     val isDrawerOpen: Boolean = false,
     val isUniversalSearchOpen: Boolean = false,
+    val pendingGlobalSearchQuery: String = "",
+    val pendingSettingsSearchQuery: String = "",
     val snackbarMessage: String? = null,
 )
 
@@ -118,6 +122,7 @@ class LauncherViewModel(
             imageResources = d3.imageResources,
             backgroundPresets = d3.backgroundPresets,
             settings = d3.settings,
+            installedIconPacks = t.installedIconPacks,
             isDefaultLauncher = t.isDefaultLauncher,
             currentPageIndex = t.currentPageIndex.coerceIn(0, (d2.pages.size - 1).coerceAtLeast(0)),
             isEditMode = t.isEditMode,
@@ -129,6 +134,8 @@ class LauncherViewModel(
             activeOverlay = t.activeOverlay,
             isDrawerOpen = t.isDrawerOpen,
             isUniversalSearchOpen = t.isUniversalSearchOpen,
+            pendingGlobalSearchQuery = t.pendingGlobalSearchQuery,
+            pendingSettingsSearchQuery = t.pendingSettingsSearchQuery,
             snackbarMessage = t.snackbarMessage,
         )
     }.stateIn(
@@ -139,10 +146,12 @@ class LauncherViewModel(
 
     init {
         refreshInstalledApps()
+        refreshInstalledIconPacks()
         refreshDefaultLauncherStatus()
         viewModelScope.launch {
             appDiscovery.observePackageChanges().collect {
                 repository.syncInstalledAppsAndSeedDefaults()
+                refreshInstalledIconPacks()
             }
         }
     }
@@ -151,6 +160,41 @@ class LauncherViewModel(
         viewModelScope.launch {
             repository.syncInstalledAppsAndSeedDefaults()
             transientState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    fun refreshInstalledIconPacks() {
+        viewModelScope.launch {
+            val packs = appDiscovery.iconPackManager.discoverInstalledIconPacks()
+            transientState.update { it.copy(installedIconPacks = packs) }
+        }
+    }
+
+    fun addIconPackToHierarchy(packageName: String) {
+        updateSettings { s ->
+            val list = s.iconPackOrder().toMutableList()
+            if (packageName !in list) list.add(packageName)
+            s.copy(iconPackOrderCsv = list.joinToString(","))
+        }
+    }
+
+    fun removeIconPackFromHierarchy(packageName: String) {
+        updateSettings { s ->
+            val list = s.iconPackOrder().filterNot { it == packageName }
+            s.copy(iconPackOrderCsv = list.joinToString(","))
+        }
+    }
+
+    fun moveIconPackInHierarchy(packageName: String, delta: Int) {
+        updateSettings { s ->
+            val list = s.iconPackOrder().toMutableList()
+            val idx = list.indexOf(packageName)
+            if (idx == -1) return@updateSettings s
+            val target = (idx + delta).coerceIn(0, list.lastIndex)
+            if (target == idx) return@updateSettings s
+            val moved = list.removeAt(idx)
+            list.add(target, moved)
+            s.copy(iconPackOrderCsv = list.joinToString(","))
         }
     }
 
@@ -242,14 +286,35 @@ class LauncherViewModel(
         }
     }
 
-    fun setUniversalSearchOpen(open: Boolean) {
+    fun setUniversalSearchOpen(open: Boolean, initialQuery: String = "") {
         transientState.update {
             it.copy(
                 isUniversalSearchOpen = open,
+                pendingGlobalSearchQuery = if (open && initialQuery.isNotBlank()) initialQuery else if (!open) "" else it.pendingGlobalSearchQuery,
                 isDrawerOpen = if (open) false else it.isDrawerOpen,
                 activeOverlay = if (open) ActiveOverlay.None else it.activeOverlay,
             )
         }
+    }
+
+    fun consumePendingGlobalSearchQuery() {
+        transientState.update { it.copy(pendingGlobalSearchQuery = "") }
+    }
+
+    fun openSettingsWithSearch(query: String, onNavigate: (LauncherRoute) -> Unit) {
+        transientState.update {
+            it.copy(
+                isUniversalSearchOpen = false,
+                isDrawerOpen = false,
+                activeOverlay = ActiveOverlay.None,
+                pendingSettingsSearchQuery = query,
+            )
+        }
+        onNavigate(LauncherRoute.Settings)
+    }
+
+    fun consumePendingSettingsSearchQuery() {
+        transientState.update { it.copy(pendingSettingsSearchQuery = "") }
     }
 
     fun addSearchHistory(query: String) {
@@ -526,8 +591,10 @@ class LauncherViewModel(
     fun addHomePage(title: String) {
         viewModelScope.launch {
             recordUndoCheckpoint()
-            val nextOrder = (uiState.value.homePages.maxOfOrNull { it.pageOrder } ?: -1) + 1
+            val existingPages = uiState.value.homePages
+            val nextOrder = (existingPages.maxOfOrNull { it.pageOrder } ?: -1) + 1
             repository.saveHomePage(HomePageEntity(title = title, pageOrder = nextOrder))
+            transientState.update { it.copy(currentPageIndex = existingPages.size) }
             showMessage("Added page \"$title\"")
         }
     }
@@ -542,7 +609,9 @@ class LauncherViewModel(
     fun duplicateHomePage(page: HomePageEntity) {
         viewModelScope.launch {
             recordUndoCheckpoint()
+            val existingCount = uiState.value.homePages.size
             repository.duplicateHomePage(page)
+            transientState.update { it.copy(currentPageIndex = existingCount) }
             showMessage("Duplicated \"${page.title}\"")
         }
     }
@@ -561,7 +630,9 @@ class LauncherViewModel(
             }
             recordUndoCheckpoint()
             repository.deleteHomePage(pageId)
-            transientState.update { it.copy(currentPageIndex = 0) }
+            transientState.update {
+                it.copy(currentPageIndex = (it.currentPageIndex).coerceAtMost((uiState.value.homePages.size - 2).coerceAtLeast(0)))
+            }
         }
     }
 
@@ -696,12 +767,22 @@ class LauncherViewModel(
     }
 
     fun bringElementForward(element: HomeElementEntity) {
-        val maxZ = uiState.value.homeElements.filter { it.pageId == element.pageId }.maxOfOrNull { it.zIndex } ?: 0
+        val siblings = uiState.value.homeElements.filter {
+            it.ownerType == element.ownerType &&
+                if (element.ownerType == "WINDOW") it.ownerWindowId == element.ownerWindowId
+                else it.pageId == element.pageId
+        }
+        val maxZ = siblings.maxOfOrNull { it.zIndex } ?: 0
         saveHomeElement(element.copy(zIndex = maxZ + 1))
     }
 
     fun sendElementBackward(element: HomeElementEntity) {
-        val minZ = uiState.value.homeElements.filter { it.pageId == element.pageId }.minOfOrNull { it.zIndex } ?: 0
+        val siblings = uiState.value.homeElements.filter {
+            it.ownerType == element.ownerType &&
+                if (element.ownerType == "WINDOW") it.ownerWindowId == element.ownerWindowId
+                else it.pageId == element.pageId
+        }
+        val minZ = siblings.minOfOrNull { it.zIndex } ?: 0
         saveHomeElement(element.copy(zIndex = (minZ - 1).coerceAtLeast(0)))
     }
 

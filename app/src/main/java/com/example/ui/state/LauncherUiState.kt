@@ -15,6 +15,7 @@ import com.example.data.db.SidebarConfigEntity
 import com.example.data.db.TagEntity
 import com.example.data.db.TagWithApps
 import com.example.data.prefs.LauncherSettings
+import com.example.data.system.InstalledIconPack
 
 sealed interface ActiveOverlay {
     data object None : ActiveOverlay
@@ -51,6 +52,7 @@ data class LauncherUiState(
     val imageResources: List<ImageResourceEntity> = emptyList(),
     val backgroundPresets: List<BackgroundPresetEntity> = emptyList(),
     val settings: LauncherSettings = LauncherSettings(),
+    val installedIconPacks: List<InstalledIconPack> = emptyList(),
     val isDefaultLauncher: Boolean = false,
     val currentPageIndex: Int = 0,
     val isEditMode: Boolean = false,
@@ -62,5 +64,7 @@ data class LauncherUiState(
     val activeOverlay: ActiveOverlay = ActiveOverlay.None,
     val isDrawerOpen: Boolean = false,
     val isUniversalSearchOpen: Boolean = false,
+    val pendingGlobalSearchQuery: String = "",
+    val pendingSettingsSearchQuery: String = "",
     val snackbarMessage: String? = null,
 )

@@ -505,11 +505,8 @@ private fun ColorSwatchCircle(
     onClick: () -> Unit,
 ) {
     val color = Color(colorHex)
-    val checkTint = if ((color.red * 0.299f + color.green * 0.587f + color.blue * 0.114f) > 0.55f) {
-        Color.Black
-    } else {
-        Color.White
-    }
+    val iconStyle = LocalIconStyleConfig.current
+    val wouldBeBlack = (color.red * 0.299f + color.green * 0.587f + color.blue * 0.114f) > 0.55f
     Box(
         modifier = Modifier
             .size(30.dp)
@@ -524,7 +521,23 @@ private fun ColorSwatchCircle(
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = checkTint, modifier = Modifier.size(16.dp))
+            if (wouldBeBlack && iconStyle.enabled) {
+                OutlinedVectorIcon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    fillColor = Color(iconStyle.fillColorHex),
+                    outlineColor = Color(iconStyle.outlineColorHex),
+                    outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = if (wouldBeBlack) Color.Black else Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }

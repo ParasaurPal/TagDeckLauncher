@@ -201,8 +201,38 @@ interface LauncherDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertHomePage(page: HomePageEntity): Long
 
+    @Update
+    suspend fun updateHomePages(pages: List<HomePageEntity>)
+
+    @Transaction
+    suspend fun reorderHomePages(orderedPageIds: List<Long>) {
+        val current = getHomePagesOnce()
+        val byId = current.associateBy { it.pageId }
+        val reordered = mutableListOf<HomePageEntity>()
+        orderedPageIds.distinct().forEach { id ->
+            byId[id]?.let { page ->
+                reordered.add(page.copy(pageOrder = reordered.size))
+            }
+        }
+        current.filter { it.pageId !in orderedPageIds }.forEach { remaining ->
+            reordered.add(remaining.copy(pageOrder = reordered.size))
+        }
+        if (reordered.isNotEmpty()) {
+            updateHomePages(reordered)
+        }
+    }
+
+    @Query("DELETE FROM home_elements WHERE ownerType = 'PAGE' AND pageId = :pageId")
+    suspend fun deleteElementsForPage(pageId: Long)
+
     @Query("DELETE FROM home_pages WHERE pageId = :pageId")
     suspend fun deleteHomePage(pageId: Long)
+
+    @Transaction
+    suspend fun deleteHomePageAndElements(pageId: Long) {
+        deleteElementsForPage(pageId)
+        deleteHomePage(pageId)
+    }
 
     @Query("SELECT * FROM launcher_windows ORDER BY windowId ASC")
     fun observeWindows(): Flow<List<LauncherWindowEntity>>

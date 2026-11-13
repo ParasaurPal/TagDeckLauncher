@@ -584,21 +584,19 @@ class LauncherRepository(
 
     // --- HOME PAGES, WINDOWS & ELEMENTS ---
     suspend fun saveHomePage(page: HomePageEntity): Long = dao.upsertHomePage(page)
-    suspend fun deleteHomePage(pageId: Long) = dao.deleteHomePage(pageId)
+    suspend fun deleteHomePage(pageId: Long) = dao.deleteHomePageAndElements(pageId)
     suspend fun duplicateHomePage(page: HomePageEntity) {
         val pages = dao.getHomePagesOnce()
+        val nextOrder = (pages.maxOfOrNull { it.pageOrder } ?: -1) + 1
         val newPageId = dao.upsertHomePage(
-            page.copy(pageId = 0L, title = "${page.title} Copy", pageOrder = pages.size, isDefaultHome = false)
+            page.copy(pageId = 0L, title = "${page.title} Copy", pageOrder = nextOrder, isDefaultHome = false)
         )
         val elems = dao.getHomeElementsOnce().filter { it.ownerType == "PAGE" && it.pageId == page.pageId }
         dao.insertHomeElements(elems.map { it.copy(elementId = 0L, pageId = newPageId, appWidgetId = null) })
     }
 
     suspend fun reorderPages(orderedPageIds: List<Long>) {
-        val all = dao.getHomePagesOnce().associateBy { it.pageId }
-        orderedPageIds.forEachIndexed { idx, id ->
-            all[id]?.let { dao.upsertHomePage(it.copy(pageOrder = idx)) }
-        }
+        dao.reorderHomePages(orderedPageIds)
     }
 
     suspend fun saveWindow(window: LauncherWindowEntity): Long = dao.upsertWindow(window)

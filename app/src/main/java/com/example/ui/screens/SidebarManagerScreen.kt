@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -78,6 +79,8 @@ import com.example.data.db.HomeElementEntity
 import com.example.data.db.LauncherWindowEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.InstalledWidgetProvider
+import com.example.ui.components.WidgetPickerDialog
 import com.example.ui.state.LauncherUiState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -96,6 +99,13 @@ fun SidebarManagerScreen(
     onAddWindowElement: (HomeElementEntity) -> Unit,
     onDeleteWindowElement: (HomeElementEntity) -> Unit,
     onImportImage: suspend (Uri, String, String?) -> String?,
+    installedWidgetProviders: List<InstalledWidgetProvider> = emptyList(),
+    onDuplicateWindowElement: (HomeElementEntity) -> Unit = {},
+    onCopyWindowElement: (HomeElementEntity) -> Unit = {},
+    onCutWindowElement: (HomeElementEntity) -> Unit = {},
+    onBringWindowElementForward: (HomeElementEntity) -> Unit = {},
+    onSendWindowElementBackward: (HomeElementEntity) -> Unit = {},
+    onStartSystemWidgetBindForWindow: (InstalledWidgetProvider, Long, Long) -> Unit = { _, _, _ -> },
 ) {
     BackHandler { onBack() }
 
@@ -106,6 +116,8 @@ fun SidebarManagerScreen(
     var editingWindow by remember { mutableStateOf<LauncherWindowEntity?>(null) }
     var showCreateWindow by remember { mutableStateOf(false) }
     var addingElementToWindow by remember { mutableStateOf<LauncherWindowEntity?>(null) }
+    var widgetPickerForWindow by remember { mutableStateOf<LauncherWindowEntity?>(null) }
+    var inspectingWindowElement by remember { mutableStateOf<HomeElementEntity?>(null) }
 
     val defaultPageId = state.homePages.firstOrNull()?.pageId ?: 1L
 
@@ -244,19 +256,27 @@ fun SidebarManagerScreen(
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = { addingElementToWindow = win }) {
+                                    Icon(Icons.Rounded.Add, null, Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Add Object")
+                                }
+                                OutlinedButton(onClick = { widgetPickerForWindow = win }) {
                                     Icon(Icons.Rounded.Widgets, null, Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Add Widget / Item")
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Widget")
                                 }
                                 Button(onClick = { onOpenWindow(win.windowId) }) {
-                                    Text("Preview Window")
+                                    Text("Open")
                                 }
                             }
 
                             if (innerElements.isNotEmpty()) {
                                 innerElements.forEach { el ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(start = 6.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { inspectingWindowElement = el }
+                                            .padding(start = 6.dp, top = 2.dp, bottom = 2.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
@@ -264,7 +284,10 @@ fun SidebarManagerScreen(
                                             style = MaterialTheme.typography.bodySmall,
                                             modifier = Modifier.weight(1f),
                                         )
-                                        IconButton(onClick = { onDeleteWindowElement(el) }, modifier = Modifier.size(28.dp)) {
+                                        IconButton(onClick = { inspectingWindowElement = el }, modifier = Modifier.size(30.dp)) {
+                                            Icon(Icons.Rounded.Tune, contentDescription = "Customize element", modifier = Modifier.size(16.dp))
+                                        }
+                                        IconButton(onClick = { onDeleteWindowElement(el) }, modifier = Modifier.size(30.dp)) {
                                             Icon(Icons.Rounded.Delete, contentDescription = "Remove element", modifier = Modifier.size(16.dp))
                                         }
                                     }
@@ -333,22 +356,85 @@ fun SidebarManagerScreen(
                 onAddWindowElement(element)
             },
             onOpenWidgetPicker = {
-                // Add quick built-in live clock or battery directly inside window via type step
+                widgetPickerForWindow = targetWin
+            },
+            onDismiss = { addingElementToWindow = null },
+        )
+    }
+
+    widgetPickerForWindow?.let { targetWin ->
+        WidgetPickerDialog(
+            providers = installedWidgetProviders,
+            tags = state.allTags,
+            onPickSystemWidget = { provider ->
+                widgetPickerForWindow = null
+                onStartSystemWidgetBindForWindow(provider, defaultPageId, targetWin.windowId)
+            },
+            onPickBuiltinType = { type, label, wDp, hDp ->
                 onAddWindowElement(
                     HomeElementEntity(
                         pageId = defaultPageId,
                         ownerType = "WINDOW",
                         ownerWindowId = targetWin.windowId,
-                        type = "DIGITAL_CLOCK",
+                        type = type,
                         xFraction = 0.08f,
                         yFraction = 0.08f,
-                        widthDp = 200f,
-                        heightDp = 96f,
-                        label = "Window Clock",
+                        widthDp = wDp,
+                        heightDp = hDp,
+                        label = label,
                     )
                 )
+                widgetPickerForWindow = null
             },
-            onDismiss = { addingElementToWindow = null },
+            onPickBuiltinTagWidget = { tag ->
+                onAddWindowElement(
+                    HomeElementEntity(
+                        pageId = defaultPageId,
+                        ownerType = "WINDOW",
+                        ownerWindowId = targetWin.windowId,
+                        type = "TAG_COLLECTION_WIDGET",
+                        xFraction = 0.06f,
+                        yFraction = 0.14f,
+                        widthDp = 280f,
+                        heightDp = 220f,
+                        label = tag.name,
+                        targetTagId = tag.tagId,
+                        backgroundColorHex = 0x660F172AL,
+                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
+                    )
+                )
+                widgetPickerForWindow = null
+            },
+            onDismiss = { widgetPickerForWindow = null },
+        )
+    }
+
+    inspectingWindowElement?.let { snap ->
+        val elem = state.homeElements.find { it.elementId == snap.elementId } ?: snap
+        ElementInspectorDialog(
+            element = elem,
+            state = state,
+            onImportImage = onImportImage,
+            onUpdate = { onAddWindowElement(it) },
+            onDuplicate = {
+                onDuplicateWindowElement(elem)
+                inspectingWindowElement = null
+            },
+            onCopy = {
+                onCopyWindowElement(elem)
+                inspectingWindowElement = null
+            },
+            onCut = {
+                onCutWindowElement(elem)
+                inspectingWindowElement = null
+            },
+            onBringForward = { onBringWindowElementForward(elem) },
+            onSendBackward = { onSendWindowElementBackward(elem) },
+            onDelete = {
+                onDeleteWindowElement(elem)
+                inspectingWindowElement = null
+            },
+            onDismiss = { inspectingWindowElement = null },
         )
     }
 }

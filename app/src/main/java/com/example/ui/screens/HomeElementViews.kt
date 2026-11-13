@@ -8,11 +8,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +37,7 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.ViewSidebar
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
@@ -42,6 +46,7 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentCut
 import androidx.compose.material.icons.rounded.Delete
@@ -76,6 +81,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +91,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -107,7 +114,10 @@ import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.LauncherWidgetHost
 import com.example.ui.components.AppIconView
 import com.example.ui.components.CategoryBadgeIcon
+import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.ObjectImageAndTransformDialog
+import com.example.ui.components.StudioDarkSurfaceSwatches
+import com.example.ui.components.StudioNeutralAndAccentSwatches
 import com.example.ui.components.TagBadgeIcon
 import com.example.ui.components.buildElementColorFilter
 import com.example.ui.state.LauncherUiState
@@ -168,7 +178,11 @@ fun HomeElementBody(
     val context = LocalContext.current
     val shape = resolveMaskShape(element)
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
-    val bg = if (isPlainAppShortcut) Color.Transparent else Color(element.backgroundColorHex)
+    val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
+    val bg = if (isPlainAppShortcut || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
+    val gradBrush = bgGradEnd?.let { endHex ->
+        Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
+    }
     val borderColor = Color(element.borderColorHex)
     val border = if (!isPlainAppShortcut && element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
     val colorFilter = remember(
@@ -213,7 +227,11 @@ fun HomeElementBody(
         border = border,
         shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (gradBrush != null) Modifier.background(gradBrush) else Modifier),
+        ) {
             // Optional element custom background image
             if (element.type != "IMAGE" && !element.imagePath.isNullOrBlank() && File(element.imagePath).exists()) {
                 AsyncImage(
@@ -338,7 +356,7 @@ fun HomeElementBody(
                                 size = element.iconSizeDp.coerceIn(28f, 96f).dp,
                                 iconShapeKey = state.settings.globalIconShape,
                             )
-                            if (element.showLabel) {
+                            if (element.showLabel && state.settings.showHomeAppLabels) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = element.label.ifBlank { app.displayName },
@@ -367,14 +385,14 @@ fun HomeElementBody(
                             .clickable(enabled = !state.isEditMode && tag != null) {
                                 tag?.let { onOpenTagSidebar(it.tagId) }
                             }
-                            .padding(8.dp)
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp)
                             .testTag("home_tag_shortcut_${element.targetTagId}"),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
                         if (tag != null) {
                             TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 38.dp)
-                            if (element.showLabel) {
+                            if (element.showLabel && state.settings.showHomeAppLabels) {
                                 Spacer(Modifier.height(6.dp))
                                 Surface(
                                     color = Color.Black.copy(alpha = 0.64f),
@@ -411,7 +429,7 @@ fun HomeElementBody(
                             .clickable(enabled = !state.isEditMode && cat != null) {
                                 cat?.let { onOpenCategorySidebar(it.categoryId) }
                             }
-                            .padding(8.dp),
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -432,7 +450,7 @@ fun HomeElementBody(
                             .clickable(enabled = !state.isEditMode && win != null) {
                                 win?.let { onOpenWindow(it.windowId) }
                             }
-                            .padding(8.dp),
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -458,7 +476,7 @@ fun HomeElementBody(
                             .clickable(enabled = !state.isEditMode && rule != null) {
                                 rule?.let { onOpenRuleSidebar(it.ruleId) }
                             }
-                            .padding(8.dp),
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -484,7 +502,7 @@ fun HomeElementBody(
                             .clickable(enabled = !state.isEditMode && sb != null) {
                                 sb?.let { onOpenSidebar(it.sidebarId) }
                             }
-                            .padding(8.dp),
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -508,7 +526,7 @@ fun HomeElementBody(
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable(enabled = !state.isEditMode) { onOpenFolder(element.elementId) }
-                            .padding(8.dp),
+                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -527,7 +545,7 @@ fun HomeElementBody(
                         } else if (previewApps.isEmpty()) {
                             Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color.White)
                         }
-                        if (element.showLabel) {
+                        if (element.showLabel && state.settings.showHomeAppLabels) {
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 text = element.label.ifBlank { "Folder" },
@@ -1095,6 +1113,11 @@ fun ElementInspectorDialog(
     val scope = rememberCoroutineScope()
     var edited by remember(element.elementId) { mutableStateOf(element) }
     var showFullTransform by remember { mutableStateOf(false) }
+    var inspectorTab by remember { mutableStateOf("LAYOUT") }
+
+    LaunchedEffect(element.locked, element.zIndex) {
+        edited = edited.copy(locked = element.locked, zIndex = element.zIndex)
+    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -1132,12 +1155,12 @@ fun ElementInspectorDialog(
         onDismissRequest = onDismiss,
         title = { Text("Customize Object") },
         text = {
+            @OptIn(ExperimentalLayoutApi::class)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 460.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1182,82 +1205,254 @@ fun ElementInspectorDialog(
                     Text("Image FX, Skew/Flip/Crop & Gesture Actions")
                 }
 
-                if (edited.type != "APP_WIDGET") {
-                    OutlinedTextField(
-                        value = edited.label,
-                        onValueChange = { edited = edited.copy(label = it) },
-                        label = { Text("Label (supports {TIME}, {DATE}, {RAM})") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Show Label")
-                    Switch(checked = edited.showLabel, onCheckedChange = { edited = edited.copy(showLabel = it) })
-                }
-
-                Text("Width: ${edited.widthDp.roundToInt()}dp")
-                Slider(value = edited.widthDp, onValueChange = { edited = edited.copy(widthDp = it) }, valueRange = 48f..380f)
-                Text("Height: ${edited.heightDp.roundToInt()}dp")
-                Slider(value = edited.heightDp, onValueChange = { edited = edited.copy(heightDp = it) }, valueRange = 48f..440f)
-                Text("Rotation: ${edited.rotationDeg.roundToInt()}°")
-                Slider(value = edited.rotationDeg, onValueChange = { edited = edited.copy(rotationDeg = it) }, valueRange = -180f..180f)
-                Text("Transparency: ${(edited.alpha * 100).roundToInt()}%")
-                Slider(value = edited.alpha, onValueChange = { edited = edited.copy(alpha = it) }, valueRange = 0.1f..1f)
-                Text("Corner Radius: ${edited.cornerRadiusDp.roundToInt()}dp")
-                Slider(value = edited.cornerRadiusDp, onValueChange = { edited = edited.copy(cornerRadiusDp = it) }, valueRange = 0f..74f)
-
-                Text("Background Tint", style = MaterialTheme.typography.labelLarge)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.Transparent,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.size(32.dp).clickable {
-                                edited = edited.copy(backgroundColorHex = 0x00000000L)
-                            },
-                        ) {
-                            Box(contentAlignment = Alignment.Center) { Text("0", fontSize = 11.sp) }
-                        }
-                    }
-                    items(TagPresetColors) { c ->
-                        val tinted = (0x55000000L or (c and 0x00FFFFFFL))
-                        Box(
-                            modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(tinted)).clickable {
-                                edited = edited.copy(
-                                    backgroundColorHex = tinted,
-                                    borderColorHex = (0xAA000000L or (c and 0x00FFFFFFL)),
-                                )
-                            },
+                    listOf(
+                        "LAYOUT" to "Layout",
+                        "STYLE" to "Style",
+                        "TEXT" to "Text & Icon",
+                    ).forEach { (key, label) ->
+                        FilterChip(
+                            selected = inspectorTab == key,
+                            onClick = { inspectorTab = key },
+                            label = { Text(label) },
+                            modifier = Modifier.testTag("inspector_tab_$key"),
                         )
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) {
-                        Text("Pick Background Image")
-                    }
-                    if (edited.imagePath != null) {
-                        TextButton(onClick = { edited = edited.copy(imagePath = null) }) {
-                            Text("Clear Image")
+                HorizontalDivider()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+
+                when (inspectorTab) {
+                    "LAYOUT" -> {
+                        Text("Width: ${edited.widthDp.roundToInt()}dp")
+                        Slider(
+                            value = edited.widthDp,
+                            onValueChange = { edited = edited.copy(widthDp = it) },
+                            valueRange = 48f..380f,
+                            modifier = Modifier.testTag("inspector_width_slider"),
+                        )
+                        Text("Height: ${edited.heightDp.roundToInt()}dp")
+                        Slider(
+                            value = edited.heightDp,
+                            onValueChange = { edited = edited.copy(heightDp = it) },
+                            valueRange = 48f..440f,
+                            modifier = Modifier.testTag("inspector_height_slider"),
+                        )
+                        Text("X Position: ${(edited.xFraction * 100).roundToInt()}%")
+                        Slider(
+                            value = edited.xFraction,
+                            onValueChange = { edited = edited.copy(xFraction = it) },
+                            valueRange = 0f..0.95f,
+                        )
+                        Text("Y Position: ${(edited.yFraction * 100).roundToInt()}%")
+                        Slider(
+                            value = edited.yFraction,
+                            onValueChange = { edited = edited.copy(yFraction = it) },
+                            valueRange = 0f..0.95f,
+                        )
+                        Text("Rotation: ${edited.rotationDeg.roundToInt()}°")
+                        Slider(
+                            value = edited.rotationDeg,
+                            onValueChange = { edited = edited.copy(rotationDeg = it) },
+                            valueRange = -180f..180f,
+                        )
+                        Text("Scale X: ${"%.2f".format(edited.scaleX)}x")
+                        Slider(
+                            value = edited.scaleX,
+                            onValueChange = { edited = edited.copy(scaleX = it) },
+                            valueRange = 0.4f..2.0f,
+                        )
+                        Text("Scale Y: ${"%.2f".format(edited.scaleY)}x")
+                        Slider(
+                            value = edited.scaleY,
+                            onValueChange = { edited = edited.copy(scaleY = it) },
+                            valueRange = 0.4f..2.0f,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Flip Horizontal")
+                            Switch(checked = edited.flipHorizontal, onCheckedChange = { edited = edited.copy(flipHorizontal = it) })
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Flip Vertical")
+                            Switch(checked = edited.flipVertical, onCheckedChange = { edited = edited.copy(flipVertical = it) })
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Z-Index: ${edited.zIndex}", style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { edited = edited.copy(zIndex = (edited.zIndex - 1).coerceAtLeast(0)) },
+                                    modifier = Modifier.testTag("inspector_z_minus"),
+                                ) { Text("-") }
+                                OutlinedButton(
+                                    onClick = { edited = edited.copy(zIndex = edited.zIndex + 1) },
+                                    modifier = Modifier.testTag("inspector_z_plus"),
+                                ) { Text("+") }
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Visible on Canvas")
+                            Switch(checked = edited.visible, onCheckedChange = { edited = edited.copy(visible = it) })
                         }
                     }
+
+                    "STYLE" -> {
+                        Text("Shape Mask", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("NONE", "SQUIRCLE", "CIRCLE", "DIAMOND", "HEXAGON").forEach { m ->
+                                FilterChip(
+                                    selected = edited.imageMaskShape == m,
+                                    onClick = { edited = edited.copy(imageMaskShape = m) },
+                                    label = { Text(m) },
+                                    modifier = Modifier.testTag("inspector_mask_$m"),
+                                )
+                            }
+                        }
+
+                        Text("Corner Radius: ${edited.cornerRadiusDp.roundToInt()}dp")
+                        Slider(value = edited.cornerRadiusDp, onValueChange = { edited = edited.copy(cornerRadiusDp = it) }, valueRange = 0f..74f)
+                        Text("Transparency: ${(edited.alpha * 100).roundToInt()}%")
+                        Slider(value = edited.alpha, onValueChange = { edited = edited.copy(alpha = it) }, valueRange = 0.1f..1f)
+                        Text("Inner Padding: ${edited.paddingDp.roundToInt()}dp")
+                        Slider(value = edited.paddingDp, onValueChange = { edited = edited.copy(paddingDp = it) }, valueRange = 0f..32f)
+                        Text("Shadow Elevation: ${edited.shadowElevationDp.roundToInt()}dp")
+                        Slider(value = edited.shadowElevationDp, onValueChange = { edited = edited.copy(shadowElevationDp = it) }, valueRange = 0f..24f)
+
+                        Text("Border Width: ${"%.1f".format(edited.borderWidthDp)}dp")
+                        Slider(
+                            value = edited.borderWidthDp,
+                            onValueChange = { edited = edited.copy(borderWidthDp = it) },
+                            valueRange = 0f..8f,
+                            modifier = Modifier.testTag("inspector_border_width_slider"),
+                        )
+
+                        Text("Border Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = edited.borderColorHex,
+                            colors = StudioNeutralAndAccentSwatches,
+                            onSelect = { c -> edited = edited.copy(borderColorHex = c) },
+                            tagPrefix = "inspector_border_color",
+                        )
+
+                        Text("Background Color / Tint", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = edited.backgroundColorHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            allowClear = true,
+                            onClear = { edited = edited.copy(backgroundColorHex = 0x00000000L) },
+                            onSelect = { c -> edited = edited.copy(backgroundColorHex = c) },
+                            tagPrefix = "inspector_bg_color",
+                        )
+
+                        Text("Gradient End Color (Optional)", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = edited.backgroundGradientEndHex,
+                            colors = StudioDarkSurfaceSwatches,
+                            allowClear = true,
+                            onClear = { edited = edited.copy(backgroundGradientEndHex = null) },
+                            onSelect = { c -> edited = edited.copy(backgroundGradientEndHex = c) },
+                            tagPrefix = "inspector_grad_end",
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }) {
+                                Text("Pick Background Image")
+                            }
+                            if (edited.imagePath != null) {
+                                TextButton(onClick = { edited = edited.copy(imagePath = null) }) {
+                                    Text("Clear Image")
+                                }
+                            }
+                        }
+                    }
+
+                    "TEXT" -> {
+                        if (edited.type != "APP_WIDGET") {
+                            OutlinedTextField(
+                                value = edited.label,
+                                onValueChange = { edited = edited.copy(label = it) },
+                                label = { Text("Label (supports {TIME}, {DATE}, {RAM})") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("inspector_label_input"),
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text("Show Label")
+                            Switch(checked = edited.showLabel, onCheckedChange = { edited = edited.copy(showLabel = it) })
+                        }
+
+                        Text("Font Size: ${edited.fontSizeSp.roundToInt()}sp")
+                        Slider(
+                            value = edited.fontSizeSp,
+                            onValueChange = { edited = edited.copy(fontSizeSp = it) },
+                            valueRange = 8f..48f,
+                            modifier = Modifier.testTag("inspector_font_size_slider"),
+                        )
+
+                        Text("Text Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = edited.textColorHex,
+                            colors = StudioNeutralAndAccentSwatches,
+                            onSelect = { c -> edited = edited.copy(textColorHex = c) },
+                            tagPrefix = "inspector_text_color",
+                        )
+
+                        Text("Icon Size: ${edited.iconSizeDp.roundToInt()}dp")
+                        Slider(
+                            value = edited.iconSizeDp,
+                            onValueChange = { edited = edited.copy(iconSizeDp = it) },
+                            valueRange = 20f..120f,
+                        )
+                    }
+                }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onUpdate(edited)
-                onDismiss()
-            }) { Text("Apply") }
+            Button(
+                onClick = {
+                    onUpdate(edited)
+                    onDismiss()
+                },
+                modifier = Modifier.testTag("inspector_apply_button"),
+            ) { Text("Apply") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -1269,6 +1464,8 @@ fun ElementInspectorDialog(
 fun PagesAndSnapshotsDialog(
     pages: List<HomePageEntity>,
     snapshots: List<LayoutSnapshotEntity>,
+    currentPageId: Long? = null,
+    onJumpToPage: (Long) -> Unit = {},
     onImportImage: suspend (Uri, String, String?) -> String?,
     onAddPage: (String) -> Unit,
     onSavePage: (HomePageEntity) -> Unit,
@@ -1284,6 +1481,17 @@ fun PagesAndSnapshotsDialog(
     var newPageName by remember { mutableStateOf("") }
     var snapshotName by remember { mutableStateOf("") }
     var editingPage by remember { mutableStateOf<HomePageEntity?>(null) }
+
+    val pageColorSwatches = remember {
+        listOf(
+            0xFF090D16L,
+            0xFF0F172AL,
+            0xFF0A1424L,
+            0xFF1E1032L,
+            0xFF102A24L,
+            0xFF2B1320L,
+        ) + TagPresetColors
+    }
 
     editingPage?.let { page ->
         var working by remember(page.pageId) { mutableStateOf(page) }
@@ -1308,7 +1516,13 @@ fun PagesAndSnapshotsDialog(
             title = { Text("Edit Page: ${page.title}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    OutlinedTextField(value = working.title, onValueChange = { working = working.copy(title = it) }, label = { Text("Page Title") }, singleLine = true)
+                    OutlinedTextField(
+                        value = working.title,
+                        onValueChange = { working = working.copy(title = it) },
+                        label = { Text("Page Title") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("edit_page_title_input"),
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         Text("Lock Page Objects")
                         Switch(checked = working.isLocked, onCheckedChange = { working = working.copy(isLocked = it) })
@@ -1321,14 +1535,68 @@ fun PagesAndSnapshotsDialog(
                         Text("Vertically Scrollable Canvas")
                         Switch(checked = working.verticallyScrollable, onCheckedChange = { working = working.copy(verticallyScrollable = it) })
                     }
+                    Text("Page Edge Padding: ${working.paddingDp.roundToInt()}dp")
+                    Slider(value = working.paddingDp, onValueChange = { working = working.copy(paddingDp = it) }, valueRange = 0f..40f)
                     Text("Page Background Mode", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("INHERIT", "SOLID", "GRADIENT", "IMAGE").forEach { mode ->
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf("INHERIT", "TRANSPARENT", "SOLID", "GRADIENT", "IMAGE").forEach { mode ->
                             FilterChip(
                                 selected = working.backgroundType == mode,
-                                onClick = { working = working.copy(backgroundType = mode) },
+                                onClick = {
+                                    working = when (mode) {
+                                        "SOLID" -> working.copy(
+                                            backgroundType = mode,
+                                            backgroundColorHex = working.backgroundColorHex ?: 0xFF0F172AL,
+                                        )
+                                        "GRADIENT" -> working.copy(
+                                            backgroundType = mode,
+                                            backgroundColorHex = working.backgroundColorHex ?: 0xFF0A1424L,
+                                            backgroundGradientEndHex = working.backgroundGradientEndHex ?: 0xFF1E1032L,
+                                        )
+                                        else -> working.copy(backgroundType = mode)
+                                    }
+                                },
                                 label = { Text(mode) },
                             )
+                        }
+                    }
+                    if (working.backgroundType == "SOLID" || working.backgroundType == "GRADIENT") {
+                        Text(
+                            if (working.backgroundType == "GRADIENT") "Gradient Start Color" else "Solid Background Color",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(pageColorSwatches) { c ->
+                                val selected = working.backgroundColorHex == c
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(c))
+                                        .border(if (selected) 2.5.dp else 1.dp, if (selected) Color.White else Color.White.copy(alpha = 0.25f), CircleShape)
+                                        .clickable { working = working.copy(backgroundColorHex = c) },
+                                )
+                            }
+                        }
+                    }
+                    if (working.backgroundType == "GRADIENT") {
+                        Text("Gradient End Color", style = MaterialTheme.typography.labelLarge)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(pageColorSwatches) { c ->
+                                val selected = working.backgroundGradientEndHex == c
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(c))
+                                        .border(if (selected) 2.5.dp else 1.dp, if (selected) Color.White else Color.White.copy(alpha = 0.25f), CircleShape)
+                                        .clickable { working = working.copy(backgroundGradientEndHex = c) },
+                                )
+                            }
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1339,13 +1607,22 @@ fun PagesAndSnapshotsDialog(
                             Text("Landscape Img")
                         }
                     }
+                    if (working.backgroundImagePath != null || working.landscapeBackgroundImagePath != null) {
+                        TextButton(onClick = {
+                            working = working.copy(backgroundImagePath = null, landscapeBackgroundImagePath = null)
+                        }) {
+                            Text("Clear Page Background Images")
+                        }
+                    }
+                    Text("Page Blur: ${working.backgroundBlurDp.roundToInt()}dp")
+                    Slider(value = working.backgroundBlurDp, onValueChange = { working = working.copy(backgroundBlurDp = it) }, valueRange = 0f..24f)
                     Text("Background Opacity: ${(working.backgroundAlpha * 100).roundToInt()}%")
-                    Slider(value = working.backgroundAlpha, onValueChange = { working = working.copy(backgroundAlpha = it) }, valueRange = 0.1f..1f)
+                    Slider(value = working.backgroundAlpha, onValueChange = { working = working.copy(backgroundAlpha = it) }, valueRange = 0.05f..1f)
                 }
             },
             confirmButton = {
                 Button(onClick = {
-                    onSavePage(working)
+                    onSavePage(working.copy(title = working.title.trim().ifBlank { page.title }))
                     editingPage = null
                 }) { Text("Save Page") }
             },
@@ -1371,55 +1648,106 @@ fun PagesAndSnapshotsDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Home Pages (${pages.size})", style = MaterialTheme.typography.titleMedium)
+                Text("Home Pages (${pages.size}) • Tap a page to switch & edit", style = MaterialTheme.typography.titleMedium)
                 pages.forEachIndexed { idx, p ->
-                    Surface(shape = RoundedCornerShape(12.dp), tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                    val isCurrent = p.pageId == currentPageId
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        tonalElevation = if (isCurrent) 6.dp else 2.dp,
+                        border = if (isCurrent) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onJumpToPage(p.pageId)
+                                onDismiss()
+                            }
+                            .testTag("page_row_${p.pageId}"),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("${idx + 1}. ${p.title}", fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    listOfNotNull(
-                                        p.backgroundType,
-                                        if (p.isHidden) "Hidden" else null,
-                                        if (p.isLocked) "Locked" else null,
-                                        if (p.verticallyScrollable) "Scrollable" else null,
-                                    ).joinToString(" • "),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (idx > 0) {
-                                IconButton(onClick = {
-                                    val ids = pages.map { it.pageId }.toMutableList()
-                                    val moved = ids.removeAt(idx)
-                                    ids.add(idx - 1, moved)
-                                    onReorderPages(ids)
-                                }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Rounded.ArrowUpward, "Move up", modifier = Modifier.size(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "${idx + 1}. ${p.title}" + if (isCurrent) " (Active)" else "",
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        listOfNotNull(
+                                            p.backgroundType,
+                                            if (p.isHidden) "Hidden" else null,
+                                            if (p.isLocked) "Locked" else null,
+                                            if (p.verticallyScrollable) "Scrollable" else null,
+                                        ).joinToString(" • "),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        onJumpToPage(p.pageId)
+                                        onDismiss()
+                                    },
+                                    modifier = Modifier.size(40.dp).testTag("jump_page_btn_${p.pageId}"),
+                                ) {
+                                    Icon(Icons.AutoMirrored.Rounded.OpenInNew, "Go to page", modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { editingPage = p },
+                                    modifier = Modifier.size(40.dp).testTag("edit_page_btn_${p.pageId}"),
+                                ) {
+                                    Icon(Icons.Rounded.Tune, "Edit page", modifier = Modifier.size(18.dp))
                                 }
                             }
-                            if (idx < pages.lastIndex) {
-                                IconButton(onClick = {
-                                    val ids = pages.map { it.pageId }.toMutableList()
-                                    val moved = ids.removeAt(idx)
-                                    ids.add(idx + 1, moved)
-                                    onReorderPages(ids)
-                                }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Rounded.ArrowDownward, "Move down", modifier = Modifier.size(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (idx > 0) {
+                                    IconButton(
+                                        onClick = {
+                                            val ids = pages.map { it.pageId }.toMutableList()
+                                            val moved = ids.removeAt(idx)
+                                            ids.add(idx - 1, moved)
+                                            onReorderPages(ids)
+                                        },
+                                        modifier = Modifier.size(40.dp).testTag("move_page_up_${p.pageId}"),
+                                    ) {
+                                        Icon(Icons.Rounded.ArrowUpward, "Move up", modifier = Modifier.size(18.dp))
+                                    }
                                 }
-                            }
-                            IconButton(onClick = { onDuplicatePage(p) }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Rounded.ContentCopy, "Duplicate page", modifier = Modifier.size(16.dp))
-                            }
-                            IconButton(onClick = { editingPage = p }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Rounded.Tune, "Edit page", modifier = Modifier.size(16.dp))
-                            }
-                            if (pages.size > 1) {
-                                IconButton(onClick = { onDeletePage(p.pageId) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Rounded.Delete, "Delete page", modifier = Modifier.size(16.dp))
+                                if (idx < pages.lastIndex) {
+                                    IconButton(
+                                        onClick = {
+                                            val ids = pages.map { it.pageId }.toMutableList()
+                                            val moved = ids.removeAt(idx)
+                                            ids.add(idx + 1, moved)
+                                            onReorderPages(ids)
+                                        },
+                                        modifier = Modifier.size(40.dp).testTag("move_page_down_${p.pageId}"),
+                                    ) {
+                                        Icon(Icons.Rounded.ArrowDownward, "Move down", modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                                IconButton(
+                                    onClick = { onDuplicatePage(p) },
+                                    modifier = Modifier.size(40.dp).testTag("duplicate_page_${p.pageId}"),
+                                ) {
+                                    Icon(Icons.Rounded.ContentCopy, "Duplicate page", modifier = Modifier.size(18.dp))
+                                }
+                                if (pages.size > 1) {
+                                    IconButton(
+                                        onClick = { onDeletePage(p.pageId) },
+                                        modifier = Modifier.size(40.dp).testTag("delete_page_${p.pageId}"),
+                                    ) {
+                                        Icon(Icons.Rounded.Delete, "Delete page", modifier = Modifier.size(18.dp))
+                                    }
                                 }
                             }
                         }

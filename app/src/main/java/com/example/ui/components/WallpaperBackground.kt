@@ -67,17 +67,20 @@ fun WallpaperBackground(
                 }
             }
             "GRADIENT" -> {
+                val gradColors = listOf(
+                    Color(settings.wallpaperGradientStartHex),
+                    Color(settings.wallpaperGradientEndHex),
+                )
+                val brush = when (settings.wallpaperGradientDirection) {
+                    "HORIZONTAL" -> Brush.horizontalGradient(gradColors)
+                    "DIAGONAL" -> Brush.linearGradient(gradColors)
+                    else -> Brush.verticalGradient(gradColors)
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(settings.wallpaperGradientStartHex),
-                                    Color(settings.wallpaperGradientEndHex),
-                                )
-                            )
-                        )
+                        .background(brush)
+                        .then(blurMod)
                 )
             }
             "SOLID" -> {
@@ -102,7 +105,7 @@ fun WallpaperBackground(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = settings.wallpaperDimAlpha.coerceIn(0f, 0.85f)))
+                    .background(Color(settings.wallpaperDimColorHex).copy(alpha = settings.wallpaperDimAlpha.coerceIn(0f, 0.85f)))
             )
         }
 

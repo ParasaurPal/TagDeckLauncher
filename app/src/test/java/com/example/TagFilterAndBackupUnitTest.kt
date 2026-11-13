@@ -197,6 +197,13 @@ class TagFilterAndBackupUnitTest {
                 niagaraWaveIntensity = 1.4f,
                 gridSnapEnabled = true,
                 seededDefaults = true,
+                iconPackOrderCsv = "com.pack.one,com.pack.two",
+                blackIconStyleEnabled = false,
+                blackIconMode = "ALL_MONOCHROME",
+                blackIconFillColorHex = 0xFFE2E8F0L,
+                blackIconOutlineColorHex = 0xFF1E293BL,
+                blackIconOutlineWidthDp = 3.2f,
+                blackIconDarknessThreshold = 0.42f,
             ),
         )
 
@@ -232,5 +239,12 @@ class TagFilterAndBackupUnitTest {
         assertEquals(original.settings.globalIconShape, decoded.settings.globalIconShape)
         assertEquals(1.4f, decoded.settings.niagaraWaveIntensity, 0.001f)
         assertTrue(decoded.settings.gridSnapEnabled)
+        assertEquals(listOf("com.pack.one", "com.pack.two"), decoded.settings.iconPackOrder())
+        assertFalse(decoded.settings.blackIconStyleEnabled)
+        assertEquals("ALL_MONOCHROME", decoded.settings.blackIconMode)
+        assertEquals(0xFFE2E8F0L, decoded.settings.blackIconFillColorHex)
+        assertEquals(0xFF1E293BL, decoded.settings.blackIconOutlineColorHex)
+        assertEquals(3.2f, decoded.settings.blackIconOutlineWidthDp, 0.01f)
+        assertEquals(0.42f, decoded.settings.blackIconDarknessThreshold, 0.01f)
     }
 }

@@ -40,6 +40,7 @@ class AppDiscoveryManager(val context: Context) {
         context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
 
     private val iconCache = ConcurrentHashMap<String, ImageBitmap>()
+    val iconPackManager: IconPackManager = IconPackManager(context)
 
     suspend fun discoverLaunchableApps(): List<DiscoveredApp> = withContext(Dispatchers.IO) {
         val ownPackage = context.packageName
@@ -130,7 +131,13 @@ class AppDiscoveryManager(val context: Context) {
     }
 
     fun invalidatePackageIcon(packageName: String) {
-        iconCache.remove(packageName)
+        if (packageName == "batch") {
+            iconCache.clear()
+            iconPackManager.clearAllCaches()
+        } else {
+            iconCache.remove(packageName)
+            iconPackManager.invalidatePackage(packageName)
+        }
     }
 
     fun launchApp(packageName: String, componentName: String? = null): Boolean {
