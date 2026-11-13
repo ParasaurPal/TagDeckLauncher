@@ -71,6 +71,12 @@
             </intent-filter>
         </activity-alias>
 
+        <activity
+            android:name=".data.system.AppLockGateActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".data.system.TagDeckNotificationListenerService"
             android:exported="true"
