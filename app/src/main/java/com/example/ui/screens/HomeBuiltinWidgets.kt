@@ -37,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +59,12 @@ import com.example.data.db.ImageResourceEntity
 import com.example.data.system.BatteryTelemetry
 import com.example.data.system.DeviceTelemetryProvider
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -386,5 +393,104 @@ fun PhotoSlideshowWidgetContent(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+    }
+}
+
+
+private data class WeatherSnapshot(
+    val city: String,
+    val temperature: String,
+    val feelsLike: String,
+    val condition: String,
+    val humidity: String,
+    val wind: String,
+)
+
+private fun loadCityWeather(city: String): WeatherSnapshot {
+    fun getJson(url: String): JSONObject {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8000
+            readTimeout = 8000
+            requestMethod = "GET"
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("User-Agent", "TagDeckLauncher/1.0")
+        }
+        return try {
+            if (connection.responseCode !in 200..299) error("Weather service returned ${connection.responseCode}")
+            JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    val encoded = URLEncoder.encode(city.trim(), "UTF-8")
+    val geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=$encoded&count=1&language=en&format=json")
+    val place = geo.optJSONArray("results")?.optJSONObject(0) ?: error("City not found")
+    val lat = place.getDouble("latitude")
+    val lon = place.getDouble("longitude")
+    val displayCity = listOfNotNull(place.optString("name").takeIf { it.isNotBlank() }, place.optString("admin1").takeIf { it.isNotBlank() }).distinct().joinToString(", ")
+    val forecast = getJson(
+        "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto"
+    ).getJSONObject("current")
+    val code = forecast.optInt("weather_code", -1)
+    val condition = when (code) {
+        0 -> "Clear sky"
+        1 -> "Mainly clear"
+        2 -> "Partly cloudy"
+        3 -> "Overcast"
+        45, 48 -> "Fog"
+        51, 53, 55 -> "Drizzle"
+        56, 57 -> "Freezing drizzle"
+        61, 63, 65 -> "Rain"
+        66, 67 -> "Freezing rain"
+        71, 73, 75, 77 -> "Snow"
+        80, 81, 82 -> "Rain showers"
+        85, 86 -> "Snow showers"
+        95 -> "Thunderstorm"
+        96, 99 -> "Thunderstorm with hail"
+        else -> "Current conditions"
+    }
+    return WeatherSnapshot(
+        city = displayCity.ifBlank { city },
+        temperature = "${forecast.optDouble("temperature_2m").roundToInt()}°",
+        feelsLike = "${forecast.optDouble("apparent_temperature").roundToInt()}°",
+        condition = condition,
+        humidity = "${forecast.optInt("relative_humidity_2m")}%",
+        wind = "${forecast.optDouble("wind_speed_10m").roundToInt()} km/h",
+    )
+}
+
+@Composable
+fun WeatherWidgetContent(element: HomeElementEntity) {
+    val city = element.label.trim()
+    var snapshot by remember(element.elementId, city) { mutableStateOf<WeatherSnapshot?>(null) }
+    var error by remember(element.elementId, city) { mutableStateOf<String?>(null) }
+    LaunchedEffect(city) {
+        snapshot = null
+        error = null
+        if (city.isBlank()) {
+            error = "Edit widget label to set a city"
+        } else {
+            runCatching { withContext(Dispatchers.IO) { loadCityWeather(city) } }
+                .onSuccess { snapshot = it }
+                .onFailure { error = it.message ?: "Weather unavailable" }
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(12.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val data = snapshot
+        if (data != null) {
+            Text(data.city, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(data.temperature, color = Color.White, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Text(data.condition, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(5.dp))
+            Text("Feels ${data.feelsLike}  •  Humidity ${data.humidity}  •  Wind ${data.wind}", color = Color.White.copy(alpha = 0.78f), style = MaterialTheme.typography.labelSmall, maxLines = 2)
+        } else {
+            Text(error ?: "Loading weather…", color = Color.White, style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("Weather by Open-Meteo", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
