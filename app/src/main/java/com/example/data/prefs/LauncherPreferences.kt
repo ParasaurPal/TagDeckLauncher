@@ -106,6 +106,7 @@ data class LauncherSettings(
     val lineIconDefaultOutlineEnabled: Boolean = false,
     val lineIconDefaultOutlineColorHex: Long = 0xFF000000L,
     val lineIconDefaultOutlineWidthPx: Float = 1.2f,
+    val lockedAppsCsv: String = "",
     val seededDefaults: Boolean = false,
 ) {
     fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
@@ -222,6 +223,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         val LINE_ICON_DEFAULT_OUTLINE_ENABLED = booleanPreferencesKey("line_icon_default_outline_enabled")
         val LINE_ICON_DEFAULT_OUTLINE_COLOR = longPreferencesKey("line_icon_default_outline_color")
         val LINE_ICON_DEFAULT_OUTLINE_WIDTH = floatPreferencesKey("line_icon_default_outline_width")
+        val LOCKED_APPS = stringPreferencesKey("locked_apps_csv")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -308,6 +310,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         lineIconDefaultOutlineEnabled = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] ?: false,
         lineIconDefaultOutlineColorHex = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] ?: 0xFF000000L,
         lineIconDefaultOutlineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] ?: 1.2f,
+        lockedAppsCsv = prefs[Keys.LOCKED_APPS] ?: "",
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -407,6 +410,7 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] = updated.lineIconDefaultOutlineEnabled
             prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] = updated.lineIconDefaultOutlineColorHex
             prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] = updated.lineIconDefaultOutlineWidthPx
+            prefs[Keys.LOCKED_APPS] = updated.lockedAppsCsv
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }
