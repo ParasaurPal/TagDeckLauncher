@@ -182,7 +182,13 @@ fun ActiveOverlayHost(
         else -> false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val isRevealingDesktop = LocalAppDragCoordinator.current?.session?.isRevealingDesktop == true
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = if (isRevealingDesktop) 0.05f else 1f },
+    ) {
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(tween(animDuration)),
@@ -218,6 +224,7 @@ fun ActiveOverlayHost(
                             onLaunchApp(it)
                             onDismiss()
                         },
+                        onAppLongPress = onAppLongPress,
                         onDismiss = onDismiss,
                     )
                 }
@@ -1357,9 +1364,10 @@ fun TagTriggeredSidebarContent(
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                                    .combinedClickable(
+                                    .drawerAppItemInteraction(
+                                        app = app,
                                         onClick = { onLaunchApp(app) },
-                                        onLongClick = { onAppLongPress(app) },
+                                        onLongPress = { onAppLongPress(app) },
                                     )
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
                                     .testTag("sidebar_app_${app.packageName}"),
@@ -1399,9 +1407,10 @@ fun TagTriggeredSidebarContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .combinedClickable(
+                                    .drawerAppItemInteraction(
+                                        app = app,
                                         onClick = { onLaunchApp(app) },
-                                        onLongClick = { onAppLongPress(app) },
+                                        onLongPress = { onAppLongPress(app) },
                                     )
                                     .padding(vertical = 6.dp, horizontal = 4.dp)
                                     .testTag("sidebar_app_${app.packageName}"),
@@ -1674,11 +1683,13 @@ fun GenericSidebarContent(
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Color.White.copy(alpha = 0.08f))
-                                        .combinedClickable(
+                                        .drawerAppItemInteraction(
+                                            app = app,
                                             onClick = { onLaunchApp(app) },
-                                            onLongClick = { onAppLongPress(app) },
+                                            onLongPress = { onAppLongPress(app) },
                                         )
-                                        .padding(10.dp),
+                                        .padding(10.dp)
+                                        .testTag("generic_sidebar_app_${app.packageName}"),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     AppIconView(app, appDiscovery, iconSize.dp, iconShapeKey)
@@ -1705,11 +1716,13 @@ fun GenericSidebarContent(
                                 Column(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(14.dp))
-                                        .combinedClickable(
+                                        .drawerAppItemInteraction(
+                                            app = app,
                                             onClick = { onLaunchApp(app) },
-                                            onLongClick = { onAppLongPress(app) },
+                                            onLongPress = { onAppLongPress(app) },
                                         )
-                                        .padding(4.dp),
+                                        .padding(4.dp)
+                                        .testTag("generic_sidebar_app_${app.packageName}"),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     AppIconView(app, appDiscovery, iconSize.dp, iconShapeKey)
@@ -1852,6 +1865,7 @@ private fun FolderPopupModal(
     iconShapeKey: String,
     onOpenNestedFolder: (Long) -> Unit,
     onLaunchApp: (AppEntity) -> Unit,
+    onAppLongPress: (AppEntity) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     Box(
@@ -1921,8 +1935,13 @@ private fun FolderPopupModal(
                             Column(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .clickable { onLaunchApp(app) }
-                                    .padding(4.dp),
+                                    .drawerAppItemInteraction(
+                                        app = app,
+                                        onClick = { onLaunchApp(app) },
+                                        onLongPress = { onAppLongPress(app) },
+                                    )
+                                    .padding(4.dp)
+                                    .testTag("folder_app_${app.packageName}"),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 AppIconView(app, appDiscovery, 52.dp, iconShapeKey)

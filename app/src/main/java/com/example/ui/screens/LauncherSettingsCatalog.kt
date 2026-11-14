@@ -46,6 +46,7 @@ object LauncherSettingsCatalog {
                 entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, and smart rules", listOf("tag", "category", "rules", "collections")),
                 entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename, hide, lock apps behind device authentication, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "lock", "app lock", "device authentication", "custom icon", "manager", "work profile", "managed apps", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
+                entry("manage_custom_gestures", SECTION_MANAGE, "Custom Home Screen Gestures", "Configure custom swipe up/down/left/right and double-tap home actions", listOf("swipe", "gesture", "double tap", "two finger", "shortcut", "home action")),
             ),
         ),
         section(
@@ -159,7 +160,7 @@ object LauncherSettingsCatalog {
             title = "Home Canvas, Grid & Indicators",
             keywords = listOf("home screen", "dock", "grid", "snap", "lock"),
             entries = listOf(
-                entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Labels & Home Banner", "Show bottom dock search bar, quick tag strip, shortcut labels, banner", listOf("dock", "search bar", "tag strip", "labels", "banner")),
+                entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Labels & Home Banner", "Show bottom dock search bar, quick tag strip, shortcut labels, outline labels, banner", listOf("dock", "search bar", "tag strip", "labels", "outline labels", "banner")),
                 entry("layout_lock", SECTION_HOME_CANVAS, "Lock Entire Home Layout", "Prevent accidental moves or edits across all home pages", listOf("lock", "freeze", "protect")),
                 entry("grid_snap", SECTION_HOME_CANVAS, "Grid Snap, Edit Grid Lines & Alignment Guides", "Toggle grid snap, snap step (dp), edit grid overlay, magnetic guides", listOf("grid", "snap", "step", "guidelines", "magnetic", "alignment")),
             ),
@@ -167,9 +168,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_INDICATORS_HANDLES,
             title = "Page Indicators & Edge Handles",
-            keywords = listOf("pages", "transitions", "dots", "handles"),
+            keywords = listOf("pages", "transitions", "dots", "handles", "widget feed"),
             entries = listOf(
-                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition & Indicator Style", "Slide, Depth, or Fade transitions; Dots, Pill, Numbers, or Hidden", listOf("transition", "depth", "fade", "slide", "indicator", "dots", "pill", "numbers")),
+                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition, Widget Feed & Indicator Style", "Slide, Depth, or Fade transitions; Widget Feed page; Dots, Pill, Numbers", listOf("transition", "depth", "fade", "slide", "widget feed", "indicator", "dots", "pill", "numbers")),
                 entry("edge_handles", SECTION_INDICATORS_HANDLES, "Edge Sidebar Handles", "Toggle edge handles and customize opacity, thickness, and length", listOf("edge handle", "sidebar handle", "thickness", "length")),
             ),
         ),
@@ -187,9 +188,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_GESTURES,
             title = "Gestures & Shortcuts",
-            keywords = listOf("swipe", "tap", "double tap", "long press"),
+            keywords = listOf("swipe", "tap", "double tap", "long press", "custom gesture"),
             entries = listOf(
-                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Assign Single/Double Tap, Swipes, and Two-Finger actions", listOf("gesture", "swipe up", "swipe down", "swipe left", "swipe right", "double tap", "two finger")),
+                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Configure custom Swipe Up/Down/Left/Right, Double Tap, Single Tap & Two-Finger actions", listOf("gesture", "custom swipe", "swipe up", "swipe down", "swipe left", "swipe right", "double tap", "two finger", "app action", "launcher function")),
             ),
         ),
         section(

@@ -90,6 +90,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -106,6 +108,7 @@ import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.InstalledWidgetProvider
 import com.example.data.system.LauncherWidgetHost
+import com.example.ui.components.LocalAppDragCoordinator
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.OutlinedVectorIcon
 import com.example.ui.components.StudioQuickCustomizerDialog
@@ -322,11 +325,19 @@ fun HomeScreen(
                     }
                 }
 
+                val totalPagerPages = visiblePages.size + if (feedEnabled) 1 else 0
+                val swipeLeftAction = state.gestures["SWIPE_LEFT"]?.actionType ?: "NEXT_PAGE"
+                val swipeRightAction = state.gestures["SWIPE_RIGHT"]?.actionType ?: "PREV_PAGE"
+                val hasCustomHorizontalSwipeOverride =
+                    (swipeLeftAction != "NEXT_PAGE" && swipeLeftAction != "NONE") ||
+                        (swipeRightAction != "PREV_PAGE" && swipeRightAction != "NONE")
+                val allowCanvasHorizontalSwipe = totalPagerPages <= 1 || hasCustomHorizontalSwipeOverride
+
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
                         key = { idx -> if (idx == visiblePages.size) "WIDGET_FEED" else visiblePages[idx].pageId },
-                        userScrollEnabled = !state.isEditMode,
+                        userScrollEnabled = !state.isEditMode && totalPagerPages > 1 && !hasCustomHorizontalSwipeOverride,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIdx ->
                                                     if (feedEnabled && pageIdx == visiblePages.size) {
@@ -447,6 +458,8 @@ val page = visiblePages[pageIdx]
                         Box(modifier = Modifier.fillMaxSize().then(pageTransitionMod)) {
                             FreeformPageCanvas(
                             page = page,
+                            isCurrentPage = page.pageId == currentPage.pageId,
+                            allowHorizontalSwipe = allowCanvasHorizontalSwipe,
                             elements = elements,
                             state = state,
                             multiSelectActive = multiSelectActive,
@@ -477,6 +490,13 @@ val page = visiblePages[pageIdx]
                             onVerticalSwipe = { isUp ->
                                 if (!state.isEditMode) {
                                     onTriggerGesture(if (isUp) "SWIPE_UP" else "SWIPE_DOWN") { target ->
+                                        scope.launch { pagerState.animateScrollToPage(target) }
+                                    }
+                                }
+                            },
+                            onHorizontalSwipe = { isLeft ->
+                                if (!state.isEditMode) {
+                                    onTriggerGesture(if (isLeft) "SWIPE_LEFT" else "SWIPE_RIGHT") { target ->
                                         scope.launch { pagerState.animateScrollToPage(target) }
                                     }
                                 }
@@ -767,54 +787,6 @@ val page = visiblePages[pageIdx]
             onAddElement = { onSaveElement(it, true) },
             onOpenWidgetPicker = { showWidgetPicker = true },
             onDismiss = { showAddElementDialog = false },
-        )
-    }
-
-    if (showFeedWidgetPicker) {
-        val providers = remember { widgetHost.getInstalledProviders() }
-        WidgetPickerDialog(
-            providers = providers,
-            tags = state.allTags,
-            onPickSystemWidget = { provider ->
-                showFeedWidgetPicker = false
-                onStartSystemWidgetBind(provider, 0L, "FEED")
-            },
-            onPickBuiltinType = { type, label, wDp, hDp ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = type,
-                        xFraction = 0.08f,
-                        yFraction = 0.08f,
-                        widthDp = wDp,
-                        heightDp = hDp,
-                        label = label,
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onPickBuiltinTagWidget = { tag ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = "TAG_COLLECTION_WIDGET",
-                        xFraction = 0.06f,
-                        yFraction = 0.08f,
-                        widthDp = 310f,
-                        heightDp = 240f,
-                        label = tag.name,
-                        targetTagId = tag.tagId,
-                        backgroundColorHex = 0x660F172AL,
-                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onDismiss = { showFeedWidgetPicker = false },
         )
     }
 
@@ -1242,6 +1214,8 @@ private fun EditToolbarOutlinedIcon(
 @Composable
 private fun FreeformPageCanvas(
     page: HomePageEntity,
+    isCurrentPage: Boolean,
+    allowHorizontalSwipe: Boolean,
     elements: List<HomeElementEntity>,
     state: LauncherUiState,
     multiSelectActive: Boolean,
@@ -1252,6 +1226,7 @@ private fun FreeformPageCanvas(
     onCanvasDoubleTap: () -> Unit,
     onCanvasLongPress: () -> Unit,
     onVerticalSwipe: (Boolean) -> Unit,
+    onHorizontalSwipe: (Boolean) -> Unit,
     onLaunchApp: (AppEntity) -> Unit,
     onOpenTagSidebar: (Long) -> Unit,
     onOpenCategorySidebar: (Long) -> Unit,
@@ -1265,6 +1240,7 @@ private fun FreeformPageCanvas(
     onSaveElement: (HomeElementEntity, Boolean) -> Unit,
 ) {
     val density = LocalDensity.current
+    val dragCoordinator = LocalAppDragCoordinator.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val latestIsEditMode by rememberUpdatedState(state.isEditMode)
     val latestElements by rememberUpdatedState(elements)
@@ -1307,6 +1283,11 @@ private fun FreeformPageCanvas(
                 .fillMaxWidth()
                 .height(contentHeightDp)
                 .testTag("home_canvas_${page.pageId}")
+                .onGloballyPositioned { coords ->
+                    if (isCurrentPage) {
+                        dragCoordinator?.updateCanvasBounds(coords.boundsInRoot())
+                    }
+                }
                 .pointerInput(page.pageId, canvasWidthPx, canvasHeightPx) {
                     detectTapGestures(
                         onTap = { onCanvasTap() },
@@ -1347,8 +1328,43 @@ private fun FreeformPageCanvas(
                             },
                         )
                     }
+                }
+                .pointerInput(state.isEditMode, allowHorizontalSwipe) {
+                    if (!state.isEditMode && allowHorizontalSwipe) {
+                        var totalDx = 0f
+                        var triggered = false
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDx = 0f; triggered = false },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDx += dragAmount
+                                if (!triggered && abs(totalDx) > 95f) {
+                                    triggered = true
+                                    onHorizontalSwipe(totalDx < 0f)
+                                }
+                            },
+                        )
+                    }
                 },
         ) {
+            if (isCurrentPage) {
+                val dragSession = dragCoordinator?.session
+                if (dragSession != null && dragSession.isRevealingDesktop) {
+                    val (dropFx, dropFy) = dragCoordinator.computeDropFractions(dragSession.pointerRootPos)
+                    val dropXPx = (dropFx * canvasWidthPx).roundToInt()
+                    val dropYPx = (dropFy * canvasHeightPx).roundToInt()
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(dropXPx, dropYPx) }
+                            .size(width = 84.dp, height = 92.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
+                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp))
+                            .testTag("home_drop_preview_slot"),
+                    )
+                }
+            }
+
             if (state.isEditMode && (state.settings.editGridVisible || activeGuideX != null || activeGuideY != null)) {
                 val gridColor = Color(state.settings.editGridColorHex).copy(alpha = state.settings.editGridOpacity.coerceIn(0.01f, 0.5f))
                 val guideColor = Color(state.settings.alignmentGuideColorHex)

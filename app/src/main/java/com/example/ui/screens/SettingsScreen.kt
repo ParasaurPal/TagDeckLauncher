@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,11 +43,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.ArrowDownward
@@ -107,11 +110,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
+import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.NotificationAccess
 import com.example.data.system.CloudBackupScheduler
 import com.example.ui.components.BackgroundPresetDialog
@@ -130,33 +135,102 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 private val GestureLabels = listOf(
-    "SINGLE_TAP" to "Single Tap",
-    "DOUBLE_TAP" to "Double Tap",
-    "LONG_PRESS" to "Long Press",
     "SWIPE_UP" to "Swipe Up",
     "SWIPE_DOWN" to "Swipe Down",
     "SWIPE_LEFT" to "Swipe Left",
     "SWIPE_RIGHT" to "Swipe Right",
+    "DOUBLE_TAP" to "Double Tap",
+    "SINGLE_TAP" to "Single Tap",
+    "LONG_PRESS" to "Long Press",
     "TWO_FINGER_SWIPE_UP" to "Two-Finger Swipe Up",
     "TWO_FINGER_SWIPE_DOWN" to "Two-Finger Swipe Down",
 )
 
 private val ActionOptions = listOf(
-    "NONE" to "None",
-    "OPEN_DRAWER" to "Open App Drawer",
-    "OPEN_SEARCH" to "Open Universal Search",
-    "OPEN_TAG_MANAGER" to "Open Tag Hub",
-    "OPEN_TAG" to "Open Specific Tag Sidebar",
-    "OPEN_CATEGORY" to "Open Play Category Sidebar",
-    "OPEN_SIDEBAR" to "Open Configured Sidebar",
-    "OPEN_WINDOW" to "Open Floating Window",
-    "OPEN_RULE" to "Open Dynamic Rule",
-    "OPEN_APP" to "Launch Specific App",
-    "NEXT_PAGE" to "Next Home Page",
-    "PREV_PAGE" to "Previous Home Page",
-    "TOGGLE_EDIT_MODE" to "Toggle Layout Studio",
-    "OPEN_SETTINGS" to "Open Settings",
+    "NONE" to "None (Disabled)",
+    "OPEN_DRAWER" to "Launcher: Open App Drawer",
+    "OPEN_SEARCH" to "Launcher: Open Global Search",
+    "OPEN_TAG_MANAGER" to "Launcher: Open Tag Hub",
+    "OPEN_TAG" to "Launcher: Open Specific Tag Sidebar",
+    "OPEN_CATEGORY" to "Launcher: Open Play Category Sidebar",
+    "OPEN_SIDEBAR" to "Launcher: Open Configured Sidebar",
+    "OPEN_WINDOW" to "Launcher: Open Floating Window",
+    "OPEN_RULE" to "Launcher: Open Dynamic Rule",
+    "NEXT_PAGE" to "Launcher: Next Home Page",
+    "PREV_PAGE" to "Launcher: Previous Home Page",
+    "TOGGLE_EDIT_MODE" to "Launcher: Toggle Home Edit Studio",
+    "OPEN_SETTINGS" to "Launcher: Open Settings",
+    "OPEN_APP_MANAGER" to "Launcher: Open App Icons Manager",
+    "OPEN_SIDEBAR_MANAGER" to "Launcher: Open Sidebars & Windows",
+    "OPEN_APP" to "App Action: Launch Specific App",
+    "OPEN_APP_SHORTCUT" to "App Action: Trigger App Shortcut",
+    "OPEN_APP_INFO" to "App Action: Open App Info & Permissions",
+    "OPEN_SYSTEM_SETTING" to "Device Action: Open System Setting",
+    "OPEN_WEBSITE" to "Web Action: Open URL Shortcut",
 )
+
+private val SystemSettingOptions = listOf(
+    Settings.ACTION_SETTINGS to "Android Settings",
+    Settings.ACTION_WIFI_SETTINGS to "Wi-Fi Settings",
+    Settings.ACTION_BLUETOOTH_SETTINGS to "Bluetooth Settings",
+    Settings.ACTION_DISPLAY_SETTINGS to "Display & Brightness",
+    Settings.ACTION_SOUND_SETTINGS to "Sound & Vibration",
+    Settings.ACTION_BATTERY_SAVER_SETTINGS to "Battery Saver",
+    Settings.ACTION_APPLICATION_SETTINGS to "Apps & Notifications",
+    Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS to "Notification Access",
+)
+
+private fun describeGestureBinding(binding: GestureBindingEntity, state: LauncherUiState): String {
+    return when (binding.actionType) {
+        "NONE" -> "None"
+        "OPEN_APP" -> {
+            val name = state.appsWithTags.find { it.app.packageName == binding.targetPackageName }?.app?.displayName
+                ?: binding.targetPackageName.orEmpty()
+            if (name.isNotBlank()) "Launch: $name" else "Launch App"
+        }
+        "OPEN_APP_SHORTCUT" -> {
+            val appName = state.appsWithTags.find { it.app.packageName == binding.targetPackageName }?.app?.displayName
+                ?: binding.targetPackageName.orEmpty()
+            val sc = binding.targetUrl.orEmpty()
+            if (appName.isNotBlank() && sc.isNotBlank()) "Shortcut: $appName ($sc)" else "App Shortcut"
+        }
+        "OPEN_APP_INFO" -> {
+            val name = state.appsWithTags.find { it.app.packageName == binding.targetPackageName }?.app?.displayName
+                ?: binding.targetPackageName.orEmpty()
+            if (name.isNotBlank()) "App Info: $name" else "Open App Info"
+        }
+        "OPEN_TAG" -> {
+            val tagName = state.allTags.find { it.tagId == binding.targetTagId }?.name
+            if (!tagName.isNullOrBlank()) "Tag: $tagName" else "Open Tag Sidebar"
+        }
+        "OPEN_CATEGORY" -> {
+            val catName = state.categories.find { it.categoryId == binding.targetCategoryId }?.name
+            if (!catName.isNullOrBlank()) "Category: $catName" else "Open Category Sidebar"
+        }
+        "OPEN_SIDEBAR" -> {
+            val sbName = state.sidebars.find { it.sidebarId == binding.targetSidebarId }?.title
+            if (!sbName.isNullOrBlank()) "Sidebar: $sbName" else "Open Configured Sidebar"
+        }
+        "OPEN_WINDOW" -> {
+            val winName = state.windows.find { it.windowId == binding.targetWindowId }?.title
+            if (!winName.isNullOrBlank()) "Window: $winName" else "Open Floating Window"
+        }
+        "OPEN_RULE" -> {
+            val rName = state.savedRules.find { it.ruleId == binding.targetRuleId }?.name
+            if (!rName.isNullOrBlank()) "Rule: $rName" else "Open Dynamic Rule"
+        }
+        "OPEN_SYSTEM_SETTING" -> {
+            val settingLabel = SystemSettingOptions.find { it.first == binding.targetUrl }?.second ?: "Android Settings"
+            "System: $settingLabel"
+        }
+        "OPEN_WEBSITE" -> {
+            val url = binding.targetUrl?.trim().orEmpty()
+            if (url.isNotBlank()) "URL: $url" else "Open URL"
+        }
+        else -> ActionOptions.find { it.first == binding.actionType }?.second?.substringAfter(": ")
+            ?: binding.actionType
+    }
+}
 
 @Composable
 fun SettingsScreen(
@@ -178,12 +252,15 @@ fun SettingsScreen(
     onAddIconPack: (String) -> Unit = {},
     onRemoveIconPack: (String) -> Unit = {},
     onMoveIconPack: (String, Int) -> Unit = { _, _ -> },
+    onResetDefaultGestures: () -> Unit = {},
+    appDiscovery: AppDiscoveryManager? = null,
     initialSearchQuery: String = "",
     onConsumeInitialSearchQuery: () -> Unit = {},
 ) {
     BackHandler { onBack() }
 
     val context = LocalContext.current
+    val resolvedDiscovery = remember(appDiscovery, context) { appDiscovery ?: AppDiscoveryManager(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     var permissionRefresh by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
@@ -215,6 +292,7 @@ fun SettingsScreen(
     val matchingSections = remember(searchQuery) {
         LauncherSettingsCatalog.filterSections(searchQuery)
     }
+    var showHomeGesturesDialog by remember { mutableStateOf(false) }
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
@@ -382,6 +460,46 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Sidebars & Floating Windows")
+                    }
+                    Surface(
+                        onClick = { showHomeGesturesDialog = true },
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("settings_menu_custom_gestures"),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Rounded.Gesture,
+                                contentDescription = "Custom Home Gestures",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Custom Home Screen Gestures",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "Configure swipe up/down/left/right & double tap to trigger app actions or launcher functions",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                     }
                 }
@@ -1726,25 +1844,47 @@ fun SettingsScreen(
                         icon = Icons.Rounded.Gesture,
                         matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_GESTURES].orEmpty() else emptyList(),
                     ) {
+                    Text(
+                        text = "Customize swipe and tap gestures on the Home canvas to launch app actions, system tools, or launcher panels.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     GestureLabels.forEach { (key, label) ->
                         val binding = state.gestures[key] ?: GestureBindingEntity(key, "NONE")
-                        val actionLabel = ActionOptions.find { it.first == binding.actionType }?.second ?: binding.actionType
+                        val actionSummary = describeGestureBinding(binding, state)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { editingGesture = binding }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 8.dp)
+                                .testTag("gesture_row_$key"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                             Text(
-                                text = actionLabel,
+                                text = actionSummary,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = { showHomeGesturesDialog = true },
+                            modifier = Modifier.weight(1f).testTag("open_gesture_configurator_button"),
+                        ) {
+                            Text("Configure All")
+                        }
+                        OutlinedButton(
+                            onClick = onResetDefaultGestures,
+                            modifier = Modifier.testTag("reset_gestures_button"),
+                        ) {
+                            Text("Reset Defaults")
+                        }
                     }
                     }
                 }
@@ -1925,10 +2065,20 @@ fun SettingsScreen(
         )
     }
 
+    if (showHomeGesturesDialog) {
+        HomeGesturesConfigDialog(
+            state = state,
+            onEditGesture = { editingGesture = it },
+            onResetDefaults = onResetDefaultGestures,
+            onDismiss = { showHomeGesturesDialog = false },
+        )
+    }
+
     editingGesture?.let { binding ->
         GestureBindingDialog(
             binding = binding,
             state = state,
+            appDiscovery = resolvedDiscovery,
             onSave = {
                 onSaveGesture(it)
                 editingGesture = null
@@ -2021,11 +2171,88 @@ private fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> U
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeGesturesConfigDialog(
+    state: LauncherUiState,
+    onEditGesture: (GestureBindingEntity) -> Unit,
+    onResetDefaults: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Rounded.Gesture, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text("Custom Home Screen Gestures")
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .testTag("home_gestures_config_dialog"),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "Tap any swipe or tap gesture below to assign a specific app, app shortcut, system action, or launcher function.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .testTag("home_gestures_config_list"),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(GestureLabels, key = { it.first }) { (key, label) ->
+                        val binding = state.gestures[key] ?: GestureBindingEntity(key, "NONE")
+                        val desc = describeGestureBinding(binding, state)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onEditGesture(binding) }
+                                .testTag("gesture_config_row_$key"),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Configure $label")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text("Done") }
+        },
+        dismissButton = {
+            TextButton(onClick = onResetDefaults) { Text("Reset Defaults") }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun GestureBindingDialog(
     binding: GestureBindingEntity,
     state: LauncherUiState,
+    appDiscovery: AppDiscoveryManager,
     onSave: (GestureBindingEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -2036,21 +2263,51 @@ private fun GestureBindingDialog(
     var targetSidebarId by remember { mutableStateOf(binding.targetSidebarId) }
     var targetWindowId by remember { mutableStateOf(binding.targetWindowId) }
     var targetRuleId by remember { mutableStateOf(binding.targetRuleId) }
+    var targetUrl by remember { mutableStateOf(binding.targetUrl ?: "") }
+    var appFilter by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+
+    val filteredApps = remember(state.appsWithTags, appFilter) {
+        val q = appFilter.trim().lowercase()
+        val installed = state.appsWithTags.filter { it.app.isInstalled }
+        if (q.isEmpty()) installed
+        else installed.filter {
+            it.app.displayName.lowercase().contains(q) || it.app.packageName.lowercase().contains(q)
+        }
+    }
+
+    val appShortcuts = remember(actionType, targetPkg, state.appsWithTags) {
+        if (actionType == "OPEN_APP_SHORTCUT" && !targetPkg.isNullOrBlank()) {
+            val comp = state.appsWithTags.find { it.app.packageName == targetPkg }?.app?.componentName
+            appDiscovery.getAppShortcuts(targetPkg!!, comp)
+        } else {
+            emptyList()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Configure ${GestureLabels.find { it.first == binding.gestureType }?.second ?: binding.gestureType}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState())
+                    .testTag("gesture_binding_dialog"),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
                         value = ActionOptions.find { it.first == actionType }?.second ?: actionType,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Action") },
+                        label = { Text("Action / Function") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
+                            .testTag("gesture_action_dropdown"),
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         ActionOptions.forEach { (key, label) ->
@@ -2059,7 +2316,11 @@ private fun GestureBindingDialog(
                                 onClick = {
                                     actionType = key
                                     expanded = false
+                                    if (key == "OPEN_SYSTEM_SETTING" && targetUrl.isBlank()) {
+                                        targetUrl = Settings.ACTION_SETTINGS
+                                    }
                                 },
+                                modifier = Modifier.testTag("gesture_action_option_$key"),
                             )
                         }
                     }
@@ -2116,33 +2377,100 @@ private fun GestureBindingDialog(
                             }
                         }
                     }
-                    "OPEN_APP" -> {
-                        LazyColumn(modifier = Modifier.height(180.dp)) {
-                            items(state.appsWithTags, key = { it.app.packageName }) { item ->
+                    "OPEN_APP", "OPEN_APP_INFO", "OPEN_APP_SHORTCUT" -> {
+                        OutlinedTextField(
+                            value = appFilter,
+                            onValueChange = { appFilter = it },
+                            placeholder = { Text("Filter apps...") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("gesture_app_search_input"),
+                        )
+                        LazyColumn(modifier = Modifier.height(if (actionType == "OPEN_APP_SHORTCUT") 130.dp else 180.dp)) {
+                            items(filteredApps, key = { it.app.packageName }) { item ->
                                 Text(
                                     text = (if (targetPkg == item.app.packageName) "● " else "○ ") + item.app.displayName,
-                                    modifier = Modifier.fillMaxWidth().clickable { targetPkg = item.app.packageName }.padding(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            targetPkg = item.app.packageName
+                                            if (actionType == "OPEN_APP_SHORTCUT") {
+                                                targetUrl = ""
+                                            }
+                                        }
+                                        .padding(8.dp)
+                                        .testTag("gesture_target_app_${item.app.packageName}"),
                                 )
                             }
                         }
+                        if (actionType == "OPEN_APP_SHORTCUT" && !targetPkg.isNullOrBlank()) {
+                            Text("Select App Shortcut", style = MaterialTheme.typography.labelLarge)
+                            if (appShortcuts.isEmpty()) {
+                                Text(
+                                    text = "This app exposes no dynamic/manifest shortcuts. Triggering it will launch the app directly.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                LazyColumn(modifier = Modifier.height(110.dp)) {
+                                    items(appShortcuts, key = { it.id }) { sc ->
+                                        val scLabel = sc.shortLabel?.toString().orEmpty().ifBlank { sc.id }
+                                        Text(
+                                            text = (if (targetUrl == sc.id) "● " else "○ ") + scLabel,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { targetUrl = sc.id }
+                                                .padding(8.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "OPEN_SYSTEM_SETTING" -> {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            SystemSettingOptions.forEach { (actionConst, label) ->
+                                FilterChip(
+                                    selected = targetUrl == actionConst,
+                                    onClick = { targetUrl = actionConst },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                    }
+                    "OPEN_WEBSITE" -> {
+                        OutlinedTextField(
+                            value = targetUrl,
+                            onValueChange = { targetUrl = it },
+                            label = { Text("Website URL") },
+                            placeholder = { Text("https://example.com") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("gesture_url_input"),
+                        )
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSave(
-                    binding.copy(
-                        actionType = actionType,
-                        targetPackageName = targetPkg,
-                        targetTagId = targetTagId,
-                        targetCategoryId = targetCatId,
-                        targetSidebarId = targetSidebarId,
-                        targetWindowId = targetWindowId,
-                        targetRuleId = targetRuleId,
+            Button(
+                onClick = {
+                    onSave(
+                        binding.copy(
+                            actionType = actionType,
+                            targetPackageName = targetPkg,
+                            targetTagId = targetTagId,
+                            targetCategoryId = targetCatId,
+                            targetSidebarId = targetSidebarId,
+                            targetWindowId = targetWindowId,
+                            targetRuleId = targetRuleId,
+                            targetUrl = targetUrl.trim().takeIf { it.isNotEmpty() },
+                        )
                     )
-                )
-            }) { Text("Save") }
+                },
+                modifier = Modifier.testTag("save_gesture_binding_button"),
+            ) { Text("Save") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

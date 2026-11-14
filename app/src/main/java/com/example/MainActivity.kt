@@ -49,11 +49,14 @@ import com.example.data.db.TagEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.system.InstalledWidgetProvider
 import com.example.data.system.LineIconProfile
+import android.content.res.Configuration
 import com.example.ui.components.ActiveOverlayHost
 import com.example.ui.components.AppActionAndCustomizeDialog
+import com.example.ui.components.AppDragOverlayGhost
 import com.example.ui.components.AppDrawerOverlay
 import com.example.ui.components.BulkAssignAppsToTagDialog
 import com.example.ui.components.CategoryEditorDialog
+import com.example.ui.components.LocalAppDragCoordinator
 import com.example.ui.components.LocalIconPackOrder
 import com.example.ui.components.LocalNotificationBadgesEnabled
 import com.example.ui.components.LocalLineIconProfiles
@@ -62,6 +65,7 @@ import com.example.ui.components.LineIconStudioDialog
 import com.example.ui.components.LocalIconStyleConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
+import com.example.ui.components.rememberAppDragToDesktopController
 import com.example.ui.screens.AppManagerScreen
 import com.example.ui.screens.HomeElementBody
 import com.example.ui.screens.ElementInspectorDialog
@@ -311,6 +315,17 @@ private fun TagDeckRoot(
     }
 
     val installedWidgetProviders = remember { viewModel.widgetHost.getInstalledProviders() }
+    val isLandscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val appDragCoordinator = rememberAppDragToDesktopController(
+        gridSnapEnabled = state.settings.gridSnapEnabled,
+        gridSnapStepDp = state.settings.gridSnapStepDp,
+        onDropApp = { app, fx, fy ->
+            viewModel.dropAppShortcutOnHome(app = app, xFraction = fx, yFraction = fy, isLandscape = isLandscape)
+            if (navController.currentDestination?.route != LauncherRoute.Home.route) {
+                navController.popBackStack(LauncherRoute.Home.route, inclusive = false)
+            }
+        },
+    )
 
     CompositionLocalProvider(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
@@ -318,6 +333,7 @@ private fun TagDeckRoot(
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
         LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
         LocalDefaultLineIconProfile provides if (state.settings.lineIconsEnabled) state.settings.defaultLineIconProfile() else null,
+        LocalAppDragCoordinator provides appDragCoordinator,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -509,6 +525,8 @@ private fun TagDeckRoot(
                     },
                     onUpdateSettings = { viewModel.updateSettings(it) },
                     onSaveGesture = { viewModel.saveGestureBinding(it) },
+                    onResetDefaultGestures = { viewModel.resetDefaultGestures() },
+                    appDiscovery = viewModel.appDiscovery,
                     onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
                     onRenameImageResource = { res, name, folder -> viewModel.renameImageResource(res, name, folder) },
                     onDeleteImageResource = { res -> viewModel.deleteImageResource(res) },
@@ -655,6 +673,14 @@ private fun TagDeckRoot(
                     },
                 )
             },
+        )
+
+        val activeTargetPageTitle = state.homePages.getOrNull(state.currentPageIndex)?.title ?: "Home"
+        AppDragOverlayGhost(
+            session = appDragCoordinator.session,
+            targetPageTitle = activeTargetPageTitle,
+            appDiscovery = viewModel.appDiscovery,
+            iconShapeKey = state.settings.globalIconShape,
         )
 
         SnackbarHost(

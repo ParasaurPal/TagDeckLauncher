@@ -690,6 +690,67 @@ class LauncherViewModel(
         }
     }
 
+    fun dropAppShortcutOnHome(
+        app: AppEntity,
+        xFraction: Float,
+        yFraction: Float,
+        isLandscape: Boolean = false,
+    ) {
+        viewModelScope.launch {
+            val state = uiState.value
+            val visiblePages = if (state.isEditMode) {
+                state.homePages
+            } else {
+                state.homePages.filter { !it.isHidden }
+            }.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
+            val page = visiblePages.getOrNull(state.currentPageIndex.coerceIn(0, visiblePages.lastIndex))
+                ?: visiblePages.firstOrNull()
+                ?: return@launch
+
+            if (state.settings.layoutLocked || page.isLocked) {
+                transientState.update {
+                    it.copy(
+                        isDrawerOpen = false,
+                        activeOverlay = ActiveOverlay.None,
+                    )
+                }
+                showMessage("Unlock \"${page.title}\" or global layout lock in Settings to place icons")
+                return@launch
+            }
+
+            recordUndoCheckpoint()
+            val fx = xFraction.coerceIn(0f, 0.90f)
+            val fy = yFraction.coerceIn(0f, 0.90f)
+            val nextZ = (state.homeElements.maxOfOrNull { it.zIndex } ?: 0) + 1
+            repository.saveHomeElement(
+                HomeElementEntity(
+                    pageId = page.pageId,
+                    ownerType = "PAGE",
+                    type = "APP_SHORTCUT",
+                    targetPackageName = app.packageName,
+                    label = app.displayName,
+                    xFraction = fx,
+                    yFraction = fy,
+                    landscapeXFraction = if (isLandscape) fx else null,
+                    landscapeYFraction = if (isLandscape) fy else null,
+                    widthDp = 84f,
+                    heightDp = 92f,
+                    zIndex = nextZ,
+                    backgroundColorHex = 0x00000000L,
+                    borderWidthDp = 0f,
+                    showLabel = state.settings.showHomeAppLabels,
+                )
+            )
+            transientState.update {
+                it.copy(
+                    isDrawerOpen = false,
+                    activeOverlay = ActiveOverlay.None,
+                )
+            }
+            showMessage("Added ${app.displayName} to ${page.title}")
+        }
+    }
+
     fun copyElementToClipboard(element: HomeElementEntity) {
         transientState.update { it.copy(clipboardElement = element) }
         showMessage("Copied \"${element.label.ifBlank { element.type }}\"")
@@ -847,6 +908,13 @@ class LauncherViewModel(
         viewModelScope.launch { repository.saveGestureBinding(binding) }
     }
 
+    fun resetDefaultGestures() {
+        viewModelScope.launch {
+            repository.resetDefaultGestures()
+            showMessage("Restored default home screen gestures")
+        }
+    }
+
     fun triggerGesture(
         gestureType: String,
         onNavigate: (LauncherRoute) -> Unit,
@@ -923,11 +991,23 @@ class LauncherViewModel(
             "OPEN_APP" -> targetPackageName?.let { pkg ->
                 uiState.value.appsWithTags.find { it.app.packageName == pkg }?.app?.let { launchApp(it) }
             }
+            "OPEN_APP_SHORTCUT" -> if (!targetPackageName.isNullOrBlank()) {
+                val app = uiState.value.appsWithTags.find { it.app.packageName == targetPackageName }?.app
+                val launchedShortcut = !targetUrl.isNullOrBlank() &&
+                    appDiscovery.launchAppShortcut(targetPackageName, targetUrl, app?.componentName)
+                if (!launchedShortcut) {
+                    if (app != null) launchApp(app) else showMessage("Shortcut unavailable on this device")
+                }
+            }
+            "OPEN_APP_INFO" -> targetPackageName?.let { pkg ->
+                appDiscovery.openAppInfo(pkg)
+            }
             "OPEN_WEBSITE" -> targetUrl?.let { appDiscovery.openUrl(it) }
             "OPEN_SYSTEM_SETTING" -> appDiscovery.openSystemSettings(targetUrl ?: Settings.ACTION_SETTINGS)
             "OPEN_SETTINGS" -> onNavigate(LauncherRoute.Settings)
             "OPEN_TAG_MANAGER" -> onNavigate(LauncherRoute.Tags)
             "OPEN_APP_MANAGER" -> onNavigate(LauncherRoute.Apps)
+            "OPEN_SIDEBAR_MANAGER" -> onNavigate(LauncherRoute.Sidebars)
             "NEXT_PAGE" -> {
                 val pages = uiState.value.homePages.size
                 if (pages > 1) {

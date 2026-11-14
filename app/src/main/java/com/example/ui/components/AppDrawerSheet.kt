@@ -71,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -270,7 +271,13 @@ fun AppDrawerOverlay(
             else -> Alignment.Center
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        val isRevealingDesktop = LocalAppDragCoordinator.current?.session?.isRevealingDesktop == true
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = if (isRevealingDesktop) 0.05f else 1f },
+        ) {
             if (drawerFraction < 0.99f) {
                 Box(
                     modifier = Modifier
@@ -477,15 +484,16 @@ fun AppDrawerOverlay(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(16.dp))
-                                                
-                                                .combinedClickable(
+                                                .drawerAppItemInteraction(
+                                                    app = item.app,
                                                     onClick = {
                                                         onLaunchApp(item.app)
                                                         onClose()
                                                     },
-                                                    onLongClick = { onAppLongPress(item.app) },
+                                                    onLongPress = { onAppLongPress(item.app) },
                                                 )
-                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                                .testTag("drawer_app_${item.app.packageName}"),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             AppIconView(
@@ -547,12 +555,13 @@ fun AppDrawerOverlay(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .combinedClickable(
+                                                .drawerAppItemInteraction(
+                                                    app = item.app,
                                                     onClick = {
                                                         onLaunchApp(item.app)
                                                         onClose()
                                                     },
-                                                    onLongClick = { onAppLongPress(item.app) },
+                                                    onLongPress = { onAppLongPress(item.app) },
                                                 )
                                                 .padding(vertical = 6.dp, horizontal = 2.dp)
                                                 .testTag("drawer_app_${item.app.packageName}"),

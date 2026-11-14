@@ -407,21 +407,27 @@ class LauncherRepository(
             }
 
             if (dao.getGesturesOnce().isEmpty()) {
-                dao.upsertGestures(
-                    listOf(
-                        GestureBindingEntity("SINGLE_TAP", "NONE"),
-                        GestureBindingEntity("DOUBLE_TAP", "OPEN_TAG_MANAGER"),
-                        GestureBindingEntity("LONG_PRESS", "TOGGLE_EDIT_MODE"),
-                        GestureBindingEntity("SWIPE_UP", "OPEN_DRAWER"),
-                        GestureBindingEntity("SWIPE_DOWN", "OPEN_SEARCH"),
-                        GestureBindingEntity("SWIPE_LEFT", "NEXT_PAGE"),
-                        GestureBindingEntity("SWIPE_RIGHT", "PREV_PAGE"),
-                        GestureBindingEntity("TWO_FINGER_SWIPE_UP", "OPEN_SETTINGS"),
-                        GestureBindingEntity("TWO_FINGER_SWIPE_DOWN", "TOGGLE_EDIT_MODE"),
-                    )
-                )
+                dao.upsertGestures(defaultGestureBindings())
             }
         }
+    }
+
+    suspend fun resetDefaultGestures() {
+        dao.upsertGestures(defaultGestureBindings())
+    }
+
+    companion object {
+        fun defaultGestureBindings(): List<GestureBindingEntity> = listOf(
+            GestureBindingEntity("SINGLE_TAP", "NONE"),
+            GestureBindingEntity("DOUBLE_TAP", "OPEN_TAG_MANAGER"),
+            GestureBindingEntity("LONG_PRESS", "TOGGLE_EDIT_MODE"),
+            GestureBindingEntity("SWIPE_UP", "OPEN_DRAWER"),
+            GestureBindingEntity("SWIPE_DOWN", "OPEN_SEARCH"),
+            GestureBindingEntity("SWIPE_LEFT", "NEXT_PAGE"),
+            GestureBindingEntity("SWIPE_RIGHT", "PREV_PAGE"),
+            GestureBindingEntity("TWO_FINGER_SWIPE_UP", "OPEN_SETTINGS"),
+            GestureBindingEntity("TWO_FINGER_SWIPE_DOWN", "TOGGLE_EDIT_MODE"),
+        )
     }
 
     // --- APP OPERATIONS ---
