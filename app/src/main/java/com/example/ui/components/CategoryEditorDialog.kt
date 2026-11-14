@@ -208,7 +208,7 @@ fun CategoryEditorDialog(
                 // Live preview strip showing dock badge + active drawer/sidebar background
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(colorHex).copy(alpha = 0.45f)),
+                    border = null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(74.dp),

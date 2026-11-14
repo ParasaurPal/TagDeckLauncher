@@ -301,12 +301,6 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp),
                         shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.35f, 0.95f)),
-                        border = if (state.settings.globalBorderWidthDp > 0.05f) {
-                            BorderStroke(
-                                state.settings.globalBorderWidthDp.coerceIn(0.5f, 4f).dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                            )
-                        } else null,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -712,12 +706,6 @@ val page = visiblePages[pageIdx]
                             onClick = onOpenSearch,
                             shape = RoundedCornerShape(dockRadius),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
-                            border = if (dockBorderWidth > 0.05f) {
-                                BorderStroke(
-                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                )
-                            } else null,
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .weight(1f)
@@ -750,12 +738,6 @@ val page = visiblePages[pageIdx]
                             onClick = onOpenDrawer,
                             shape = RoundedCornerShape(dockRadius),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
-                            border = if (dockBorderWidth > 0.05f) {
-                                BorderStroke(
-                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                )
-                            } else null,
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .size(48.dp)
@@ -1238,7 +1220,7 @@ private fun EditToolbarOutlinedIcon(
                 if (isActive) {
                     Modifier
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
-                        .border(1.2.dp, Color.White.copy(alpha = 0.85f), CircleShape)
+                        
                 } else {
                     Modifier
                 }

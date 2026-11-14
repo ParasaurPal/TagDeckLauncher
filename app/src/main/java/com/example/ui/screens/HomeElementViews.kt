@@ -177,12 +177,11 @@ fun HomeElementBody(
     val shape = resolveMaskShape(element)
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
-    val bg = if (isPlainAppShortcut || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
+    val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
     val gradBrush = bgGradEnd?.let { endHex ->
         Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
     }
-    val borderColor = Color(element.borderColorHex)
-    val border = if (!isPlainAppShortcut && element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
+    val border: BorderStroke? = null
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
