@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -60,6 +64,7 @@ import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
 import com.example.ui.screens.AppManagerScreen
 import com.example.ui.screens.HomeElementBody
+import com.example.ui.screens.ElementInspectorDialog
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SidebarManagerScreen
@@ -192,14 +197,14 @@ private fun TagDeckRoot(
         }
     }
 
-    var pendingWidgetInfo by remember { mutableStateOf<Triple<InstalledWidgetProvider, Long, Long?>?>(null) }
+    var pendingWidgetInfo by remember { mutableStateOf<Triple<InstalledWidgetProvider, Long, Pair<Long?, String>>?>(null) }
     var pendingWidgetId by remember { mutableStateOf<Int?>(null) }
 
-    val saveBoundSystemWidget: (InstalledWidgetProvider, Long, Long?, Int) -> Unit = { provider, pageId, windowId, widgetId ->
+    val saveBoundSystemWidget: (InstalledWidgetProvider, Long, Long?, String, Int) -> Unit = { provider, pageId, windowId, ownerType, widgetId ->
         viewModel.saveHomeElement(
             HomeElementEntity(
                 pageId = pageId,
-                ownerType = if (windowId != null) "WINDOW" else "PAGE",
+                ownerType = ownerType,
                 ownerWindowId = windowId,
                 type = "APP_WIDGET",
                 xFraction = 0.06f,
@@ -227,8 +232,8 @@ private fun TagDeckRoot(
         val widgetId = pendingWidgetId
         val infoTriple = pendingWidgetInfo
         if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoTriple != null) {
-            val (provider, pageId, windowId) = infoTriple
-            saveBoundSystemWidget(provider, pageId, windowId, widgetId)
+            val (provider, pageId, ownerInfo) = infoTriple
+            saveBoundSystemWidget(provider, pageId, ownerInfo.first, ownerInfo.second, widgetId)
         } else if (widgetId != null) {
             viewModel.widgetHost.deleteAppWidgetId(widgetId)
         }
@@ -242,7 +247,7 @@ private fun TagDeckRoot(
         val widgetId = pendingWidgetId
         val infoTriple = pendingWidgetInfo
         if (result.resultCode == Activity.RESULT_OK && widgetId != null && infoTriple != null) {
-            val (provider, pageId, windowId) = infoTriple
+            val (provider, pageId, ownerInfo) = infoTriple
             val configComp = provider.info.configure
             if (configComp != null) {
                 val cfgIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
@@ -252,12 +257,12 @@ private fun TagDeckRoot(
                 try {
                     configureWidgetLauncher.launch(cfgIntent)
                 } catch (_: Exception) {
-                    saveBoundSystemWidget(provider, pageId, windowId, widgetId)
+                    saveBoundSystemWidget(provider, pageId, ownerInfo.first, ownerInfo.second, widgetId)
                     pendingWidgetId = null
                     pendingWidgetInfo = null
                 }
             } else {
-                saveBoundSystemWidget(provider, pageId, windowId, widgetId)
+                saveBoundSystemWidget(provider, pageId, ownerInfo.first, ownerInfo.second, widgetId)
                 pendingWidgetId = null
                 pendingWidgetInfo = null
             }
@@ -268,15 +273,15 @@ private fun TagDeckRoot(
         }
     }
 
-    val startSystemWidgetBind: (InstalledWidgetProvider, Long, Long?) -> Unit = { provider, pageId, windowId ->
+    val startSystemWidgetBind: (InstalledWidgetProvider, Long, Long?, String) -> Unit = { provider, pageId, windowId, ownerType ->
         val allocatedId = viewModel.widgetHost.allocateAppWidgetId()
         if (allocatedId == null) {
             viewModel.showMessage("Widget host unavailable")
         } else {
             pendingWidgetId = allocatedId
-            pendingWidgetInfo = Triple(provider, pageId, windowId)
+            pendingWidgetInfo = Triple(provider, pageId, windowId to ownerType)
             if (viewModel.widgetHost.bindIfAllowed(allocatedId, provider.info.provider)) {
-                saveBoundSystemWidget(provider, pageId, windowId, allocatedId)
+                saveBoundSystemWidget(provider, pageId, windowId, ownerType, allocatedId)
                 pendingWidgetId = null
                 pendingWidgetInfo = null
             } else {
@@ -293,7 +298,11 @@ private fun TagDeckRoot(
     var inlineCustomizeApp by remember { mutableStateOf<AppEntity?>(null) }
     var inlineLineIconApp by remember { mutableStateOf<AppEntity?>(null) }
 
-    val navigateTo: (LauncherRoute) -> Unit = { route ->
+    var inlineAddSidebarButtonCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+        var inlineAddSidebarButtonLabel by remember { mutableStateOf("") }
+        var inlineInspectSidebarButton by remember { mutableStateOf<HomeElementEntity?>(null) }
+
+        val navigateTo: (LauncherRoute) -> Unit = { route ->
         if (navController.currentDestination?.route != route.route) {
             navController.navigate(route.route) {
                 launchSingleTop = true
@@ -373,8 +382,8 @@ private fun TagDeckRoot(
                     onDismissDefaultBanner = {
                         viewModel.updateSettings { it.copy(showDefaultHomeBanner = false) }
                     },
-                    onStartSystemWidgetBind = { provider, pageId ->
-                        startSystemWidgetBind(provider, pageId, null)
+                    onStartSystemWidgetBind = { provider, pageId, ownerType ->
+                        startSystemWidgetBind(provider, pageId, null, ownerType)
                     },
                 )
             }
@@ -481,7 +490,7 @@ private fun TagDeckRoot(
                     onBringWindowElementForward = { viewModel.bringElementForward(it) },
                     onSendWindowElementBackward = { viewModel.sendElementBackward(it) },
                     onStartSystemWidgetBindForWindow = { provider, pageId, winId ->
-                        startSystemWidgetBind(provider, pageId, winId)
+                        startSystemWidgetBind(provider, pageId, winId, "WINDOW")
                     },
                 )
             }
@@ -585,6 +594,24 @@ private fun TagDeckRoot(
             onLaunchApp = { viewModel.launchApp(it) },
             onEditTag = { inlineEditTag = it },
             onEditCategory = { inlineEditCategory = it },
+            onAddCategory = { category ->
+                inlineEditCategory = CategoryEntity(
+                    name = "",
+                    parentCategoryId = category.categoryId,
+                    isCustom = true,
+                    categoryType = "CUSTOM",
+                )
+            },
+            onAddButton = { category ->
+                inlineAddSidebarButtonCategory = category
+                inlineAddSidebarButtonLabel = ""
+            },
+            onClickSidebarButton = { element ->
+                viewModel.executeElementActions(element.actionsConfigJson, "TAP", navigateTo) { index ->
+                    viewModel.setCurrentPageIndex(index)
+                }
+            },
+            onEditSidebarButton = { inlineInspectSidebarButton = it },
             onAssignAppsToTag = { inlineAssignAppsTag = it },
             onUpdateTagLayout = { viewModel.saveTag(it) },
             onAppLongPress = { inlineCustomizeApp = it },
@@ -606,7 +633,7 @@ private fun TagDeckRoot(
             onSendWindowElementBackward = { viewModel.sendElementBackward(it) },
             onDeleteWindowElement = { viewModel.deleteHomeElement(it) },
             onStartSystemWidgetBindForWindow = { provider, pageId, winId ->
-                startSystemWidgetBind(provider, pageId, winId)
+                startSystemWidgetBind(provider, pageId, winId, "WINDOW")
             },
             windowElementRenderer = { el, windowEditMode ->
                 HomeElementBody(
@@ -664,14 +691,101 @@ private fun TagDeckRoot(
             initialCategory = freshCat,
             onImportImage = { viewModel.importImagePreservingOriginal(it, "Categories") },
             onSave = { saved ->
-                viewModel.saveCategory(saved)
+                val categoryToSave = if (c.categoryId == 0L && c.parentCategoryId != null) {
+                    saved.copy(
+                        parentCategoryId = c.parentCategoryId,
+                        isCustom = true,
+                        categoryType = "CUSTOM",
+                    )
+                } else saved
+                viewModel.saveCategory(categoryToSave)
                 inlineEditCategory = null
             },
             onDismiss = { inlineEditCategory = null },
         )
     }
 
-    inlineAssignAppsTag?.let { t ->
+    inlineAddSidebarButtonCategory?.let { category ->
+            AlertDialog(
+                onDismissRequest = { inlineAddSidebarButtonCategory = null },
+                title = { Text("Add Button") },
+                text = {
+                    OutlinedTextField(
+                        value = inlineAddSidebarButtonLabel,
+                        onValueChange = { inlineAddSidebarButtonLabel = it },
+                        label = { Text("Button label") },
+                        singleLine = true,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val label = inlineAddSidebarButtonLabel.trim()
+                        val pageId = state.homePages.getOrNull(state.currentPageIndex)?.pageId
+                            ?: state.homePages.firstOrNull()?.pageId
+                        if (label.isNotEmpty() && pageId != null) {
+                            viewModel.saveHomeElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    type = "CUSTOM_BUTTON",
+                                    label = label,
+                                    targetCategoryId = category.categoryId,
+                                    visible = false,
+                                    widthDp = 160f,
+                                    heightDp = 56f,
+                                    backgroundColorHex = 0xCC38BDF8L,
+                                    textColorHex = 0xFF000000L,
+                                    cornerRadiusDp = 18f,
+                                )
+                            )
+                        }
+                        inlineAddSidebarButtonCategory = null
+                    }) { Text("Add") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { inlineAddSidebarButtonCategory = null }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+
+        inlineInspectSidebarButton?.let { snapshot ->
+            val element = state.homeElements.find { it.elementId == snapshot.elementId } ?: snapshot
+            ElementInspectorDialog(
+                element = element,
+                state = state,
+                onImportImage = { uri, folder, name ->
+                    viewModel.importImagePreservingOriginal(uri, folder, name)
+                },
+                onUpdate = { edited ->
+                    viewModel.saveHomeElement(
+                        edited.copy(visible = false, targetCategoryId = element.targetCategoryId),
+                        true,
+                    )
+                },
+                onDuplicate = {
+                    viewModel.duplicateElement(element)
+                    inlineInspectSidebarButton = null
+                },
+                onCopy = {
+                    viewModel.copyElementToClipboard(element)
+                    inlineInspectSidebarButton = null
+                },
+                onCut = {
+                    viewModel.cutElementToClipboard(element)
+                    inlineInspectSidebarButton = null
+                },
+                onBringForward = { viewModel.bringElementForward(element) },
+                onSendBackward = { viewModel.sendElementBackward(element) },
+                onDelete = {
+                    viewModel.deleteHomeElement(element)
+                    inlineInspectSidebarButton = null
+                },
+                onDismiss = { inlineInspectSidebarButton = null },
+            )
+        }
+
+        inlineAssignAppsTag?.let { t ->
         BulkAssignAppsToTagDialog(
             tag = t,
             allApps = state.appsWithTags,

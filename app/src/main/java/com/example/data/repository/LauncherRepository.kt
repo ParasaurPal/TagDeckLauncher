@@ -185,6 +185,15 @@ class LauncherRepository(
                 .forEach { dao.deleteHomeElementById(it.elementId) }
             obsoleteWindows.forEach { dao.deleteWindow(it.windowId) }
         }
+
+        // Remove the unwanted starter Studio Deck from existing installations.
+        val studioDeck = dao.getHomePagesOnce().firstOrNull {
+            it.title.equals("Studio Deck", ignoreCase = true)
+        }
+        if (studioDeck != null) {
+            dao.deleteHomePageAndElements(studioDeck.pageId)
+            dao.reorderHomePages(dao.getHomePagesOnce().map { it.pageId })
+        }
     }
 
     private suspend fun ensureSeedPlayCategories() {
@@ -287,7 +296,6 @@ class LauncherRepository(
             )
 
             val page1Id = dao.upsertHomePage(HomePageEntity(title = "Main Deck", pageOrder = 0, isDefaultHome = true))
-            val page2Id = dao.upsertHomePage(HomePageEntity(title = "Studio Deck", pageOrder = 1, backgroundType = "GRADIENT", backgroundColorHex = 0xFF0A1424L, backgroundGradientEndHex = 0xFF1E1032L))
 
             val initialElements = mutableListOf<HomeElementEntity>()
             initialElements.add(
@@ -365,54 +373,6 @@ class LauncherRepository(
                     )
                 )
             }
-
-            // Page 2 widgets
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page2Id,
-                    type = "ANALOG_CLOCK",
-                    xFraction = 0.06f,
-                    yFraction = 0.04f,
-                    widthDp = 148f,
-                    heightDp = 148f,
-                    zIndex = 0,
-                    label = "Analog",
-                    backgroundColorHex = 0x550F172AL,
-                    borderColorHex = 0x6638BDF8L,
-                    cornerRadiusDp = 74f,
-                )
-            )
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page2Id,
-                    type = "STORAGE_RAM_WIDGET",
-                    xFraction = 0.50f,
-                    yFraction = 0.04f,
-                    widthDp = 172f,
-                    heightDp = 148f,
-                    zIndex = 1,
-                    label = "System",
-                    backgroundColorHex = 0x550F172AL,
-                    borderColorHex = 0x66A78BFAL,
-                    cornerRadiusDp = 24f,
-                )
-            )
-            initialElements.add(
-                HomeElementEntity(
-                    pageId = page2Id,
-                    type = "TAG_COLLECTION_WIDGET",
-                    xFraction = 0.06f,
-                    yFraction = 0.32f,
-                    widthDp = 310f,
-                    heightDp = 230f,
-                    zIndex = 2,
-                    label = "Tools",
-                    targetTagId = toolsId,
-                    backgroundColorHex = 0x660F172AL,
-                    borderColorHex = 0x66FBBF24L,
-                    cornerRadiusDp = 26f,
-                )
-            )
 
             dao.insertHomeElements(initialElements)
 

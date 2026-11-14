@@ -28,7 +28,10 @@ data class LauncherSettings(
     val surfaceOpacity: Float = 0.86f, // 0.2f..1.0f
     val globalBorderWidthDp: Float = 1.0f, // 0f..4.0f
     val globalTextColorHex: Long = 0xFFF8FAFC,
+    val sidebarTextColorMode: String = "AUTO", // AUTO, LIGHT, DARK, CUSTOM
+    val sidebarCategoryIconStyle: String = "BLACK_WHITE", // BLACK_WHITE, WHITE_BLACK
     val showHomeAppLabels: Boolean = true,
+    val appLabelOutlineEnabled: Boolean = false,
     val wallpaperType: String = "BUILTIN_PRISM", // BUILTIN_PRISM, BUILTIN_TOPO, CUSTOM_IMAGE, GRADIENT, SOLID
     val wallpaperCustomPath: String? = null,
     val wallpaperGradientStartHex: Long = 0xFF0A1124L,
@@ -73,6 +76,8 @@ data class LauncherSettings(
     val editGridColorHex: Long = 0xFFFFFFFFL,
     val layoutLocked: Boolean = false,
     val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE
+    val widgetFeedEnabled: Boolean = true,
+    val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
     val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
     val pageIndicatorColorHex: Long = 0xFF38BDF8L,
     val edgeHandlesVisible: Boolean = true,
@@ -147,7 +152,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         val SURFACE_OPACITY = floatPreferencesKey("surface_opacity")
         val GLOBAL_BORDER_WIDTH = floatPreferencesKey("global_border_width")
         val GLOBAL_TEXT_COLOR = longPreferencesKey("global_text_color")
+        val SIDEBAR_TEXT_COLOR_MODE = stringPreferencesKey("sidebar_text_color_mode")
+        val SIDEBAR_CATEGORY_ICON_STYLE = stringPreferencesKey("sidebar_category_icon_style")
         val SHOW_HOME_APP_LABELS = booleanPreferencesKey("show_home_app_labels")
+        val APP_LABEL_OUTLINE_ENABLED = booleanPreferencesKey("app_label_outline_enabled")
         val WALLPAPER_TYPE = stringPreferencesKey("wallpaper_type")
         val WALLPAPER_CUSTOM_PATH = stringPreferencesKey("wallpaper_custom_path")
         val WALLPAPER_GRADIENT_START = longPreferencesKey("wallpaper_gradient_start")
@@ -193,6 +201,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val EDIT_GRID_COLOR = longPreferencesKey("edit_grid_color")
         val LAYOUT_LOCKED = booleanPreferencesKey("layout_locked")
         val PAGE_TRANSITION = stringPreferencesKey("page_transition")
+    val WIDGET_FEED_ENABLED = booleanPreferencesKey("widget_feed_enabled")
+        val WIDGET_FEED_TITLE_COLOR = stringPreferencesKey("widget_feed_title_color")
         val PAGE_INDICATOR_STYLE = stringPreferencesKey("page_indicator_style")
         val PAGE_INDICATOR_COLOR = longPreferencesKey("page_indicator_color")
         val EDGE_HANDLES_VISIBLE = booleanPreferencesKey("edge_handles_visible")
@@ -241,7 +251,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         surfaceOpacity = prefs[Keys.SURFACE_OPACITY] ?: 0.86f,
         globalBorderWidthDp = prefs[Keys.GLOBAL_BORDER_WIDTH] ?: 1.0f,
         globalTextColorHex = prefs[Keys.GLOBAL_TEXT_COLOR] ?: 0xFFF8FAFC,
+            sidebarTextColorMode = prefs[Keys.SIDEBAR_TEXT_COLOR_MODE] ?: "AUTO",
+        sidebarCategoryIconStyle = prefs[Keys.SIDEBAR_CATEGORY_ICON_STYLE] ?: "BLACK_WHITE",
         showHomeAppLabels = prefs[Keys.SHOW_HOME_APP_LABELS] ?: true,
+        appLabelOutlineEnabled = prefs[Keys.APP_LABEL_OUTLINE_ENABLED] ?: false,
         wallpaperType = prefs[Keys.WALLPAPER_TYPE] ?: "BUILTIN_PRISM",
         wallpaperCustomPath = prefs[Keys.WALLPAPER_CUSTOM_PATH],
         wallpaperGradientStartHex = prefs[Keys.WALLPAPER_GRADIENT_START] ?: 0xFF0A1124L,
@@ -283,6 +296,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         editGridColorHex = prefs[Keys.EDIT_GRID_COLOR] ?: 0xFFFFFFFFL,
         layoutLocked = prefs[Keys.LAYOUT_LOCKED] ?: false,
         pageTransitionStyle = prefs[Keys.PAGE_TRANSITION] ?: "SLIDE",
+        widgetFeedEnabled = prefs[Keys.WIDGET_FEED_ENABLED] ?: true,
+        widgetFeedTitleColor = prefs[Keys.WIDGET_FEED_TITLE_COLOR] ?: "WHITE",
         pageIndicatorStyle = prefs[Keys.PAGE_INDICATOR_STYLE] ?: "DOTS",
         pageIndicatorColorHex = prefs[Keys.PAGE_INDICATOR_COLOR] ?: 0xFF38BDF8L,
         edgeHandlesVisible = prefs[Keys.EDGE_HANDLES_VISIBLE] ?: true,
@@ -336,7 +351,10 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.SURFACE_OPACITY] = updated.surfaceOpacity
             prefs[Keys.GLOBAL_BORDER_WIDTH] = updated.globalBorderWidthDp
             prefs[Keys.GLOBAL_TEXT_COLOR] = updated.globalTextColorHex
+            prefs[Keys.SIDEBAR_TEXT_COLOR_MODE] = updated.sidebarTextColorMode
+            prefs[Keys.SIDEBAR_CATEGORY_ICON_STYLE] = updated.sidebarCategoryIconStyle
             prefs[Keys.SHOW_HOME_APP_LABELS] = updated.showHomeAppLabels
+            prefs[Keys.APP_LABEL_OUTLINE_ENABLED] = updated.appLabelOutlineEnabled
             prefs[Keys.WALLPAPER_TYPE] = updated.wallpaperType
             if (updated.wallpaperCustomPath != null) prefs[Keys.WALLPAPER_CUSTOM_PATH] = updated.wallpaperCustomPath
             else prefs.remove(Keys.WALLPAPER_CUSTOM_PATH)
@@ -384,6 +402,8 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.EDIT_GRID_COLOR] = updated.editGridColorHex
             prefs[Keys.LAYOUT_LOCKED] = updated.layoutLocked
             prefs[Keys.PAGE_TRANSITION] = updated.pageTransitionStyle
+            prefs[Keys.WIDGET_FEED_ENABLED] = updated.widgetFeedEnabled
+            prefs[Keys.WIDGET_FEED_TITLE_COLOR] = updated.widgetFeedTitleColor
             prefs[Keys.PAGE_INDICATOR_STYLE] = updated.pageIndicatorStyle
             prefs[Keys.PAGE_INDICATOR_COLOR] = updated.pageIndicatorColorHex
             prefs[Keys.EDGE_HANDLES_VISIBLE] = updated.edgeHandlesVisible

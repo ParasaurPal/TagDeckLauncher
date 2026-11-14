@@ -614,6 +614,7 @@ fun SettingsScreen(
                             text = "Active Pack Order (${activePackOrder.size})",
                             style = MaterialTheme.typography.labelLarge,
                         )
+
                         OutlinedButton(
                             onClick = onRefreshIconPacks,
                             modifier = Modifier.testTag("refresh_icon_packs_button"),
@@ -621,6 +622,47 @@ fun SettingsScreen(
                             Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Rescan")
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Sidebar Text Color", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("AUTO" to "Auto", "LIGHT" to "Light", "DARK" to "Dark", "CUSTOM" to "Custom").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = s.sidebarTextColorMode == key,
+                                    onClick = { onUpdateSettings { it.copy(sidebarTextColorMode = key) } },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                        Text(
+                            "Auto follows the app theme. Light and Dark force a text color. Custom uses Home Element Default Text Color above.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text("Right Sidebar Category Icon Style", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("BLACK_WHITE" to "Black + white outline", "WHITE_BLACK" to "White + black outline").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = s.sidebarCategoryIconStyle == key,
+                                    onClick = { onUpdateSettings { it.copy(sidebarCategoryIconStyle = key) } },
+                                    label = { Text(label) },
+                                )
+                            }
                         }
                     }
 
@@ -1398,6 +1440,9 @@ fun SettingsScreen(
                     ToggleRow("Show Labels on Home Shortcuts", s.showHomeAppLabels) { v ->
                         onUpdateSettings { it.copy(showHomeAppLabels = v) }
                     }
+                    ToggleRow("Outline App Labels (0.5 px)", s.appLabelOutlineEnabled) { v ->
+                        onUpdateSettings { it.copy(appLabelOutlineEnabled = v) }
+                    }
                     ToggleRow("Show Default Home Prompt Banner", s.showDefaultHomeBanner) { v ->
                         onUpdateSettings { it.copy(showDefaultHomeBanner = v) }
                     }
@@ -1468,6 +1513,25 @@ fun SettingsScreen(
                             )
                         }
                     }
+
+                    ToggleRow("Enable Widget Feed", s.widgetFeedEnabled) { v ->
+                        onUpdateSettings { it.copy(widgetFeedEnabled = v) }
+                    }
+                    Text("Widget Feed Title Color", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("WHITE", "BLACK").forEach { color ->
+                            FilterChip(
+                                selected = s.widgetFeedTitleColor == color,
+                                onClick = { onUpdateSettings { it.copy(widgetFeedTitleColor = color) } },
+                                label = { Text(color.lowercase().replaceFirstChar { it.uppercase() }) },
+                            )
+                        }
+                    }
+                    Text(
+                        "Swipe left past your last home page to open the separate widget feed. Disabling it keeps your feed widgets saved.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
                     Text("Page Indicator Style", style = MaterialTheme.typography.labelLarge)
                     @OptIn(ExperimentalLayoutApi::class)

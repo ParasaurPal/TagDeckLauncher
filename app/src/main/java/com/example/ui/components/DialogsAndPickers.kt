@@ -873,7 +873,7 @@ fun AppActionAndCustomizeDialog(
                     onClick = onEditLineIcon,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Create / Edit Black & White Line Icon")
+                    Text("Edit Line Icon")
                 }
 
                 OutlinedTextField(

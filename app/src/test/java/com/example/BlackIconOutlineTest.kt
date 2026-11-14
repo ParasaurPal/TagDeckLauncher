@@ -102,6 +102,28 @@ class BlackIconOutlineTest {
     }
 
     @Test
+    fun `dark multicolored transparent icon is preserved unchanged`() {
+        val w = 64
+        val h = 64
+        val pixels = IntArray(w * h)
+        for (y in 16 until 48) {
+            for (x in 16 until 48) {
+                pixels[y * w + x] = if (x < 42) {
+                    Color.rgb(35, 35, 35)
+                } else {
+                    Color.rgb(10, 40, 90)
+                }
+            }
+        }
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply {
+            setPixels(pixels, 0, w, 0, 0, w, h)
+        }
+
+        val out = IconOutlineProcessor.transformBitmap(bmp, IconStyleConfig())
+        assertSame(bmp, out)
+    }
+
+    @Test
     fun `disabling black icon styling returns original black icon unchanged`() {
         val src = createGlyphBitmap(Color.BLACK)
         val out = IconOutlineProcessor.transformBitmap(

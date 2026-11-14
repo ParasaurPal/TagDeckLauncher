@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.OutlinedLabelText
+
 import android.net.Uri
 import android.os.Build
 import android.widget.FrameLayout
@@ -130,11 +132,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private fun contrastLabelModifier(textColor: Color): Modifier {
-    val luminance = 0.2126f * textColor.red + 0.7152f * textColor.green + 0.0722f * textColor.blue
-    val plate = if (luminance > 0.5f) Color.Black.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.94f)
-    return Modifier.clip(RoundedCornerShape(7.dp)).background(plate).padding(horizontal = 7.dp, vertical = 3.dp)
-}
+private fun contrastLabelModifier(@Suppress("UNUSED_PARAMETER") textColor: Color): Modifier = Modifier
 
 private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
     "CIRCLE" -> CircleShape
@@ -372,19 +370,20 @@ fun HomeElementBody(
                             )
                             if (element.showLabel && state.settings.showHomeAppLabels) {
                                 Spacer(Modifier.height(4.dp))
-                                Text(
+                                OutlinedLabelText(
                                     text = element.label.ifBlank { app.displayName },
-                                    color = Color(element.textColorHex),
-                                    fontSize = element.fontSizeSp.sp,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
                                     modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                    outlineEnabled = state.settings.appLabelOutlineEnabled,
                                 )
                             }
                         } else {
                             Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp))
+                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
@@ -624,7 +623,7 @@ fun HomeElementBody(
                                     AppIconView(app, appDiscovery, 38.dp, state.settings.globalIconShape)
                                     Text(
                                         text = app.displayName,
-                                        color = Color(element.textColorHex),
+                                        color = Color.White,
                                         fontSize = 11.sp,
                                         modifier = contrastLabelModifier(Color(element.textColorHex)),
                                         maxLines = 1,

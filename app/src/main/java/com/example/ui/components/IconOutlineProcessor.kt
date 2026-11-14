@@ -109,15 +109,13 @@ object IconOutlineProcessor {
         val analysis = analyzePixels(pixels, w, h, config.darknessThreshold.coerceIn(0.05f, 0.75f))
         if (analysis.opaqueCount == 0) return source
 
-        val isBlackIcon = when {
-            analysis.transparentFraction >= 0.08f -> {
-                analysis.darkMonoFraction >= 0.65f ||
-                    (analysis.darkAnyFraction >= 0.78f && analysis.brightFraction < 0.08f)
-            }
-            else -> {
-                analysis.darkAnyFraction >= 0.90f && analysis.brightFraction < 0.03f
-            }
-        }
+        // Only recolor artwork that is overwhelmingly neutral and dark.
+        // Dark colored artwork must remain in its original colors.
+        val isBlackIcon =
+            analysis.monoFraction >= 0.92f &&
+                analysis.darkMonoFraction >= 0.88f &&
+                analysis.darkAnyFraction >= 0.90f &&
+                analysis.brightFraction < 0.03f
         val isMonochromeIcon = analysis.transparentFraction >= 0.08f && analysis.monoFraction >= 0.80f
 
         val shouldRecolorToFill = isBlackIcon ||

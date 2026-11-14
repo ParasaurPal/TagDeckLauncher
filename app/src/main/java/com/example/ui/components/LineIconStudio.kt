@@ -102,6 +102,9 @@ fun LineIconStudioDialog(
         }
     }
     var activeStroke by remember { mutableStateOf<List<LineIconPoint>>(emptyList()) }
+    var touchOffsetX by remember { mutableStateOf(0f) }
+    var touchOffsetY by remember { mutableStateOf(-8f) }
+    var fingerPosition by remember { mutableStateOf<Offset?>(null) }
     var showOriginalUnderlay by remember { mutableStateOf(true) }
 
     fun pointFrom(offset: Offset, width: Float, height: Float): LineIconPoint {
@@ -144,25 +147,39 @@ fun LineIconStudioDialog(
                     } else {
                         Canvas(
                             modifier = Modifier.fillMaxSize().pointerInput(
-                                profile.snapToEdges, sourceIcon
+                                profile.snapToEdges, sourceIcon, touchOffsetX, touchOffsetY
                             ) {
                                 detectDragGestures(
                                     onDragStart = { start ->
-                                        activeStroke = listOf(pointFrom(start, size.width.toFloat(), size.height.toFloat()))
-                                    },
-                                    onDrag = { change, _ ->
+                            fingerPosition = start
+                            activeStroke = listOf(pointFrom(
+                                Offset(start.x + size.width * touchOffsetX / 100f,
+                                    start.y + size.height * touchOffsetY / 100f),
+                                size.width.toFloat(), size.height.toFloat()
+                            ))
+                        },
+                        onDrag = { change, _ ->
                                         change.consume()
-                                        val next = pointFrom(change.position, size.width.toFloat(), size.height.toFloat())
+                            fingerPosition = change.position
+                            val next = pointFrom(
+                                Offset(change.position.x + size.width * touchOffsetX / 100f,
+                                    change.position.y + size.height * touchOffsetY / 100f),
+                                size.width.toFloat(), size.height.toFloat()
+                            )
                                         val last = activeStroke.lastOrNull()
                                         if (last == null || kotlin.math.hypot(next.x - last.x, next.y - last.y) > 0.002f) {
                                             activeStroke = activeStroke + next
                                         }
                                     },
                                     onDragEnd = {
-                                        if (activeStroke.isNotEmpty()) strokes = strokes + listOf(activeStroke)
-                                        activeStroke = emptyList()
-                                    },
-                                    onDragCancel = { activeStroke = emptyList() },
+                            if (activeStroke.isNotEmpty()) strokes = strokes + listOf(activeStroke)
+                            activeStroke = emptyList()
+                            fingerPosition = null
+                        },
+                        onDragCancel = {
+                            activeStroke = emptyList()
+                            fingerPosition = null
+                        },
                                 )
                             },
                         ) {
@@ -185,7 +202,21 @@ fun LineIconStudioDialog(
                                 if (points.size < 2) return@forEach
                                 val path = Path().apply {
                                     moveTo(points.first().x * size.width, points.first().y * size.height)
-                                    points.drop(1).forEach { lineTo(it.x * size.width, it.y * size.height) }
+                                    if (points.size == 2) {
+                                        lineTo(points.last().x * size.width, points.last().y * size.height)
+                                    } else {
+                                        for (i in 1 until points.lastIndex) {
+                                            val current = points[i]
+                                            val next = points[i + 1]
+                                            quadraticTo(
+                                                current.x * size.width,
+                                                current.y * size.height,
+                                                (current.x + next.x) * 0.5f * size.width,
+                                                (current.y + next.y) * 0.5f * size.height
+                                            )
+                                        }
+                                        lineTo(points.last().x * size.width, points.last().y * size.height)
+                                    }
                                 }
                                 if (profile.outlineEnabled) {
                                     drawPath(
@@ -208,11 +239,47 @@ fun LineIconStudioDialog(
                                     ),
                                 )
                             }
+                            fingerPosition?.let { finger ->
+                                val cursor = Offset(
+                                    finger.x + size.width * touchOffsetX / 100f,
+                                    finger.y + size.height * touchOffsetY / 100f
+                                )
+                                drawCircle(Color.Black, radius = 13f, center = cursor)
+                                drawCircle(Color.White, radius = 10f, center = cursor,
+                                    style = Stroke(width = 2.5f))
+                            }
                         }
                     }
                 }
 
-                Text("Draw directly over the icon. Snapping pulls your strokes onto detected edges.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Draw directly over the icon. The cursor shows the offset drawing point.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Horizontal offset: ${touchOffsetX.toInt()}%",
+                    style = MaterialTheme.typography.labelMedium)
+                Slider(value = touchOffsetX, onValueChange = { touchOffsetX = it },
+                    valueRange = -20f..20f)
+                Text("Vertical offset: ${touchOffsetY.toInt()}%",
+                    style = MaterialTheme.typography.labelMedium)
+                Slider(value = touchOffsetY, onValueChange = { touchOffsetY = it },
+                    valueRange = -20f..20f)
+                Text("Negative = left / above · Positive = right / below",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = touchOffsetX == 0f && touchOffsetY == -8f,
+                        onClick = { touchOffsetX = 0f; touchOffsetY = -8f },
+                        label = { Text("Above") })
+                    FilterChip(selected = touchOffsetX == -8f && touchOffsetY == 0f,
+                        onClick = { touchOffsetX = -8f; touchOffsetY = 0f },
+                        label = { Text("Left") })
+                    FilterChip(selected = touchOffsetX == 8f && touchOffsetY == 0f,
+                        onClick = { touchOffsetX = 8f; touchOffsetY = 0f },
+                        label = { Text("Right") })
+                    FilterChip(selected = touchOffsetX == 0f && touchOffsetY == 8f,
+                        onClick = { touchOffsetX = 0f; touchOffsetY = 8f },
+                        label = { Text("Below") })
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = profile.lineColorHex == 0xFFFFFFFFL,

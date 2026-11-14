@@ -55,9 +55,17 @@ val LocalLineIconProfiles = staticCompositionLocalOf<Map<String, LineIconProfile
 val LocalDefaultLineIconProfile = staticCompositionLocalOf<LineIconProfile?> { null }
 
 fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
+    "NONE" -> androidx.compose.ui.graphics.RectangleShape
     "CIRCLE" -> CircleShape
     "ROUNDED_SQUARE" -> RoundedCornerShape(sizeDp * 0.20f)
-    else -> RoundedCornerShape(sizeDp * 0.30f) // SQUIRCLE-like smooth curve
+    "DIAMOND" -> androidx.compose.foundation.shape.CutCornerShape(50)
+    "HEXAGON" -> androidx.compose.foundation.shape.CutCornerShape(
+        topStart = sizeDp * 0.25f,
+        topEnd = sizeDp * 0.25f,
+        bottomStart = sizeDp * 0.25f,
+        bottomEnd = sizeDp * 0.25f,
+    )
+    else -> RoundedCornerShape(sizeDp * 0.30f) // SQUIRCLE
 }
 
 @Composable
