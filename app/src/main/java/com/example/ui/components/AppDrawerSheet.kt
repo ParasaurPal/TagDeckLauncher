@@ -337,7 +337,7 @@ fun AppDrawerOverlay(
                                             size = 28.dp,
                                         )
                                     } else if (activeCategory != null) {
-                                        CategoryBadgeIcon(activeCategory, size = 28.dp)
+                                        CategoryBadgeIcon(activeCategory, size = 28.dp, isOpen = true)
                                     }
                                     Spacer(Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -402,35 +402,13 @@ fun AppDrawerOverlay(
                                 }
                             }
 
-                            if (state.settings.drawerSearchBarVisible) {
-                                OutlinedTextField(
-                                    value = query,
-                                    onValueChange = { query = it },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("drawer_search_input"),
-                                    placeholder = { Text("Search apps, categories, tags...") },
-                                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                                    trailingIcon = {
-                                        if (query.isNotEmpty()) {
-                                            IconButton(onClick = { query = "" }) {
-                                                Icon(Icons.Rounded.Close, contentDescription = "Clear search")
-                                            }
-                                        }
-                                    },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
+                            if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchPosition != "BOTTOM") {
+                                DrawerSearchBarBox(
+                                    query = query,
+                                    onQueryChange = { query = it },
+                                    cornerRadiusDp = state.settings.drawerCornerRadiusDp,
+                                    onOpenGlobalSearch = onOpenGlobalSearch,
                                 )
-                                if (query.isNotBlank()) {
-                                    TextButton(
-                                        onClick = { onOpenGlobalSearch(query) },
-                                        modifier = Modifier.testTag("drawer_search_global_chip"),
-                                    ) {
-                                        Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("Search everywhere (Settings, Pages, Tags) for \"$query\"")
-                                    }
-                                }
                             }
                         }
 
@@ -505,7 +483,7 @@ fun AppDrawerOverlay(
                                             Spacer(Modifier.width(12.dp))
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
+                                                    ReadableLauncherText(
                                                         text = item.app.displayName,
                                                         color = Color.White,
                                                         style = MaterialTheme.typography.titleMedium,
@@ -574,13 +552,15 @@ fun AppDrawerOverlay(
                                                 iconShapeKey = state.settings.globalIconShape,
                                             )
                                             Spacer(Modifier.height(5.dp))
-                                            Text(
+                                            ReadableLauncherText(
                                                 text = item.app.displayName,
-                                                fontSize = state.settings.drawerLabelSizeSp.sp,
-                                                maxLines = 2,
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontSize = state.settings.drawerLabelSizeSp.sp,
+                                                    lineHeight = (state.settings.drawerLabelSizeSp + 2).sp,
+                                                ),
+                                                maxLines = state.settings.labelMaxLines,
                                                 overflow = TextOverflow.Ellipsis,
                                                 textAlign = TextAlign.Center,
-                                                lineHeight = (state.settings.drawerLabelSizeSp + 2).sp,
                                                 color = Color.White,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                             )
@@ -618,6 +598,21 @@ fun AppDrawerOverlay(
                             }
                         }
 
+                        if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchPosition == "BOTTOM") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                            ) {
+                                DrawerSearchBarBox(
+                                    query = query,
+                                    onQueryChange = { query = it },
+                                    cornerRadiusDp = state.settings.drawerCornerRadiusDp,
+                                    onOpenGlobalSearch = onOpenGlobalSearch,
+                                )
+                            }
+                        }
+
                         // MANDATORY BOTTOM SECTION: Persistent Horizontal Category & Tag Bar
                         Surface(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)),
@@ -639,11 +634,12 @@ fun AppDrawerOverlay(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         item {
+                                            val allGamesOpen = selectedTagFilterId == null && selectedFilterId == FILTER_GAMES
                                             CategoryDockChip(
                                                 label = "All Games",
-                                                selected = selectedFilterId == FILTER_GAMES,
+                                                selected = allGamesOpen,
                                                 accent = Color(gamesCategory.colorHex),
-                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp) },
+                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp, isOpen = allGamesOpen) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = FILTER_GAMES
@@ -653,12 +649,12 @@ fun AppDrawerOverlay(
                                             )
                                         }
                                         items(gameSubcategories, key = { it.categoryId }) { sub ->
-                                            val sel = selectedFilterId == sub.categoryId
+                                            val sel = selectedTagFilterId == null && selectedFilterId == sub.categoryId
                                             CategoryDockChip(
                                                 label = sub.name,
                                                 selected = sel,
                                                 accent = Color(sub.colorHex),
-                                                leading = { CategoryBadgeIcon(sub, size = 16.dp) },
+                                                leading = { CategoryBadgeIcon(sub, size = 16.dp, isOpen = sel) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = sub.categoryId
@@ -676,11 +672,12 @@ fun AppDrawerOverlay(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     item {
+                                        val allSelected = selectedTagFilterId == null && selectedFilterId == FILTER_ALL
                                         CategoryDockChip(
                                             label = allCategory.name,
-                                            selected = selectedTagFilterId == null && selectedFilterId == FILTER_ALL,
+                                            selected = allSelected,
                                             accent = Color(allCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp, isOpen = allSelected) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_ALL
@@ -690,11 +687,12 @@ fun AppDrawerOverlay(
                                         )
                                     }
                                     item {
+                                        val favSelected = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES
                                         CategoryDockChip(
                                             label = favoritesCategory.name,
-                                            selected = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES,
+                                            selected = favSelected,
                                             accent = Color(favoritesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp, isOpen = favSelected) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_FAVORITES
@@ -708,7 +706,7 @@ fun AppDrawerOverlay(
                                             label = gamesCategory.name,
                                             selected = isGamesContext,
                                             accent = Color(gamesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp, isOpen = isGamesContext) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_GAMES
@@ -723,7 +721,7 @@ fun AppDrawerOverlay(
                                             label = cat.name,
                                             selected = selected,
                                             accent = Color(cat.colorHex),
-                                            leading = { CategoryBadgeIcon(cat, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(cat, size = 18.dp, isOpen = selected) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = cat.categoryId
@@ -746,6 +744,45 @@ fun AppDrawerOverlay(
                 onUpdateSettings = onUpdateSettings,
                 onDismiss = { showCustomizeDialog = false },
             )
+        }
+    }
+}
+
+@Composable
+private fun DrawerSearchBarBox(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    cornerRadiusDp: Float,
+    onOpenGlobalSearch: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("drawer_search_input"),
+            placeholder = { Text("Search apps, categories, tags...") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(cornerRadiusDp.coerceIn(8f, 28f).dp),
+        )
+        if (query.isNotBlank()) {
+            TextButton(
+                onClick = { onOpenGlobalSearch(query) },
+                modifier = Modifier.testTag("drawer_search_global_chip"),
+            ) {
+                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Search everywhere (Settings, Pages, Tags) for \"$query\"")
+            }
         }
     }
 }
@@ -906,6 +943,19 @@ private fun DrawerCustomizeQuickDialog(
                                 checked = settings.drawerSearchBarVisible,
                                 onCheckedChange = { v -> onUpdateSettings { it.copy(drawerSearchBarVisible = v) } },
                             )
+                        }
+                        if (settings.drawerSearchBarVisible) {
+                            Text("Search Bar Position", style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf("TOP", "BOTTOM").forEach { pos ->
+                                    FilterChip(
+                                        selected = settings.drawerSearchPosition == pos,
+                                        onClick = { onUpdateSettings { it.copy(drawerSearchPosition = pos) } },
+                                        label = { Text(pos) },
+                                        modifier = Modifier.testTag("drawer_quick_search_pos_$pos"),
+                                    )
+                                }
+                            }
                         }
                     }
                     item {

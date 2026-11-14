@@ -19,11 +19,14 @@ import com.example.data.db.SavedTagRuleEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.db.TagEntity
 import com.example.data.db.TagWithApps
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.prefs.LauncherPreferencesRepository
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.AppLockGateActivity
 import com.example.data.system.BackupManager
+import com.example.data.system.FontStorageManager
 import com.example.data.system.FullBackupPayload
 import com.example.data.system.ImageStorageManager
 import kotlinx.coroutines.flow.Flow
@@ -85,6 +88,7 @@ class LauncherRepository(
     private val appDiscovery: AppDiscoveryManager,
     private val prefsRepo: LauncherPreferencesRepository,
     private val imageStorage: ImageStorageManager? = null,
+    private val fontStorage: FontStorageManager? = null,
 ) {
     private val syncMutex = Mutex()
 
@@ -104,6 +108,8 @@ class LauncherRepository(
     val gesturesFlow: Flow<List<GestureBindingEntity>> = dao.observeGestures()
     val imageResourcesFlow: Flow<List<ImageResourceEntity>> = dao.observeImageResources()
     val backgroundPresetsFlow: Flow<List<BackgroundPresetEntity>> = dao.observeBackgroundPresets()
+    val customFontsFlow: Flow<List<CustomFontEntity>> = dao.observeCustomFonts()
+    val themeProfilesFlow: Flow<List<ThemeProfileEntity>> = dao.observeThemeProfiles()
     val settingsFlow: Flow<LauncherSettings> = prefsRepo.settingsFlow
 
     suspend fun syncInstalledAppsAndSeedDefaults() = syncMutex.withLock {
@@ -621,6 +627,20 @@ class LauncherRepository(
     suspend fun saveBackgroundPreset(preset: BackgroundPresetEntity): Long = dao.upsertBackgroundPreset(preset)
     suspend fun deleteBackgroundPreset(presetId: Long) = dao.deleteBackgroundPreset(presetId)
 
+    // --- CUSTOM FONTS & THEME PROFILES ---
+    suspend fun saveCustomFont(font: CustomFontEntity): Long = dao.upsertCustomFont(font)
+    suspend fun deleteCustomFont(font: CustomFontEntity) {
+        fontStorage?.deleteFontFile(font.localPath)
+        dao.deleteCustomFont(font.fontId)
+    }
+
+    suspend fun saveThemeProfile(profile: ThemeProfileEntity): Long = dao.upsertThemeProfile(profile)
+    suspend fun deleteThemeProfile(profileId: Long) = dao.deleteThemeProfile(profileId)
+
+    suspend fun saveHomeElementsBatch(elements: List<HomeElementEntity>) {
+        if (elements.isNotEmpty()) dao.insertHomeElements(elements)
+    }
+
     // --- PREFERENCES ---
     suspend fun updateSettings(transform: (LauncherSettings) -> LauncherSettings) =
         prefsRepo.updateSettings(transform)
@@ -631,6 +651,13 @@ class LauncherRepository(
         val embedded = if (includeEmbeddedImages && imageStorage != null) {
             imgs.mapNotNull { img ->
                 imageStorage.encodeImageBase64IfSmall(img.localPath)?.let { img.localPath to it }
+            }.toMap()
+        } else emptyMap()
+
+        val fonts = dao.getCustomFontsOnce()
+        val embeddedFonts = if (includeEmbeddedImages && fontStorage != null) {
+            fonts.mapNotNull { font ->
+                fontStorage.encodeFontBase64IfSmall(font.localPath)?.let { font.localPath to it }
             }.toMap()
         } else emptyMap()
 
@@ -649,6 +676,9 @@ class LauncherRepository(
             imageResources = imgs,
             embeddedImagesBase64 = embedded,
             backgroundPresets = dao.getBackgroundPresetsOnce(),
+            customFonts = fonts,
+            embeddedFontsBase64 = embeddedFonts,
+            themeProfiles = dao.getThemeProfilesOnce(),
             settings = prefsRepo.getSettingsOnce(),
         )
         return BackupManager.encodeFullBackup(payload)
@@ -674,11 +704,27 @@ class LauncherRepository(
             dao.upsertImageResource(img.copy(localPath = finalPath))
         }
 
+        val remappedFontPaths = mutableMapOf<String, String>()
+        payload.customFonts.forEach { font ->
+            val existsLocally = java.io.File(font.localPath).exists()
+            val finalPath = if (existsLocally) {
+                font.localPath
+            } else {
+                val b64 = payload.embeddedFontsBase64[font.localPath]
+                if (b64 != null && fontStorage != null) {
+                    fontStorage.restoreFontFromBase64(font.name, font.fileFormat, b64) ?: font.localPath
+                } else font.localPath
+            }
+            remappedFontPaths[font.localPath] = finalPath
+            dao.upsertCustomFont(font.copy(localPath = finalPath))
+        }
+
         if (payload.categories.isNotEmpty()) {
             dao.insertCategories(
                 payload.categories.map { cat ->
                     cat.copy(
                         customIconPath = cat.customIconPath?.let { remappedPaths[it] ?: it },
+                        openCustomIconPath = cat.openCustomIconPath?.let { remappedPaths[it] ?: it },
                         backgroundImagePath = cat.backgroundImagePath?.let { remappedPaths[it] ?: it },
                     )
                 }
@@ -753,10 +799,14 @@ class LauncherRepository(
                 )
             )
         }
+        payload.themeProfiles.forEach { tp ->
+            dao.upsertThemeProfile(tp)
+        }
         prefsRepo.updateSettings {
             payload.settings.copy(
                 wallpaperCustomPath = payload.settings.wallpaperCustomPath?.let { remappedPaths[it] ?: it },
                 allAppsBgImagePath = payload.settings.allAppsBgImagePath?.let { remappedPaths[it] ?: it },
+                customFontPath = payload.settings.customFontPath?.let { remappedFontPaths[it] ?: it },
                 seededDefaults = true,
             )
         }

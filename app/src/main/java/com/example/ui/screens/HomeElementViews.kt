@@ -1,18 +1,33 @@
 package com.example.ui.screens
 
-import com.example.ui.components.OutlinedLabelText
-
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +39,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +51,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,14 +64,17 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentCut
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.FlipToBack
 import androidx.compose.material.icons.rounded.FlipToFront
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.FormatPaint
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.LocalOffer
@@ -62,10 +82,15 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SmartButton
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.ToggleOn
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -93,10 +118,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -109,6 +143,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.example.data.db.AppEntity
+import com.example.data.db.ElementStyleExtras
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
 import com.example.data.db.LayoutSnapshotEntity
@@ -117,7 +152,9 @@ import com.example.data.system.LauncherWidgetHost
 import com.example.ui.components.AppIconView
 import com.example.ui.components.CategoryBadgeIcon
 import com.example.ui.components.ColorSwatchRow
+import com.example.ui.components.MacroStepBuilderDialog
 import com.example.ui.components.ObjectImageAndTransformDialog
+import com.example.ui.components.ReadableLauncherText
 import com.example.ui.components.StudioDarkSurfaceSwatches
 import com.example.ui.components.StudioNeutralAndAccentSwatches
 import com.example.ui.components.TagBadgeIcon
@@ -126,17 +163,67 @@ import com.example.ui.state.LauncherUiState
 import com.example.ui.theme.TagPresetColors
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
-private fun contrastLabelModifier(@Suppress("UNUSED_PARAMETER") textColor: Color): Modifier = Modifier
+fun isElementConditionMet(
+    element: HomeElementEntity,
+    state: LauncherUiState,
+    context: Context,
+    isLandscape: Boolean,
+    systemDark: Boolean,
+): Boolean {
+    if (element.elementId in state.runtimeHiddenElementIds) return false
+    if (element.elementId in state.runtimeShownElementIds) return true
 
-private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
+    val group = element.visibilityGroupId?.takeIf { it.isNotBlank() }
+    if (group != null && group in state.hiddenVisibilityGroups) return false
+
+    if (!element.visible) {
+        return group != null && group in state.activeVisibilityGroups
+    }
+
+    val extras = element.parsedExtras()
+    val isDark = when (state.settings.themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> systemDark
+    }
+    return when (extras.visibilityCondition) {
+        "PORTRAIT_ONLY" -> !isLandscape
+        "LANDSCAPE_ONLY" -> isLandscape
+        "DARK_THEME_ONLY" -> isDark
+        "LIGHT_THEME_ONLY" -> !isDark
+        "MORNING_ONLY" -> Calendar.getInstance().get(Calendar.HOUR_OF_DAY) in 5..11
+        "EVENING_ONLY" -> {
+            val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            h >= 17 || h < 5
+        }
+        "CHARGING_ONLY" -> {
+            val intent = runCatching {
+                context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            }.getOrNull()
+            val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        }
+        else -> true
+    }
+}
+
+private fun resolveMaskShape(element: HomeElementEntity, extras: ElementStyleExtras): Shape = when (element.imageMaskShape) {
     "CIRCLE" -> CircleShape
     "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
+    "PILL" -> RoundedCornerShape(50)
+    "CUT_CORNER" -> CutCornerShape(element.cornerRadiusDp.coerceIn(4f, 36f).dp)
+    "ARCH" -> RoundedCornerShape(topStartPercent = 50, topEndPercent = 50, bottomStartPercent = 8, bottomEndPercent = 8)
     "DIAMOND" -> GenericShape { size, _ ->
         moveTo(size.width / 2f, 0f)
         lineTo(size.width, size.height / 2f)
@@ -155,7 +242,98 @@ private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.
         lineTo(0f, h * 0.25f)
         close()
     }
-    else -> RoundedCornerShape(element.cornerRadiusDp.coerceIn(0f, 74f).dp)
+    "OCTAGON" -> GenericShape { size, _ ->
+        val w = size.width
+        val h = size.height
+        val c = 0.29f
+        moveTo(w * c, 0f)
+        lineTo(w * (1f - c), 0f)
+        lineTo(w, h * c)
+        lineTo(w, h * (1f - c))
+        lineTo(w * (1f - c), h)
+        lineTo(w * c, h)
+        lineTo(0f, h * (1f - c))
+        lineTo(0f, h * c)
+        close()
+    }
+    "TRIANGLE" -> GenericShape { size, _ ->
+        moveTo(size.width / 2f, 0f)
+        lineTo(size.width, size.height)
+        lineTo(0f, size.height)
+        close()
+    }
+    "STAR" -> GenericShape { size, _ ->
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val outerR = minOf(cx, cy)
+        val innerR = outerR * 0.45f
+        for (i in 0 until 10) {
+            val angle = -PI / 2.0 + i * (PI / 5.0)
+            val r = if (i % 2 == 0) outerR else innerR
+            val px = cx + (r * cos(angle)).toFloat()
+            val py = cy + (r * sin(angle)).toFloat()
+            if (i == 0) moveTo(px, py) else lineTo(px, py)
+        }
+        close()
+    }
+    else -> if (extras.useCustomCorners) {
+        RoundedCornerShape(
+            topStart = extras.cornerTopStartDp.coerceIn(0f, 74f).dp,
+            topEnd = extras.cornerTopEndDp.coerceIn(0f, 74f).dp,
+            bottomEnd = extras.cornerBottomEndDp.coerceIn(0f, 74f).dp,
+            bottomStart = extras.cornerBottomStartDp.coerceIn(0f, 74f).dp,
+        )
+    } else {
+        RoundedCornerShape(element.cornerRadiusDp.coerceIn(0f, 74f).dp)
+    }
+}
+
+@Composable
+private fun ShortcutLayoutSlot(
+    placement: String,
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+    label: @Composable () -> Unit,
+    showLabel: Boolean,
+) {
+    when (placement) {
+        "ICON_ONLY" -> Box(modifier = modifier, contentAlignment = Alignment.Center) { icon() }
+        "LABEL_ONLY" -> Box(modifier = modifier, contentAlignment = Alignment.Center) { if (showLabel) label() }
+        "OVERLAY" -> Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            icon()
+            if (showLabel) {
+                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp)) { label() }
+            }
+        }
+        "LEFT" -> Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            icon()
+            if (showLabel) {
+                Spacer(Modifier.width(6.dp))
+                label()
+            }
+        }
+        "RIGHT" -> Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            if (showLabel) {
+                label()
+                Spacer(Modifier.width(6.dp))
+            }
+            icon()
+        }
+        "BOTTOM" -> Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            if (showLabel) {
+                label()
+                Spacer(Modifier.height(4.dp))
+            }
+            icon()
+        }
+        else -> Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            icon()
+            if (showLabel) {
+                Spacer(Modifier.height(4.dp))
+                label()
+            }
+        }
+    }
 }
 
 @Composable
@@ -172,16 +350,128 @@ fun HomeElementBody(
     onOpenWindow: (Long) -> Unit,
     onOpenFolder: (Long) -> Unit,
     onElementTrigger: (HomeElementEntity, String) -> Boolean,
+    onOpenSearch: () -> Unit = {},
+    onJumpToPage: (Int) -> Unit = {},
+    onSaveElement: (HomeElementEntity, Boolean) -> Unit = { _, _ -> },
+    onCycleStack: (Long, Int) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
-    val shape = resolveMaskShape(element)
-    val isPlainAppShortcut = element.type == "APP_SHORTCUT"
-    val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
-    val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
-    val gradBrush = bgGradEnd?.let { endHex ->
-        Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
+    val scope = rememberCoroutineScope()
+    val extras = remember(element.styleExtrasJson) { element.parsedExtras() }
+    val shape = resolveMaskShape(element, extras)
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    // Entrance animation
+    val entranceProgress = remember(element.elementId, extras.entranceAnim) {
+        Animatable(if (extras.entranceAnim == "NONE") 1f else 0f)
     }
-    val border: BorderStroke? = null
+    LaunchedEffect(element.elementId, extras.entranceAnim) {
+        if (extras.entranceAnim != "NONE") {
+            entranceProgress.snapTo(0f)
+            if (extras.entranceAnim == "BOUNCE") {
+                entranceProgress.animateTo(1f, spring(dampingRatio = 0.52f, stiffness = 320f))
+            } else {
+                entranceProgress.animateTo(1f, tween(340, easing = FastOutSlowInEasing))
+            }
+        }
+    }
+
+    // Idle animation
+    val idleTransition = rememberInfiniteTransition(label = "elem_idle_${element.elementId}")
+    val idleFloat by if (extras.idleAnim == "FLOAT") {
+        idleTransition.animateFloat(-4f, 4f, infiniteRepeatable(tween(2200, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "float")
+    } else remember { mutableStateOf(0f) }
+    val idleScale by if (extras.idleAnim == "PULSE" || extras.idleAnim == "BREATHE") {
+        idleTransition.animateFloat(0.97f, 1.03f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse")
+    } else remember { mutableStateOf(1f) }
+    val idleSpin by if (extras.idleAnim == "SPIN_SLOW") {
+        idleTransition.animateFloat(0f, 360f, infiniteRepeatable(tween(12000, easing = LinearEasing), RepeatMode.Restart), label = "spin")
+    } else remember { mutableStateOf(0f) }
+
+    var tapSpinTarget by remember { mutableStateOf(0f) }
+    val tapSpinDeg by animateFloatAsState(tapSpinTarget, tween(360), label = "tap_spin")
+    val pressScaleTarget = if (isPressed && !state.isEditMode && extras.tapAnim != "NONE") extras.pressedScale.coerceIn(0.75f, 1.15f) else 1f
+    val animPressScale by animateFloatAsState(pressScaleTarget, tween(110), label = "press_scale")
+
+    val isPlainAppShortcut = element.type == "APP_SHORTCUT"
+    val effectiveBgHex = if (isPressed && !state.isEditMode && extras.pressedBgColorHex != null) extras.pressedBgColorHex else element.backgroundColorHex
+    val effectiveBorderHex = if (isPressed && !state.isEditMode && extras.pressedBorderColorHex != null) extras.pressedBorderColorHex else element.borderColorHex
+    val effectiveTextHex = if (isPressed && !state.isEditMode && extras.pressedTextColorHex != null) extras.pressedTextColorHex else element.textColorHex
+
+    val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
+    val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(effectiveBgHex)
+    val gradBrush = bgGradEnd?.let { endHex ->
+        val colors = listOf(Color(effectiveBgHex), Color(endHex))
+        when (extras.gradientDirection) {
+            "HORIZONTAL" -> Brush.horizontalGradient(colors)
+            "DIAGONAL" -> Brush.linearGradient(colors)
+            "RADIAL" -> Brush.radialGradient(colors)
+            else -> Brush.verticalGradient(colors)
+        }
+    }
+
+    val solidBorder = if (element.borderWidthDp > 0.05f && (extras.borderStyle == "SOLID" || extras.borderStyle == "DOUBLE")) {
+        BorderStroke(element.borderWidthDp.coerceIn(0.5f, 8f).dp, Color(effectiveBorderHex))
+    } else null
+
+    val glowModifier = if (extras.shadowColorHex != null && extras.shadowBlurDp > 0.5f) {
+        val glowArgb = Color(extras.shadowColorHex).toArgb()
+        Modifier.drawBehind {
+            drawIntoCanvas { canvas ->
+                val frameworkPaint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        extras.shadowBlurDp.dp.toPx(),
+                        extras.shadowOffsetXDp.dp.toPx(),
+                        extras.shadowOffsetYDp.dp.toPx(),
+                        glowArgb,
+                    )
+                }
+                val paint = Paint().apply { asFrameworkPaint().set(frameworkPaint) }
+                val r = element.cornerRadiusDp.dp.toPx()
+                canvas.drawRoundRect(0f, 0f, size.width, size.height, r, r, paint)
+            }
+        }
+    } else Modifier
+
+    val customStrokeModifier = if (element.borderWidthDp > 0.05f && extras.borderStyle in listOf("DASHED", "DOTTED", "DOUBLE", "GRADIENT")) {
+        Modifier.drawWithContent {
+            drawContent()
+            val strokePx = element.borderWidthDp.coerceIn(0.5f, 8f).dp.toPx()
+            val cr = CornerRadius(element.cornerRadiusDp.dp.toPx(), element.cornerRadiusDp.dp.toPx())
+            when (extras.borderStyle) {
+                "DASHED" -> drawRoundRect(
+                    color = Color(effectiveBorderHex),
+                    cornerRadius = cr,
+                    style = Stroke(width = strokePx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), 0f)),
+                )
+                "DOTTED" -> drawRoundRect(
+                    color = Color(effectiveBorderHex),
+                    cornerRadius = cr,
+                    style = Stroke(width = strokePx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), 0f)),
+                )
+                "DOUBLE" -> {
+                    val inset = (strokePx * 2f).coerceAtLeast(3.dp.toPx())
+                    drawRoundRect(
+                        color = Color(effectiveBorderHex).copy(alpha = 0.7f),
+                        topLeft = Offset(inset, inset),
+                        size = androidx.compose.ui.geometry.Size((size.width - inset * 2).coerceAtLeast(1f), (size.height - inset * 2).coerceAtLeast(1f)),
+                        cornerRadius = cr,
+                        style = Stroke(width = (strokePx * 0.6f).coerceAtLeast(1f)),
+                    )
+                }
+                "GRADIENT" -> drawRoundRect(
+                    brush = Brush.linearGradient(listOf(Color(effectiveBorderHex), Color(extras.borderGradientEndHex ?: 0xFFA855F7L))),
+                    cornerRadius = cr,
+                    style = Stroke(width = strokePx),
+                )
+            }
+        }
+    } else Modifier
+
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
@@ -207,462 +497,613 @@ fun HomeElementBody(
                 onDoubleTap = { onElementTrigger(element, "DOUBLE_TAP") },
                 onLongPress = { onElementTrigger(element, "LONG_PRESS") },
                 onTap = {
-                    if (!onElementTrigger(element, "TAP")) {
-                        // Fall through handled below via default action
-                    }
+                    if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
+                    onElementTrigger(element, "TAP")
                 },
             )
         }
     } else Modifier
 
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(gestureMod),
-        shape = shape,
-        color = bg,
-        border = border,
-        shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
-    ) {
-        Box(
+    val transform3DAndMotion = Modifier.graphicsLayer {
+        val ent = entranceProgress.value
+        val entScale = when (extras.entranceAnim) {
+            "SCALE", "BOUNCE" -> 0.65f + 0.35f * ent
+            else -> 1f
+        }
+        val entAlpha = if (extras.entranceAnim == "FADE" || extras.entranceAnim == "SLIDE_UP") ent else 1f
+        val entSlideY = if (extras.entranceAnim == "SLIDE_UP") (1f - ent) * 48f else 0f
+
+        rotationX = extras.rotationXDeg
+        rotationY = extras.rotationYDeg
+        rotationZ = idleSpin + tapSpinDeg
+        cameraDistance = extras.cameraDistance.coerceIn(4f, 40f) * density
+        scaleX = entScale * animPressScale * idleScale
+        scaleY = entScale * animPressScale * idleScale
+        translationY = idleFloat + entSlideY
+        alpha = entAlpha
+    }
+
+    Box(modifier = Modifier.fillMaxSize().then(transform3DAndMotion).then(glowModifier)) {
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (gradBrush != null) Modifier.background(gradBrush) else Modifier),
+                .then(gestureMod)
+                .then(customStrokeModifier),
+            shape = shape,
+            color = bg,
+            border = solidBorder,
+            shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
         ) {
-            // Optional element custom background image
-            if (element.type != "IMAGE" && !element.imagePath.isNullOrBlank() && File(element.imagePath).exists()) {
-                AsyncImage(
-                    model = File(element.imagePath),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    colorFilter = colorFilter,
-                    alpha = 0.45f,
-                    modifier = Modifier.fillMaxSize().then(blurMod),
-                )
-            }
-
-            when (element.type) {
-                "CLOCK_WIDGET", "DIGITAL_CLOCK" -> LiveClockWidgetContent(element)
-                "ANALOG_CLOCK" -> AnalogClockWidgetContent(element)
-                "CALENDAR_WIDGET" -> CalendarWidgetContent(element)
-                "BATTERY_WIDGET" -> BatteryWidgetContent(element)
-                "STORAGE_RAM_WIDGET" -> StorageRamWidgetContent(element)
-                "COMPASS_WIDGET" -> CompassWidgetContent(element)
-                "MEDIA_WIDGET" -> MediaWidgetContent(element)
-                "WEATHER_WIDGET" -> WeatherWidgetContent(element)
-                "AT_A_GLANCE_WIDGET" -> AtAGlanceWidgetContent(element)
-                "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
-                "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
-                "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
-
-                "TEXT_LABEL" -> {
-                    val resolvedText = resolveDynamicTokens(element.label.ifBlank { "Label" }, context)
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = resolvedText,
-                            color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (gradBrush != null) Modifier.background(gradBrush) else Modifier),
+            ) {
+                val activeImagePath = if (isPressed && !state.isEditMode && !extras.pressedImagePath.isNullOrBlank()) {
+                    extras.pressedImagePath
+                } else {
+                    element.imagePath
+                }
+                if (element.type != "IMAGE" && !activeImagePath.isNullOrBlank() && File(activeImagePath).exists()) {
+                    AsyncImage(
+                        model = File(activeImagePath),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        colorFilter = colorFilter,
+                        alpha = 0.45f,
+                        modifier = Modifier.fillMaxSize().then(blurMod),
+                    )
                 }
 
-                "SHAPE" -> {
-                    if (element.showLabel && element.label.isNotBlank()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = resolveDynamicTokens(element.label, context),
-                                color = Color(element.textColorHex),
-                                fontSize = element.fontSizeSp.sp,
-                                modifier = contrastLabelModifier(Color(element.textColorHex)),
+                when (element.type) {
+                    "CLOCK_WIDGET", "DIGITAL_CLOCK" -> LiveClockWidgetContent(element)
+                    "ANALOG_CLOCK" -> AnalogClockWidgetContent(element)
+                    "CALENDAR_WIDGET" -> CalendarWidgetContent(element)
+                    "BATTERY_WIDGET" -> BatteryWidgetContent(element)
+                    "STORAGE_RAM_WIDGET" -> StorageRamWidgetContent(element)
+                    "COMPASS_WIDGET" -> CompassWidgetContent(element)
+                    "MEDIA_WIDGET" -> MediaWidgetContent(element)
+                    "WEATHER_WIDGET" -> WeatherWidgetContent(element)
+                    "AT_A_GLANCE_WIDGET" -> AtAGlanceWidgetContent(element)
+                    "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
+                    "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
+                    "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
+
+                    "WIDGET_STACK" -> WidgetStackCard(
+                        element = element,
+                        extras = extras,
+                        state = state,
+                        appDiscovery = appDiscovery,
+                        widgetHost = widgetHost,
+                        onLaunchApp = onLaunchApp,
+                        onOpenTagSidebar = onOpenTagSidebar,
+                        onOpenCategorySidebar = onOpenCategorySidebar,
+                        onOpenRuleSidebar = onOpenRuleSidebar,
+                        onOpenSidebar = onOpenSidebar,
+                        onOpenWindow = onOpenWindow,
+                        onOpenFolder = onOpenFolder,
+                        onElementTrigger = onElementTrigger,
+                        onOpenSearch = onOpenSearch,
+                        onJumpToPage = onJumpToPage,
+                        onSaveElement = onSaveElement,
+                        onCycleStack = onCycleStack,
+                    )
+                    "GAUGE_WIDGET" -> GraphicGaugeWidget(element = element, extras = extras)
+                    "CONTAINER_BOX" -> ContainerBoxWidget(
+                        element = element,
+                        extras = extras,
+                        state = state,
+                        appDiscovery = appDiscovery,
+                        widgetHost = widgetHost,
+                        onLaunchApp = onLaunchApp,
+                        onOpenTagSidebar = onOpenTagSidebar,
+                        onOpenCategorySidebar = onOpenCategorySidebar,
+                        onOpenRuleSidebar = onOpenRuleSidebar,
+                        onOpenSidebar = onOpenSidebar,
+                        onOpenWindow = onOpenWindow,
+                        onOpenFolder = onOpenFolder,
+                        onElementTrigger = onElementTrigger,
+                        onOpenSearch = onOpenSearch,
+                        onJumpToPage = onJumpToPage,
+                        onSaveElement = onSaveElement,
+                        onCycleStack = onCycleStack,
+                    )
+                    "APP_GROUP_WIDGET" -> AppGroupWidget(
+                        element = element,
+                        extras = extras,
+                        state = state,
+                        appDiscovery = appDiscovery,
+                        onLaunchApp = onLaunchApp,
+                    )
+                    "PAGE_SWITCHER_WIDGET" -> PageSwitcherWidget(
+                        element = element,
+                        extras = extras,
+                        state = state,
+                        onJumpToPage = onJumpToPage,
+                    )
+                    "SEARCH_BAR_WIDGET" -> EmbeddedSearchBarWidget(
+                        element = element,
+                        extras = extras,
+                        isEditMode = state.isEditMode,
+                        onOpenSearch = onOpenSearch,
+                    )
+                    "QUICK_NOTES_WIDGET" -> QuickNotesWidget(
+                        element = element,
+                        extras = extras,
+                        isEditMode = state.isEditMode,
+                        onSaveElement = onSaveElement,
+                    )
+                    "FOCUS_TIMER_WIDGET" -> FocusTimerWidget(
+                        element = element,
+                        extras = extras,
+                        isEditMode = state.isEditMode,
+                    )
+                    "MINI_CALCULATOR_WIDGET" -> MiniCalculatorWidget(
+                        element = element,
+                        isEditMode = state.isEditMode,
+                    )
+                    "DEVICE_TOGGLE_WIDGET" -> DeviceToggleWidget(
+                        element = element,
+                        extras = extras,
+                        isEditMode = state.isEditMode,
+                    )
+
+                    "TEXT_LABEL" -> {
+                        val resolvedText = resolveExtendedDynamicTokens(element.label.ifBlank { "Label" }, state, context)
+                        Box(
+                            modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ReadableLauncherText(
+                                text = resolvedText,
+                                color = Color(effectiveTextHex),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
                                 textAlign = TextAlign.Center,
+                                maxLines = extras.maxLines.coerceAtLeast(1),
+                                extras = extras,
+                                surfaceHintColor = bg,
                             )
                         }
                     }
-                }
 
-                "CUSTOM_BUTTON" -> {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode) {
-                                onElementTrigger(element, "TAP")
+                    "SHAPE" -> {
+                        if (element.showLabel && element.label.isNotBlank()) {
+                            Box(modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp), contentAlignment = Alignment.Center) {
+                                ReadableLauncherText(
+                                    text = resolveExtendedDynamicTokens(element.label, state, context),
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
+                                    textAlign = TextAlign.Center,
+                                    extras = extras,
+                                    surfaceHintColor = bg,
+                                )
                             }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(Icons.Rounded.TouchApp, null, tint = Color(element.textColorHex), modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
-                            color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                "IMAGE" -> {
-                    val file = element.imagePath?.let { File(it) }?.takeIf { it.exists() }
-                    val scaleMode = when (element.imageScaleType) {
-                        "FIT" -> ContentScale.Fit
-                        "FILL_XY" -> ContentScale.FillBounds
-                        "ORIGINAL" -> ContentScale.None
-                        else -> ContentScale.Crop
-                    }
-                    if (file != null) {
-                        AsyncImage(
-                            model = file,
-                            contentDescription = element.label.ifBlank { "Custom image" },
-                            contentScale = scaleMode,
-                            colorFilter = colorFilter,
-                            modifier = Modifier.fillMaxSize().then(blurMod),
-                        )
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Image, contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
                         }
                     }
-                }
 
-                "APP_SHORTCUT" -> {
-                    val app = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && app != null) {
-                                if (!onElementTrigger(element, "TAP")) {
-                                    app?.let { targetApp ->
-                                        val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
-                                        val isLocked = targetApp.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
-                                        if (shortcutId != null && !isLocked) {
-                                            if (!appDiscovery.launchAppShortcut(targetApp.packageName, shortcutId, targetApp.componentName)) {
-                                                onLaunchApp(targetApp)
-                                            }
-                                        } else {
+                    "CUSTOM_BUTTON" -> {
+                        ShortcutLayoutSlot(
+                            placement = extras.iconPlacement.takeIf { it != "TOP" } ?: "LEFT",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    enabled = !state.isEditMode,
+                                ) {
+                                    if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
+                                    onElementTrigger(element, "TAP")
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            showLabel = element.showLabel,
+                            icon = {
+                                Icon(Icons.Rounded.TouchApp, null, tint = Color(effectiveTextHex), modifier = Modifier.size(18.dp))
+                            },
+                            label = {
+                                ReadableLauncherText(
+                                    text = resolveExtendedDynamicTokens(element.label.ifBlank { "Action" }, state, context),
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.Bold),
+                                    maxLines = 1,
+                                    extras = extras,
+                                    surfaceHintColor = bg,
+                                )
+                            },
+                        )
+                    }
+
+                    "IMAGE" -> {
+                        val file = activeImagePath?.let { File(it) }?.takeIf { it.exists() }
+                        val scaleMode = when (element.imageScaleType) {
+                            "FIT" -> ContentScale.Fit
+                            "FILL_XY" -> ContentScale.FillBounds
+                            "ORIGINAL" -> ContentScale.None
+                            else -> ContentScale.Crop
+                        }
+                        if (file != null) {
+                            AsyncImage(
+                                model = file,
+                                contentDescription = element.label.ifBlank { "Custom image" },
+                                contentScale = scaleMode,
+                                colorFilter = colorFilter,
+                                modifier = Modifier.fillMaxSize().then(blurMod),
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Image, contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
+                            }
+                        }
+                    }
+
+                    "APP_SHORTCUT" -> {
+                        val app = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
+                        val clickMod = Modifier.clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            enabled = !state.isEditMode && app != null,
+                        ) {
+                            if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
+                            if (!onElementTrigger(element, "TAP")) {
+                                app?.let { targetApp ->
+                                    val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
+                                    val isLocked = targetApp.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
+                                    if (shortcutId != null && !isLocked) {
+                                        if (!appDiscovery.launchAppShortcut(targetApp.packageName, shortcutId, targetApp.componentName)) {
                                             onLaunchApp(targetApp)
+                                        }
+                                    } else {
+                                        onLaunchApp(targetApp)
+                                    }
+                                }
+                            }
+                        }
+                        if (app != null) {
+                            ShortcutLayoutSlot(
+                                placement = extras.iconPlacement,
+                                modifier = Modifier.fillMaxSize().then(clickMod).padding(element.paddingDp.dp),
+                                showLabel = element.showLabel && state.settings.showHomeAppLabels,
+                                icon = {
+                                    AppIconView(
+                                        app = app,
+                                        appDiscovery = appDiscovery,
+                                        size = element.iconSizeDp.coerceIn(24f, 96f).dp,
+                                        iconShapeKey = state.settings.globalIconShape,
+                                    )
+                                },
+                                label = {
+                                    ReadableLauncherText(
+                                        text = element.label.ifBlank { app.displayName },
+                                        color = Color(effectiveTextHex),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
+                                        maxLines = extras.maxLines,
+                                        textAlign = TextAlign.Center,
+                                        extras = extras,
+                                        forceOutline = if (state.settings.appLabelOutlineEnabled) true else null,
+                                    )
+                                },
+                            )
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                                Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                            }
+                        }
+                    }
+
+                    "TAG_SHORTCUT" -> {
+                        val tag = state.allTags.find { it.tagId == element.targetTagId }
+                        val count = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
+                            ?.apps?.count { it.isInstalled && !it.hidden } ?: 0
+                        if (tag != null) {
+                            ShortcutLayoutSlot(
+                                placement = extras.iconPlacement,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable(enabled = !state.isEditMode) { onOpenTagSidebar(tag.tagId) }
+                                    .padding(element.paddingDp.coerceIn(0f, 32f).dp)
+                                    .testTag("home_tag_shortcut_${element.targetTagId}"),
+                                showLabel = element.showLabel && state.settings.showHomeAppLabels,
+                                icon = { TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, element.iconSizeDp.coerceIn(24f, 64f).dp) },
+                                label = {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        ReadableLauncherText(
+                                            text = tag.name,
+                                            color = Color(effectiveTextHex),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
+                                            maxLines = 1,
+                                            extras = extras,
+                                            surfaceHintColor = bg,
+                                        )
+                                        Text(
+                                            text = "$count",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.62f)).padding(horizontal = 5.dp, vertical = 1.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Tag removed", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    "CATEGORY_SHORTCUT" -> {
+                        val cat = state.categories.find { it.categoryId == element.targetCategoryId }
+                        if (cat != null) {
+                            ShortcutLayoutSlot(
+                                placement = extras.iconPlacement,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable(enabled = !state.isEditMode) { onOpenCategorySidebar(cat.categoryId) }
+                                    .padding(element.paddingDp.coerceIn(0f, 32f).dp),
+                                showLabel = element.showLabel && state.settings.showHomeAppLabels,
+                                icon = { CategoryBadgeIcon(cat, size = element.iconSizeDp.coerceIn(24f, 64f).dp) },
+                                label = {
+                                    ReadableLauncherText(
+                                        text = cat.name,
+                                        color = Color(effectiveTextHex),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontSize = element.fontSizeSp.sp),
+                                        maxLines = 1,
+                                        extras = extras,
+                                    )
+                                },
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Category, null, tint = Color.White)
+                            }
+                        }
+                    }
+
+                    "WINDOW_SHORTCUT" -> {
+                        val win = state.windows.find { it.windowId == element.targetWindowId }
+                        ShortcutLayoutSlot(
+                            placement = extras.iconPlacement,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(enabled = !state.isEditMode && win != null) { win?.let { onOpenWindow(it.windowId) } }
+                                .padding(element.paddingDp.coerceIn(0f, 32f).dp),
+                            showLabel = element.showLabel,
+                            icon = { Icon(Icons.Rounded.Layers, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp)) },
+                            label = {
+                                ReadableLauncherText(
+                                    text = win?.title ?: element.label.ifBlank { "Window" },
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
+                                    maxLines = 1,
+                                    extras = extras,
+                                )
+                            },
+                        )
+                    }
+
+                    "SAVED_RULE_SHORTCUT" -> {
+                        val rule = state.savedRules.find { it.ruleId == element.targetRuleId }
+                        ShortcutLayoutSlot(
+                            placement = extras.iconPlacement,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(enabled = !state.isEditMode && rule != null) { rule?.let { onOpenRuleSidebar(it.ruleId) } }
+                                .padding(element.paddingDp.coerceIn(0f, 32f).dp),
+                            showLabel = element.showLabel,
+                            icon = { TagBadgeIcon(rule?.iconKey ?: "filter", null, rule?.colorHex ?: 0xFF6366F1L, 36.dp) },
+                            label = {
+                                ReadableLauncherText(
+                                    text = rule?.name ?: element.label.ifBlank { "Rule" },
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
+                                    maxLines = 1,
+                                    extras = extras,
+                                )
+                            },
+                        )
+                    }
+
+                    "SIDEBAR_SHORTCUT" -> {
+                        val sb = state.sidebars.find { it.sidebarId == element.targetSidebarId }
+                        ShortcutLayoutSlot(
+                            placement = extras.iconPlacement,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(enabled = !state.isEditMode && sb != null) { sb?.let { onOpenSidebar(it.sidebarId) } }
+                                .padding(element.paddingDp.coerceIn(0f, 32f).dp),
+                            showLabel = element.showLabel,
+                            icon = { Icon(Icons.AutoMirrored.Rounded.ViewSidebar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp)) },
+                            label = {
+                                ReadableLauncherText(
+                                    text = sb?.title ?: element.label.ifBlank { "Sidebar" },
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
+                                    maxLines = 1,
+                                    extras = extras,
+                                )
+                            },
+                        )
+                    }
+
+                    "FOLDER" -> {
+                        val pkgSet = element.folderPackages().toSet()
+                        val previewApps = state.appsWithTags.map { it.app }.filter { it.packageName in pkgSet }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(enabled = !state.isEditMode) { onOpenFolder(element.elementId) }
+                                .padding(element.paddingDp.coerceIn(0f, 32f).dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            when {
+                                previewApps.isEmpty() -> Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color.White)
+                                state.settings.folderCoverStyle == "GRID_3X3" -> {
+                                    val chunked = previewApps.take(9).chunked(3)
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        chunked.forEach { r ->
+                                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                r.forEach { app -> AppIconView(app, appDiscovery, 15.dp, state.settings.globalIconShape) }
+                                            }
+                                        }
+                                    }
+                                }
+                                state.settings.folderCoverStyle == "STACK" -> {
+                                    Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                                        previewApps.take(3).reversed().forEachIndexed { idx, app ->
+                                            val off = (idx * 5 - 5).dp
+                                            Box(modifier = Modifier.offset(x = off, y = (-idx * 2).dp)) {
+                                                AppIconView(app, appDiscovery, 32.dp, state.settings.globalIconShape)
+                                            }
+                                        }
+                                    }
+                                }
+                                state.settings.folderCoverStyle == "FAN" -> {
+                                    Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                                        previewApps.take(3).forEachIndexed { idx, app ->
+                                            val rot = (idx - 1) * 14f
+                                            Box(modifier = Modifier.offset(x = ((idx - 1) * 7).dp).graphicsLayer { rotationZ = rot }) {
+                                                AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape)
+                                            }
+                                        }
+                                    }
+                                }
+                                else -> { // GRID_2X2
+                                    val gridApps = previewApps.take(4)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        gridApps.take(2).forEach { app -> AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape) }
+                                    }
+                                    if (gridApps.size > 2) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            gridApps.drop(2).forEach { app -> AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape) }
                                         }
                                     }
                                 }
                             }
-                            .padding(element.paddingDp.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        if (app != null) {
-                            AppIconView(
-                                app = app,
-                                appDiscovery = appDiscovery,
-                                size = element.iconSizeDp.coerceIn(28f, 96f).dp,
-                                iconShapeKey = state.settings.globalIconShape,
-                            )
-                            if (element.showLabel && state.settings.showHomeAppLabels) {
-                                Spacer(Modifier.height(4.dp))
-                                OutlinedLabelText(
-                                    text = element.label.ifBlank { app.displayName },
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                    modifier = contrastLabelModifier(Color(element.textColorHex)),
-                                    outlineEnabled = state.settings.appLabelOutlineEnabled,
-                                )
-                            }
-                        } else {
-                            Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
-                        }
-                    }
-                }
-
-                "TAG_SHORTCUT" -> {
-                    val tag = state.allTags.find { it.tagId == element.targetTagId }
-                    val count = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
-                        ?.apps?.count { it.isInstalled && !it.hidden } ?: 0
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && tag != null) {
-                                tag?.let { onOpenTagSidebar(it.tagId) }
-                            }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp)
-                            .testTag("home_tag_shortcut_${element.targetTagId}"),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        if (tag != null) {
-                            TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 38.dp)
                             if (element.showLabel && state.settings.showHomeAppLabels) {
                                 Spacer(Modifier.height(6.dp))
-                                Surface(
-                                    color = Color.Black.copy(alpha = 0.64f),
-                                    shape = RoundedCornerShape(8.dp),
-                                ) {
-                                    Text(
+                                ReadableLauncherText(
+                                    text = element.label.ifBlank { "Folder" },
+                                    color = Color(effectiveTextHex),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
+                                    maxLines = 1,
+                                    extras = extras,
+                                )
+                            }
+                        }
+                    }
+
+                    "TAG_COLLECTION_WIDGET" -> {
+                        val tag = state.allTags.find { it.tagId == element.targetTagId }
+                        val apps = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
+                            ?.apps?.filter { it.isInstalled && !it.hidden }
+                            ?.sortedBy { it.displayName.lowercase() }
+                            .orEmpty()
+                        Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !state.isEditMode && tag != null) { tag?.let { onOpenTagSidebar(it.tagId) } },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (tag != null) {
+                                    TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 28.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                    ReadableLauncherText(
                                         text = tag.name,
-                                        color = Color.White,
-                                        fontSize = element.fontSizeSp.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                        color = Color(effectiveTextHex),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.weight(1f),
+                                        extras = extras,
                                     )
-                                }
-                                Text(
-                                    text = "$count",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
-                                )
-                            }
-                        } else {
-                            Text("Tag removed", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
-                        }
-                    }
-                }
-
-                "CATEGORY_SHORTCUT" -> {
-                    val cat = state.categories.find { it.categoryId == element.targetCategoryId }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && cat != null) {
-                                cat?.let { onOpenCategorySidebar(it.categoryId) }
-                            }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        if (cat != null) {
-                            CategoryBadgeIcon(cat, size = 36.dp)
-
-                        } else {
-                            Icon(Icons.Rounded.Category, null, tint = Color.White)
-                        }
-                    }
-                }
-
-                "WINDOW_SHORTCUT" -> {
-                    val win = state.windows.find { it.windowId == element.targetWindowId }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && win != null) {
-                                win?.let { onOpenWindow(it.windowId) }
-                            }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(Icons.Rounded.Layers, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = win?.title ?: element.label.ifBlank { "Window" },
-                            color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
-                        )
-                    }
-                }
-
-                "SAVED_RULE_SHORTCUT" -> {
-                    val rule = state.savedRules.find { it.ruleId == element.targetRuleId }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && rule != null) {
-                                rule?.let { onOpenRuleSidebar(it.ruleId) }
-                            }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        TagBadgeIcon(rule?.iconKey ?: "filter", null, rule?.colorHex ?: 0xFF6366F1L, 36.dp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = rule?.name ?: element.label.ifBlank { "Rule" },
-                            color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
-                        )
-                    }
-                }
-
-                "SIDEBAR_SHORTCUT" -> {
-                    val sb = state.sidebars.find { it.sidebarId == element.targetSidebarId }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode && sb != null) {
-                                sb?.let { onOpenSidebar(it.sidebarId) }
-                            }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.ViewSidebar, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = sb?.title ?: element.label.ifBlank { "Sidebar" },
-                            color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
-                        )
-                    }
-                }
-
-                "FOLDER" -> {
-                    val pkgSet = element.folderPackages().toSet()
-                    val previewApps = state.appsWithTags.map { it.app }.filter { it.packageName in pkgSet }.take(4)
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(enabled = !state.isEditMode) { onOpenFolder(element.elementId) }
-                            .padding(element.paddingDp.coerceIn(0f, 32f).dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            previewApps.take(2).forEach { app ->
-                                AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
-                            }
-                        }
-                        if (previewApps.size > 2) {
-                            Spacer(Modifier.height(4.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                previewApps.drop(2).forEach { app ->
-                                    AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
-                                }
-                            }
-                        } else if (previewApps.isEmpty()) {
-                            Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color.White)
-                        }
-                        if (element.showLabel && state.settings.showHomeAppLabels) {
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = element.label.ifBlank { "Folder" },
-                                color = Color(element.textColorHex),
-                                fontSize = element.fontSizeSp.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = contrastLabelModifier(Color(element.textColorHex)),
-                            )
-                        }
-                    }
-                }
-
-                "TAG_COLLECTION_WIDGET" -> {
-                    val tag = state.allTags.find { it.tagId == element.targetTagId }
-                    val apps = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
-                        ?.apps?.filter { it.isInstalled && !it.hidden }
-                        ?.sortedBy { it.displayName.lowercase() }
-                        .orEmpty()
-                    Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = !state.isEditMode && tag != null) {
-                                    tag?.let { onOpenTagSidebar(it.tagId) }
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (tag != null) {
-                                TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 28.dp)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = tag.name,
-                                    color = Color(element.textColorHex),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f).then(contrastLabelModifier(Color(element.textColorHex))),
-                                )
-                                Text(
-                                    text = "${apps.size} apps",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            items(apps, key = { it.packageName }) { app ->
-                                Column(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable(enabled = !state.isEditMode) { onLaunchApp(app) }
-                                        .padding(2.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    AppIconView(app, appDiscovery, 38.dp, state.settings.globalIconShape)
                                     Text(
-                                        text = app.displayName,
+                                        text = "${apps.size} apps",
                                         color = Color.White,
-                                        fontSize = 11.sp,
-                                        modifier = contrastLabelModifier(Color(element.textColorHex)),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
                                     )
                                 }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                items(apps, key = { it.packageName }) { app ->
+                                    Column(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = !state.isEditMode) { onLaunchApp(app) }
+                                            .padding(2.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        AppIconView(app, appDiscovery, 38.dp, state.settings.globalIconShape)
+                                        ReadableLauncherText(
+                                            text = app.displayName,
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    "APP_WIDGET" -> {
+                        val widgetId = element.appWidgetId
+                        if (widgetId != null) {
+                            AndroidView(
+                                factory = { ctx -> widgetHost.createHostView(ctx, widgetId) ?: FrameLayout(ctx) },
+                                update = { widgetHost.updateWidgetSize(widgetId, element.widthDp.roundToInt(), element.heightDp.roundToInt()) },
+                                modifier = Modifier.fillMaxSize().padding(4.dp),
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Widgets, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
                             }
                         }
                     }
                 }
 
-                "APP_WIDGET" -> {
-                    val widgetId = element.appWidgetId
-                    if (widgetId != null) {
-                        AndroidView(
-                            factory = { ctx ->
-                                widgetHost.createHostView(ctx, widgetId) ?: FrameLayout(ctx)
-                            },
-                            update = {
-                                widgetHost.updateWidgetSize(widgetId, element.widthDp.roundToInt(), element.heightDp.roundToInt())
-                            },
-                            modifier = Modifier.fillMaxSize().padding(4.dp),
+                // Extra overlaid image layers
+                extraLayers.forEach { layerPath ->
+                    if (File(layerPath).exists()) {
+                        AsyncImage(
+                            model = File(layerPath),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
                         )
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Widgets, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
-                        }
                     }
                 }
-            }
 
-            // Extra overlaid image layers
-            extraLayers.forEach { layerPath ->
-                if (File(layerPath).exists()) {
-                    AsyncImage(
-                        model = File(layerPath),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                // Optional custom badge pill
+                if (extras.badgeText.isNotBlank()) {
+                    val badgeAlign = when (extras.badgePosition) {
+                        "TOP_START" -> Alignment.TopStart
+                        "BOTTOM_END" -> Alignment.BottomEnd
+                        else -> Alignment.TopEnd
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(extras.badgeColorHex),
+                        modifier = Modifier.align(badgeAlign).padding(4.dp),
+                    ) {
+                        Text(
+                            text = extras.badgeText,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
         }
@@ -741,35 +1182,52 @@ fun AddHomeElementDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
                     ) {
+                        AddTypeRow(Icons.Rounded.ViewAgenda, "Widget Stack", "Swipeable stack of multiple widgets in one slot") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId, ownerType = ownerType, ownerWindowId = ownerWindowId,
+                                    type = "WIDGET_STACK", xFraction = 0.08f, yFraction = 0.14f,
+                                    widthDp = 280f, heightDp = 160f, label = "Widget Stack",
+                                    backgroundColorHex = 0xAA0E1629L, borderColorHex = 0x6638BDF8L, cornerRadiusDp = 24f,
+                                )
+                            )
+                            onDismiss()
+                        }
+                        AddTypeRow(Icons.Rounded.Speed, "Graphic Gauge", "Arc, Ring, Segmented, Linear or Sparkline meter") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId, ownerType = ownerType, ownerWindowId = ownerWindowId,
+                                    type = "GAUGE_WIDGET", xFraction = 0.14f, yFraction = 0.22f,
+                                    widthDp = 152f, heightDp = 152f, label = "Battery",
+                                    backgroundColorHex = 0x990F172AL, textColorHex = 0xFF34D399L, cornerRadiusDp = 24f,
+                                )
+                            )
+                            onDismiss()
+                        }
+                        AddTypeRow(Icons.Rounded.Widgets, "Widgets (System & Built-in)", "Clocks, Notes, Focus Timer, Calc, Toggles & Android Widgets") {
+                            onDismiss()
+                            onOpenWidgetPicker()
+                        }
                         AddTypeRow(Icons.Rounded.LocalOffer, "Tag Shortcut", "Tapping opens this tag's sidebar") { step = "TAG" }
                         AddTypeRow(Icons.Rounded.Category, "Category / Game Shortcut", "Tapping opens Play category sidebar") { step = "CATEGORY" }
                         AddTypeRow(Icons.Rounded.Apps, "App Shortcut", "Freely positioned app launcher") { step = "APP" }
                         AddTypeRow(Icons.Rounded.Folder, "Custom Folder", "Group apps & nested folders") { step = "FOLDER" }
-                        AddTypeRow(Icons.Rounded.Widgets, "Widgets (System & Built-in)", "Clocks, Battery, RAM, Compass, Android Widgets") {
-                            onDismiss()
-                            onOpenWidgetPicker()
-                        }
                         AddTypeRow(Icons.Rounded.Layers, "Window Trigger", "Open a Total Launcher overlay window") { step = "WINDOW" }
                         AddTypeRow(Icons.Rounded.Bolt, "Dynamic Tag Rule", "Shortcut to AND/OR/EXCLUDE collection") { step = "RULE" }
                         AddTypeRow(Icons.AutoMirrored.Rounded.ViewSidebar, "Sidebar Trigger", "Button that opens a configured drawer") { step = "SIDEBAR" }
                         AddTypeRow(Icons.Rounded.SmartButton, "Custom Interactive Button", "Multi-gesture / macro button") { step = "BUTTON" }
-                        AddTypeRow(Icons.Rounded.TextFields, "Dynamic Text Label", "Supports {TIME}, {DATE}, {RAM}, {STORAGE}") { step = "TEXT" }
+                        AddTypeRow(Icons.Rounded.TextFields, "Dynamic Text Label", "{TIME}, {BATTERY}, {NETWORK}, {GREETING}, {PAGE_NAME}") { step = "TEXT" }
+                        AddTypeRow(Icons.Rounded.EditNote, "Quick Notes / Timer / Calc / Search", "Pick interactive utility widgets") {
+                            onDismiss()
+                            onOpenWidgetPicker()
+                        }
                         AddTypeRow(Icons.Rounded.Category, "Decorative Shape / Panel", "Resizable glass/colored geometric layer") {
                             onAddElement(
                                 HomeElementEntity(
-                                    pageId = pageId,
-                                    ownerType = ownerType,
-                                    ownerWindowId = ownerWindowId,
-                                    type = "SHAPE",
-                                    xFraction = 0.15f,
-                                    yFraction = 0.25f,
-                                    widthDp = 180f,
-                                    heightDp = 120f,
-                                    label = "",
-                                    showLabel = false,
-                                    backgroundColorHex = 0x5538BDF8L,
-                                    borderColorHex = 0x9938BDF8L,
-                                    cornerRadiusDp = 28f,
+                                    pageId = pageId, ownerType = ownerType, ownerWindowId = ownerWindowId,
+                                    type = "SHAPE", xFraction = 0.15f, yFraction = 0.25f,
+                                    widthDp = 180f, heightDp = 120f, label = "", showLabel = false,
+                                    backgroundColorHex = 0x5538BDF8L, borderColorHex = 0x9938BDF8L, cornerRadiusDp = 28f,
                                 )
                             )
                             onDismiss()
@@ -1121,11 +1579,25 @@ fun ElementInspectorDialog(
     onSendBackward: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
+    onCopyStyle: () -> Unit = {},
+    onPasteStyle: () -> Unit = {},
+    onUnstack: () -> Unit = {},
+    onAddChildToContainer: (Long, HomeElementEntity) -> Unit = { _, _ -> },
+    onMoveChildInParent: (Long, Int) -> Unit = { _, _ -> },
+    onInspectChild: (HomeElementEntity) -> Unit = {},
+    onDeleteChild: (HomeElementEntity) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var edited by remember(element.elementId) { mutableStateOf(element) }
+    var extras by remember(element.elementId) { mutableStateOf(element.parsedExtras()) }
     var showFullTransform by remember { mutableStateOf(false) }
+    var showMacroBuilder by remember { mutableStateOf(false) }
     var inspectorTab by remember { mutableStateOf("LAYOUT") }
+
+    fun updateExtras(next: ElementStyleExtras) {
+        extras = next
+        edited = edited.copy(styleExtrasJson = next.toJson())
+    }
 
     LaunchedEffect(element.locked, element.zIndex) {
         edited = edited.copy(locked = element.locked, zIndex = element.zIndex)
@@ -1155,10 +1627,37 @@ fun ElementInspectorDialog(
             onImportUri = onImportImage,
             onSave = {
                 edited = it
+                extras = it.parsedExtras()
                 onUpdate(it)
                 showFullTransform = false
             },
             onDismiss = { showFullTransform = false },
+        )
+        return
+    }
+
+    if (showMacroBuilder) {
+        val currentTapMacro = remember(edited.actionsConfigJson) {
+            runCatching {
+                if (edited.actionsConfigJson.isBlank()) null
+                else JSONObject(edited.actionsConfigJson).optJSONObject("TAP")?.optJSONArray("macro")?.toString()
+            }.getOrNull()
+        }
+        MacroStepBuilderDialog(
+            initialMacroJson = currentTapMacro,
+            state = state,
+            onSave = { macroArrayJson ->
+                val root = runCatching {
+                    if (edited.actionsConfigJson.isBlank()) JSONObject() else JSONObject(edited.actionsConfigJson)
+                }.getOrDefault(JSONObject())
+                root.put("TAP", JSONObject().apply {
+                    put("actionType", "MACRO")
+                    put("macro", JSONArray(macroArrayJson))
+                })
+                edited = edited.copy(actionsConfigJson = root.toString())
+                showMacroBuilder = false
+            },
+            onDismiss = { showMacroBuilder = false },
         )
         return
     }
@@ -1171,7 +1670,7 @@ fun ElementInspectorDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 480.dp),
+                    .heightIn(max = 500.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(
@@ -1188,23 +1687,37 @@ fun ElementInspectorDialog(
                             tint = if (edited.locked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    IconButton(onClick = onDuplicate) {
-                        Icon(Icons.Rounded.AutoAwesome, contentDescription = "Duplicate")
+                    IconButton(onClick = onDuplicate) { Icon(Icons.Rounded.AutoAwesome, contentDescription = "Duplicate") }
+                    IconButton(onClick = onCopy) { Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy") }
+                    IconButton(onClick = onCopyStyle, modifier = Modifier.testTag("inspector_copy_style")) {
+                        Icon(Icons.Rounded.FormatPaint, contentDescription = "Copy style", tint = MaterialTheme.colorScheme.primary)
                     }
-                    IconButton(onClick = onCopy) {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy")
-                    }
-                    IconButton(onClick = onCut) {
-                        Icon(Icons.Rounded.ContentCut, contentDescription = "Cut")
-                    }
-                    IconButton(onClick = onBringForward) {
-                        Icon(Icons.Rounded.FlipToFront, contentDescription = "Bring forward")
-                    }
-                    IconButton(onClick = onSendBackward) {
-                        Icon(Icons.Rounded.FlipToBack, contentDescription = "Send backward")
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    IconButton(onClick = onCut) { Icon(Icons.Rounded.ContentCut, contentDescription = "Cut") }
+                    IconButton(onClick = onBringForward) { Icon(Icons.Rounded.FlipToFront, contentDescription = "Bring forward") }
+                    IconButton(onClick = onSendBackward) { Icon(Icons.Rounded.FlipToBack, contentDescription = "Send backward") }
+                    IconButton(onClick = onDelete) { Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error) }
+                }
+
+                if (state.copiedStyle != null || edited.type == "WIDGET_STACK") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        if (state.copiedStyle != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    onPasteStyle()
+                                    onDismiss()
+                                },
+                                modifier = Modifier.weight(1f).testTag("inspector_paste_style"),
+                            ) { Text("Paste Copied Style") }
+                        }
+                        if (edited.type == "WIDGET_STACK") {
+                            OutlinedButton(
+                                onClick = {
+                                    onUnstack()
+                                    onDismiss()
+                                },
+                                modifier = Modifier.weight(1f).testTag("inspector_unstack_btn"),
+                            ) { Text("Unstack Items") }
+                        }
                     }
                 }
 
@@ -1224,8 +1737,10 @@ fun ElementInspectorDialog(
                 ) {
                     listOf(
                         "LAYOUT" to "Layout",
-                        "STYLE" to "Style",
-                        "TEXT" to "Text & Icon",
+                        "STYLE" to "Style FX",
+                        "ANIM3D" to "3D & Anim",
+                        "TEXT" to "Text & Place",
+                        "RULES" to "Widgets & Rules",
                     ).forEach { (key, label) ->
                         FilterChip(
                             selected = inspectorTab == key,
@@ -1245,222 +1760,45 @@ fun ElementInspectorDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-
-                when (inspectorTab) {
-                    "LAYOUT" -> {
-                        Text("Width: ${edited.widthDp.roundToInt()}dp")
-                        Slider(
-                            value = edited.widthDp,
-                            onValueChange = { edited = edited.copy(widthDp = it) },
-                            valueRange = 48f..380f,
-                            modifier = Modifier.testTag("inspector_width_slider"),
-                        )
-                        Text("Height: ${edited.heightDp.roundToInt()}dp")
-                        Slider(
-                            value = edited.heightDp,
-                            onValueChange = { edited = edited.copy(heightDp = it) },
-                            valueRange = 48f..440f,
-                            modifier = Modifier.testTag("inspector_height_slider"),
-                        )
-                        Text("X Position: ${(edited.xFraction * 100).roundToInt()}%")
-                        Slider(
-                            value = edited.xFraction,
-                            onValueChange = { edited = edited.copy(xFraction = it) },
-                            valueRange = 0f..0.95f,
-                        )
-                        Text("Y Position: ${(edited.yFraction * 100).roundToInt()}%")
-                        Slider(
-                            value = edited.yFraction,
-                            onValueChange = { edited = edited.copy(yFraction = it) },
-                            valueRange = 0f..0.95f,
-                        )
-                        Text("Rotation: ${edited.rotationDeg.roundToInt()}°")
-                        Slider(
-                            value = edited.rotationDeg,
-                            onValueChange = { edited = edited.copy(rotationDeg = it) },
-                            valueRange = -180f..180f,
-                        )
-                        Text("Scale X: ${"%.2f".format(edited.scaleX)}x")
-                        Slider(
-                            value = edited.scaleX,
-                            onValueChange = { edited = edited.copy(scaleX = it) },
-                            valueRange = 0.4f..2.0f,
-                        )
-                        Text("Scale Y: ${"%.2f".format(edited.scaleY)}x")
-                        Slider(
-                            value = edited.scaleY,
-                            onValueChange = { edited = edited.copy(scaleY = it) },
-                            valueRange = 0.4f..2.0f,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Flip Horizontal")
-                            Switch(checked = edited.flipHorizontal, onCheckedChange = { edited = edited.copy(flipHorizontal = it) })
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Flip Vertical")
-                            Switch(checked = edited.flipVertical, onCheckedChange = { edited = edited.copy(flipVertical = it) })
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Z-Index: ${edited.zIndex}", style = MaterialTheme.typography.labelLarge)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(
-                                    onClick = { edited = edited.copy(zIndex = (edited.zIndex - 1).coerceAtLeast(0)) },
-                                    modifier = Modifier.testTag("inspector_z_minus"),
-                                ) { Text("-") }
-                                OutlinedButton(
-                                    onClick = { edited = edited.copy(zIndex = edited.zIndex + 1) },
-                                    modifier = Modifier.testTag("inspector_z_plus"),
-                                ) { Text("+") }
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Visible on Canvas")
-                            Switch(checked = edited.visible, onCheckedChange = { edited = edited.copy(visible = it) })
-                        }
-                    }
-
-                    "STYLE" -> {
-                        Text("Shape Mask", style = MaterialTheme.typography.labelLarge)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            listOf("NONE", "SQUIRCLE", "CIRCLE", "DIAMOND", "HEXAGON").forEach { m ->
-                                FilterChip(
-                                    selected = edited.imageMaskShape == m,
-                                    onClick = { edited = edited.copy(imageMaskShape = m) },
-                                    label = { Text(m) },
-                                    modifier = Modifier.testTag("inspector_mask_$m"),
-                                )
-                            }
-                        }
-
-                        Text("Corner Radius: ${edited.cornerRadiusDp.roundToInt()}dp")
-                        Slider(value = edited.cornerRadiusDp, onValueChange = { edited = edited.copy(cornerRadiusDp = it) }, valueRange = 0f..74f)
-                        Text("Transparency: ${(edited.alpha * 100).roundToInt()}%")
-                        Slider(value = edited.alpha, onValueChange = { edited = edited.copy(alpha = it) }, valueRange = 0.1f..1f)
-                        Text("Inner Padding: ${edited.paddingDp.roundToInt()}dp")
-                        Slider(value = edited.paddingDp, onValueChange = { edited = edited.copy(paddingDp = it) }, valueRange = 0f..32f)
-                        Text("Shadow Elevation: ${edited.shadowElevationDp.roundToInt()}dp")
-                        Slider(value = edited.shadowElevationDp, onValueChange = { edited = edited.copy(shadowElevationDp = it) }, valueRange = 0f..24f)
-
-                        Text("Border Width: ${"%.1f".format(edited.borderWidthDp)}dp")
-                        Slider(
-                            value = edited.borderWidthDp,
-                            onValueChange = { edited = edited.copy(borderWidthDp = it) },
-                            valueRange = 0f..8f,
-                            modifier = Modifier.testTag("inspector_border_width_slider"),
-                        )
-
-                        Text("Border Color", style = MaterialTheme.typography.labelLarge)
-                        ColorSwatchRow(
-                            selectedColorHex = edited.borderColorHex,
-                            colors = StudioNeutralAndAccentSwatches,
-                            onSelect = { c -> edited = edited.copy(borderColorHex = c) },
-                            tagPrefix = "inspector_border_color",
-                        )
-
-                        Text("Background Color / Tint", style = MaterialTheme.typography.labelLarge)
-                        ColorSwatchRow(
-                            selectedColorHex = edited.backgroundColorHex,
-                            colors = StudioDarkSurfaceSwatches,
-                            allowClear = true,
-                            onClear = { edited = edited.copy(backgroundColorHex = 0x00000000L) },
-                            onSelect = { c -> edited = edited.copy(backgroundColorHex = c) },
-                            tagPrefix = "inspector_bg_color",
-                        )
-
-                        Text("Gradient End Color (Optional)", style = MaterialTheme.typography.labelLarge)
-                        ColorSwatchRow(
-                            selectedColorHex = edited.backgroundGradientEndHex,
-                            colors = StudioDarkSurfaceSwatches,
-                            allowClear = true,
-                            onClear = { edited = edited.copy(backgroundGradientEndHex = null) },
-                            onSelect = { c -> edited = edited.copy(backgroundGradientEndHex = c) },
-                            tagPrefix = "inspector_grad_end",
-                        )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
+                    when (inspectorTab) {
+                        "LAYOUT" -> InspectorLayoutTab(edited = edited, onUpdateEdited = { edited = it })
+                        "STYLE" -> InspectorStyleFxTab(
+                            edited = edited,
+                            extras = extras,
+                            onUpdateEdited = { edited = it },
+                            onUpdateExtras = ::updateExtras,
+                            onPickBackgroundImage = {
                                 photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                            }) {
-                                Text("Pick Background Image")
-                            }
-                            if (edited.imagePath != null) {
-                                TextButton(onClick = { edited = edited.copy(imagePath = null) }) {
-                                    Text("Clear Image")
-                                }
-                            }
-                        }
-                    }
-
-                    "TEXT" -> {
-                        if (edited.type != "APP_WIDGET") {
-                            OutlinedTextField(
-                                value = edited.label,
-                                onValueChange = { edited = edited.copy(label = it) },
-                                label = { Text("Label (supports {TIME}, {DATE}, {RAM})") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth().testTag("inspector_label_input"),
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Show Label")
-                            Switch(checked = edited.showLabel, onCheckedChange = { edited = edited.copy(showLabel = it) })
-                        }
-
-                        Text("Font Size: ${edited.fontSizeSp.roundToInt()}sp")
-                        Slider(
-                            value = edited.fontSizeSp,
-                            onValueChange = { edited = edited.copy(fontSizeSp = it) },
-                            valueRange = 8f..48f,
-                            modifier = Modifier.testTag("inspector_font_size_slider"),
+                            },
                         )
-
-                        Text("Text Color", style = MaterialTheme.typography.labelLarge)
-                        ColorSwatchRow(
-                            selectedColorHex = edited.textColorHex,
-                            colors = StudioNeutralAndAccentSwatches,
-                            onSelect = { c -> edited = edited.copy(textColorHex = c) },
-                            tagPrefix = "inspector_text_color",
+                        "ANIM3D" -> InspectorAnim3DTab(extras = extras, onUpdateExtras = ::updateExtras)
+                        "TEXT" -> InspectorTextPlaceTab(
+                            edited = edited,
+                            extras = extras,
+                            state = state,
+                            onUpdateEdited = { edited = it },
+                            onUpdateExtras = ::updateExtras,
                         )
-
-                        Text("Icon Size: ${edited.iconSizeDp.roundToInt()}dp")
-                        Slider(
-                            value = edited.iconSizeDp,
-                            onValueChange = { edited = edited.copy(iconSizeDp = it) },
-                            valueRange = 20f..120f,
+                        "RULES" -> InspectorWidgetsAndRulesTab(
+                            edited = edited,
+                            extras = extras,
+                            state = state,
+                            onUpdateEdited = { edited = it },
+                            onUpdateExtras = ::updateExtras,
+                            onAddChildToContainer = onAddChildToContainer,
+                            onMoveChildInParent = onMoveChildInParent,
+                            onInspectChild = onInspectChild,
+                            onDeleteChild = onDeleteChild,
+                            onOpenMacroBuilder = { showMacroBuilder = true },
                         )
                     }
-                }
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onUpdate(edited)
+                    onUpdate(edited.copy(styleExtrasJson = extras.toJson()))
                     onDismiss()
                 },
                 modifier = Modifier.testTag("inspector_apply_button"),
@@ -1630,6 +1968,29 @@ fun PagesAndSnapshotsDialog(
                     Slider(value = working.backgroundBlurDp, onValueChange = { working = working.copy(backgroundBlurDp = it) }, valueRange = 0f..24f)
                     Text("Background Opacity: ${(working.backgroundAlpha * 100).roundToInt()}%")
                     Slider(value = working.backgroundAlpha, onValueChange = { working = working.copy(backgroundAlpha = it) }, valueRange = 0.05f..1f)
+
+                    HorizontalDivider()
+                    Text("Per-Page Transition Override", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(null to "Inherit", "SLIDE" to "Slide", "DEPTH" to "Depth", "CUBE" to "Cube", "FLIP" to "Flip", "STACK" to "Stack", "ZOOM" to "Zoom", "WINDMILL" to "Windmill").forEach { (tr, lbl) ->
+                            FilterChip(
+                                selected = working.transitionOverride == tr,
+                                onClick = { working = working.copy(transitionOverride = tr) },
+                                label = { Text(lbl) },
+                            )
+                        }
+                    }
+                    Text("Dock Bar Override on This Page", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(null to "Inherit", true to "Show", false to "Hide").forEach { (v, lbl) ->
+                            FilterChip(
+                                selected = working.showDockOverride == v,
+                                onClick = { working = working.copy(showDockOverride = v) },
+                                label = { Text(lbl) },
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {

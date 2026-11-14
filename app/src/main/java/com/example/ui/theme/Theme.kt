@@ -18,6 +18,9 @@ private fun buildDarkScheme(
     accent: Color,
     secondary: Color,
     tertiary: Color,
+    customSurface: Color? = null,
+    customCard: Color? = null,
+    customOutline: Color? = null,
 ) = darkColorScheme(
     primary = accent,
     onPrimary = Color(0xFF06131F),
@@ -25,27 +28,30 @@ private fun buildDarkScheme(
     onPrimaryContainer = TextOnDark,
     secondary = secondary,
     onSecondary = TextOnDark,
-    secondaryContainer = ObsidianSurfaceBright,
+    secondaryContainer = customCard ?: ObsidianSurfaceBright,
     onSecondaryContainer = TextOnDark,
     tertiary = tertiary,
     onTertiary = TextOnDark,
-    background = ObsidianBg,
+    background = customSurface ?: ObsidianBg,
     onBackground = TextOnDark,
-    surface = ObsidianSurface,
+    surface = customSurface ?: ObsidianSurface,
     onSurface = TextOnDark,
-    surfaceVariant = ObsidianSurfaceElevated,
+    surfaceVariant = customCard ?: ObsidianSurfaceElevated,
     onSurfaceVariant = TextSecondaryDark,
-    surfaceContainerLow = ObsidianSurface,
-    surfaceContainer = ObsidianSurfaceElevated,
-    surfaceContainerHigh = ObsidianSurfaceBright,
-    outline = OutlineDark,
-    outlineVariant = OutlineDark.copy(alpha = 0.5f),
+    surfaceContainerLow = customSurface ?: ObsidianSurface,
+    surfaceContainer = customCard ?: ObsidianSurfaceElevated,
+    surfaceContainerHigh = customCard ?: ObsidianSurfaceBright,
+    outline = customOutline ?: OutlineDark,
+    outlineVariant = (customOutline ?: OutlineDark).copy(alpha = 0.5f),
 )
 
 private fun buildLightScheme(
     accent: Color,
     secondary: Color,
     tertiary: Color,
+    customSurface: Color? = null,
+    customCard: Color? = null,
+    customOutline: Color? = null,
 ) = lightColorScheme(
     primary = accent,
     onPrimary = Color.White,
@@ -53,21 +59,21 @@ private fun buildLightScheme(
     onPrimaryContainer = TextOnLight,
     secondary = secondary,
     onSecondary = Color.White,
-    secondaryContainer = PorcelainSurfaceVariant,
+    secondaryContainer = customCard ?: PorcelainSurfaceVariant,
     onSecondaryContainer = TextOnLight,
     tertiary = tertiary,
     onTertiary = Color.White,
-    background = PorcelainBg,
+    background = customSurface ?: PorcelainBg,
     onBackground = TextOnLight,
-    surface = PorcelainSurface,
+    surface = customSurface ?: PorcelainSurface,
     onSurface = TextOnLight,
-    surfaceVariant = PorcelainSurfaceVariant,
+    surfaceVariant = customCard ?: PorcelainSurfaceVariant,
     onSurfaceVariant = TextSecondaryLight,
-    surfaceContainerLow = PorcelainBg,
-    surfaceContainer = PorcelainSurface,
-    surfaceContainerHigh = PorcelainSurfaceVariant,
-    outline = OutlineLight,
-    outlineVariant = OutlineLight.copy(alpha = 0.5f),
+    surfaceContainerLow = customSurface ?: PorcelainBg,
+    surfaceContainer = customCard ?: PorcelainSurface,
+    surfaceContainerHigh = customCard ?: PorcelainSurfaceVariant,
+    outline = customOutline ?: OutlineLight,
+    outlineVariant = (customOutline ?: OutlineLight).copy(alpha = 0.5f),
 )
 
 @Composable
@@ -79,6 +85,10 @@ fun TagDeckTheme(
     fontStyle: String = "DEFAULT",
     fontScale: Float = 1.0f,
     cornerRadiusDp: Float = 20f,
+    customFontPath: String? = null,
+    customSurfaceColorHex: Long? = null,
+    customCardColorHex: Long? = null,
+    customOutlineColorHex: Long? = null,
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -91,15 +101,27 @@ fun TagDeckTheme(
     val accent = Color(accentColorHex)
     val secondary = Color(secondaryColorHex)
     val tertiary = Color(tertiaryColorHex)
+    val customSurface = customSurfaceColorHex?.let { Color(it) }
+    val customCard = customCardColorHex?.let { Color(it) }
+    val customOutline = customOutlineColorHex?.let { Color(it) }
 
-    val colorScheme = when {
+    val baseScheme = when {
         useDynamic -> {
             val context = LocalContext.current
             if (systemDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        useDark -> buildDarkScheme(accent, secondary, tertiary)
-        else -> buildLightScheme(accent, secondary, tertiary)
+        useDark -> buildDarkScheme(accent, secondary, tertiary, customSurface, customCard, customOutline)
+        else -> buildLightScheme(accent, secondary, tertiary, customSurface, customCard, customOutline)
     }
+    val colorScheme = if (useDynamic && (customSurface != null || customCard != null || customOutline != null)) {
+        baseScheme.copy(
+            background = customSurface ?: baseScheme.background,
+            surface = customSurface ?: baseScheme.surface,
+            surfaceVariant = customCard ?: baseScheme.surfaceVariant,
+            surfaceContainer = customCard ?: baseScheme.surfaceContainer,
+            outline = customOutline ?: baseScheme.outline,
+        )
+    } else baseScheme
 
     val radius = cornerRadiusDp.coerceIn(4f, 36f)
     val shapes = Shapes(
@@ -109,7 +131,11 @@ fun TagDeckTheme(
         extraLarge = RoundedCornerShape((radius * 1.5f).dp)
     )
 
-    val typography = buildTagDeckTypography(fontStyle = fontStyle, fontScale = fontScale)
+    val typography = buildTagDeckTypography(
+        fontStyle = fontStyle,
+        fontScale = fontScale,
+        customFontPath = customFontPath,
+    )
 
     MaterialTheme(
         colorScheme = colorScheme,

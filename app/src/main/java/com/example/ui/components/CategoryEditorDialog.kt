@@ -79,6 +79,10 @@ fun CategoryEditorDialog(
     var iconKey by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.iconKey ?: "tag") }
     var customIconPath by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.customIconPath) }
     var customEmoji by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.customEmoji ?: "") }
+    var openIconKey by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openIconKey) }
+    var openCustomIconPath by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openCustomIconPath) }
+    var openCustomEmoji by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openCustomEmoji ?: "") }
+    var editingOpenStateIcon by remember(initialCategory?.categoryId) { mutableStateOf(false) }
     var colorHex by remember(initialCategory?.categoryId) {
         mutableLongStateOf(initialCategory?.colorHex ?: TagPresetColors.first())
     }
@@ -119,8 +123,14 @@ fun CategoryEditorDialog(
             scope.launch {
                 val path = onImportImage(uri)
                 if (path != null) {
-                    customIconPath = path
-                    customEmoji = ""
+                    if (editingOpenStateIcon) {
+                        openCustomIconPath = path
+                        openCustomEmoji = ""
+                        openIconKey = null
+                    } else {
+                        customIconPath = path
+                        customEmoji = ""
+                    }
                 }
             }
         }
@@ -130,8 +140,14 @@ fun CategoryEditorDialog(
             scope.launch {
                 val path = onImportImage(uri)
                 if (path != null) {
-                    customIconPath = path
-                    customEmoji = ""
+                    if (editingOpenStateIcon) {
+                        openCustomIconPath = path
+                        openCustomEmoji = ""
+                        openIconKey = null
+                    } else {
+                        customIconPath = path
+                        customEmoji = ""
+                    }
                 }
             }
         }
@@ -170,6 +186,9 @@ fun CategoryEditorDialog(
         iconKey = iconKey,
         customIconPath = customIconPath,
         customEmoji = customEmoji.takeIf { it.isNotBlank() },
+        openIconKey = openIconKey?.takeIf { it.isNotBlank() },
+        openCustomIconPath = openCustomIconPath?.takeIf { it.isNotBlank() },
+        openCustomEmoji = openCustomEmoji.takeIf { it.isNotBlank() },
         colorHex = colorHex,
         backgroundColorHex = savedBackgroundColorHex,
         backgroundType = bgType,
@@ -205,13 +224,13 @@ fun CategoryEditorDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Live preview strip showing dock badge + active drawer/sidebar background
+                // Live preview strip showing Closed <-> Open dock badges + active drawer/sidebar background
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     border = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(74.dp),
+                        .height(82.dp),
                 ) {
                     Box {
                         SurfaceBackgroundLayer(
@@ -229,8 +248,16 @@ fun CategoryEditorDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            CategoryBadgeIcon(preview, size = 38.dp)
-                            Column {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CategoryBadgeIcon(preview, size = 34.dp, isOpen = false)
+                                Text("Closed", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
+                            }
+                            Text("↔", color = Color(colorHex), fontWeight = FontWeight.Bold)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CategoryBadgeIcon(preview, size = 34.dp, isOpen = true)
+                                Text("Open", style = MaterialTheme.typography.labelSmall, color = Color(colorHex))
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = preview.name,
                                     style = MaterialTheme.typography.titleMedium,
@@ -260,14 +287,73 @@ fun CategoryEditorDialog(
                         .fillMaxWidth()
                         .testTag("category_name_input"),
                 )
+                Text("Icon State to Edit", style = MaterialTheme.typography.labelLarge)
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !editingOpenStateIcon,
+                        onClick = { editingOpenStateIcon = false },
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        modifier = Modifier.testTag("category_icon_state_closed"),
+                    ) {
+                        Text("Closed Icon", maxLines = 1)
+                    }
+                    SegmentedButton(
+                        selected = editingOpenStateIcon,
+                        onClick = { editingOpenStateIcon = true },
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        modifier = Modifier.testTag("category_icon_state_open"),
+                    ) {
+                        Text("Open Icon", maxLines = 1)
+                    }
+                }
+
+                val hasOpenOverride = !openIconKey.isNullOrBlank() || !openCustomIconPath.isNullOrBlank() || openCustomEmoji.isNotBlank()
+                if (editingOpenStateIcon) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (hasOpenOverride) "Showing custom open-state badge" else "Inheriting closed icon until customized",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (hasOpenOverride) {
+                            TextButton(
+                                onClick = {
+                                    openIconKey = null
+                                    openCustomIconPath = null
+                                    openCustomEmoji = ""
+                                },
+                                modifier = Modifier.testTag("clear_open_category_icon_button"),
+                            ) {
+                                Text("Use Closed Icon")
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
-                    value = customEmoji,
-                    onValueChange = { customEmoji = it.take(4) },
-                    label = { Text("Custom Emoji Badge (optional)") },
+                    value = if (editingOpenStateIcon) openCustomEmoji else customEmoji,
+                    onValueChange = { v ->
+                        val trimmed = v.take(4)
+                        if (editingOpenStateIcon) {
+                            openCustomEmoji = trimmed
+                            if (trimmed.isNotBlank()) {
+                                openIconKey = null
+                                openCustomIconPath = null
+                            }
+                        } else {
+                            customEmoji = trimmed
+                        }
+                    },
+                    label = { Text(if (editingOpenStateIcon) "Open-State Emoji (optional)" else "Custom Emoji Badge (optional)") },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("category_emoji_input"),
+                        .testTag(if (editingOpenStateIcon) "category_open_emoji_input" else "category_emoji_input"),
                 )
 
                 Text("Accent Color", style = MaterialTheme.typography.labelLarge)
@@ -282,12 +368,16 @@ fun CategoryEditorDialog(
                     }
                 }
 
-                Text("Icon or Custom PNG/SVG", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    if (editingOpenStateIcon) "Open-State Icon or Custom PNG/SVG" else "Closed-State Icon or Custom PNG/SVG",
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
                             iconPhotoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         },
+                        modifier = Modifier.testTag("category_icon_gallery_button"),
                     ) {
                         Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
@@ -297,28 +387,42 @@ fun CategoryEditorDialog(
                         onClick = {
                             iconFilePicker.launch(arrayOf("image/*", "image/svg+xml"))
                         },
+                        modifier = Modifier.testTag("category_icon_file_button"),
                     ) {
                         Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("SVG/PNG")
                     }
-                    if (customIconPath != null) {
-                        TextButton(onClick = { customIconPath = null }) { Text("Clear") }
+                    val activeCustomPath = if (editingOpenStateIcon) openCustomIconPath else customIconPath
+                    if (activeCustomPath != null) {
+                        TextButton(onClick = {
+                            if (editingOpenStateIcon) openCustomIconPath = null else customIconPath = null
+                        }) { Text("Clear") }
                     }
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(TagIconCatalog) { opt ->
-                        val selected = customIconPath == null && customEmoji.isBlank() && iconKey == opt.key
+                        val selected = if (editingOpenStateIcon) {
+                            openCustomIconPath == null && openCustomEmoji.isBlank() && openIconKey == opt.key
+                        } else {
+                            customIconPath == null && customEmoji.isBlank() && iconKey == opt.key
+                        }
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = if (selected) Color(colorHex).copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
                             border = BorderStroke(1.dp, if (selected) Color(colorHex) else Color.Transparent),
                             modifier = Modifier
-                                .testTag("category_icon_${opt.key}")
+                                .testTag("category_icon_${if (editingOpenStateIcon) "open_" else ""}${opt.key}")
                                 .clickable {
-                                    iconKey = opt.key
-                                    customIconPath = null
-                                    customEmoji = ""
+                                    if (editingOpenStateIcon) {
+                                        openIconKey = opt.key
+                                        openCustomIconPath = null
+                                        openCustomEmoji = ""
+                                    } else {
+                                        iconKey = opt.key
+                                        customIconPath = null
+                                        customEmoji = ""
+                                    }
                                 },
                         ) {
                             Icon(opt.icon, contentDescription = opt.label, modifier = Modifier.padding(8.dp).size(20.dp))
@@ -477,6 +581,9 @@ fun CategoryEditorDialog(
                         iconKey = iconKey,
                         customIconPath = customIconPath,
                         customEmoji = customEmoji.takeIf { it.isNotBlank() },
+                        openIconKey = openIconKey?.takeIf { it.isNotBlank() },
+                        openCustomIconPath = openCustomIconPath?.takeIf { it.isNotBlank() },
+                        openCustomEmoji = openCustomEmoji.takeIf { it.isNotBlank() },
                         colorHex = colorHex,
                         backgroundColorHex = savedBackgroundColorHex,
                         backgroundType = bgType,

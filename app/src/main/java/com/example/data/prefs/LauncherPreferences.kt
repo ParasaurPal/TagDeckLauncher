@@ -114,6 +114,39 @@ data class LauncherSettings(
     val lockedAppsCsv: String = "",
     val cloudBackupEnabled: Boolean = false,
     val cloudBackupTreeUri: String? = null,
+    // Font Readability & Custom Font
+    val customFontId: Long? = null,
+    val customFontPath: String? = null,
+    val highReadabilityMode: Boolean = false,
+    val boldLabelsEnabled: Boolean = false,
+    val labelBackdropEnabled: Boolean = false,
+    val labelBackdropColorHex: Long = 0xAA000000L,
+    val labelBackdropAlpha: Float = 0.72f,
+    val textOutlineEnabled: Boolean = false,
+    val textOutlineColorHex: Long = 0xFF000000L,
+    val textOutlineWidthDp: Float = 1.5f,
+    val textShadowEnabled: Boolean = true,
+    val textShadowRadiusDp: Float = 4f,
+    val letterSpacingEm: Float = 0f,
+    val lineHeightMultiplier: Float = 1.15f,
+    val minLabelFontSp: Float = 11f,
+    val labelMaxLines: Int = 2,
+    val autoContrastText: Boolean = true,
+    // Custom Palette, Wallpaper FX, Chrome, Paging, Folder & Drawer Studio
+    val customSurfaceColorHex: Long? = null,
+    val customCardColorHex: Long? = null,
+    val customOutlineColorHex: Long? = null,
+    val infinitePageLoop: Boolean = false,
+    val wallpaperParallax: Float = 0.35f,
+    val wallpaperVignette: Float = 0f,
+    val wallpaperSaturation: Float = 1f,
+    val wallpaperContrast: Float = 1f,
+    val wallpaperBrightness: Float = 0f,
+    val ambientEffectType: String = "NONE", // NONE, AURORA, GRID, DOTS, BOKEH
+    val showCustomStatusStrip: Boolean = false,
+    val pageIndicatorPlacement: String = "BOTTOM", // BOTTOM, TOP
+    val folderCoverStyle: String = "GRID_2X2", // GRID_2X2, GRID_3X3, STACK, FAN
+    val drawerSearchPosition: String = "TOP", // TOP, BOTTOM
     val seededDefaults: Boolean = false,
 ) {
     fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
@@ -238,6 +271,37 @@ class LauncherPreferencesRepository(private val context: Context) {
         val LOCKED_APPS = stringPreferencesKey("locked_apps_csv")
         val CLOUD_BACKUP_ENABLED = booleanPreferencesKey("cloud_backup_enabled")
         val CLOUD_BACKUP_TREE_URI = stringPreferencesKey("cloud_backup_tree_uri")
+        val CUSTOM_FONT_ID = longPreferencesKey("custom_font_id")
+        val CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
+        val HIGH_READABILITY_MODE = booleanPreferencesKey("high_readability_mode")
+        val BOLD_LABELS_ENABLED = booleanPreferencesKey("bold_labels_enabled")
+        val LABEL_BACKDROP_ENABLED = booleanPreferencesKey("label_backdrop_enabled")
+        val LABEL_BACKDROP_COLOR = longPreferencesKey("label_backdrop_color")
+        val LABEL_BACKDROP_ALPHA = floatPreferencesKey("label_backdrop_alpha")
+        val TEXT_OUTLINE_ENABLED = booleanPreferencesKey("text_outline_enabled")
+        val TEXT_OUTLINE_COLOR = longPreferencesKey("text_outline_color")
+        val TEXT_OUTLINE_WIDTH = floatPreferencesKey("text_outline_width")
+        val TEXT_SHADOW_ENABLED = booleanPreferencesKey("text_shadow_enabled")
+        val TEXT_SHADOW_RADIUS = floatPreferencesKey("text_shadow_radius")
+        val LETTER_SPACING_EM = floatPreferencesKey("letter_spacing_em")
+        val LINE_HEIGHT_MULT = floatPreferencesKey("line_height_mult")
+        val MIN_LABEL_FONT_SP = floatPreferencesKey("min_label_font_sp")
+        val LABEL_MAX_LINES = intPreferencesKey("label_max_lines")
+        val AUTO_CONTRAST_TEXT = booleanPreferencesKey("auto_contrast_text")
+        val CUSTOM_SURFACE_COLOR = longPreferencesKey("custom_surface_color")
+        val CUSTOM_CARD_COLOR = longPreferencesKey("custom_card_color")
+        val CUSTOM_OUTLINE_COLOR = longPreferencesKey("custom_outline_color")
+        val INFINITE_PAGE_LOOP = booleanPreferencesKey("infinite_page_loop")
+        val WALLPAPER_PARALLAX = floatPreferencesKey("wallpaper_parallax")
+        val WALLPAPER_VIGNETTE = floatPreferencesKey("wallpaper_vignette")
+        val WALLPAPER_SATURATION = floatPreferencesKey("wallpaper_saturation")
+        val WALLPAPER_CONTRAST = floatPreferencesKey("wallpaper_contrast")
+        val WALLPAPER_BRIGHTNESS = floatPreferencesKey("wallpaper_brightness")
+        val AMBIENT_EFFECT_TYPE = stringPreferencesKey("ambient_effect_type")
+        val SHOW_CUSTOM_STATUS_STRIP = booleanPreferencesKey("show_custom_status_strip")
+        val PAGE_INDICATOR_PLACEMENT = stringPreferencesKey("page_indicator_placement")
+        val FOLDER_COVER_STYLE = stringPreferencesKey("folder_cover_style")
+        val DRAWER_SEARCH_POSITION = stringPreferencesKey("drawer_search_position")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -332,6 +396,37 @@ class LauncherPreferencesRepository(private val context: Context) {
         lockedAppsCsv = prefs[Keys.LOCKED_APPS] ?: "",
         cloudBackupEnabled = prefs[Keys.CLOUD_BACKUP_ENABLED] ?: false,
         cloudBackupTreeUri = prefs[Keys.CLOUD_BACKUP_TREE_URI],
+        customFontId = prefs[Keys.CUSTOM_FONT_ID],
+        customFontPath = prefs[Keys.CUSTOM_FONT_PATH],
+        highReadabilityMode = prefs[Keys.HIGH_READABILITY_MODE] ?: false,
+        boldLabelsEnabled = prefs[Keys.BOLD_LABELS_ENABLED] ?: false,
+        labelBackdropEnabled = prefs[Keys.LABEL_BACKDROP_ENABLED] ?: false,
+        labelBackdropColorHex = prefs[Keys.LABEL_BACKDROP_COLOR] ?: 0xAA000000L,
+        labelBackdropAlpha = prefs[Keys.LABEL_BACKDROP_ALPHA] ?: 0.72f,
+        textOutlineEnabled = prefs[Keys.TEXT_OUTLINE_ENABLED] ?: false,
+        textOutlineColorHex = prefs[Keys.TEXT_OUTLINE_COLOR] ?: 0xFF000000L,
+        textOutlineWidthDp = prefs[Keys.TEXT_OUTLINE_WIDTH] ?: 1.5f,
+        textShadowEnabled = prefs[Keys.TEXT_SHADOW_ENABLED] ?: true,
+        textShadowRadiusDp = prefs[Keys.TEXT_SHADOW_RADIUS] ?: 4f,
+        letterSpacingEm = prefs[Keys.LETTER_SPACING_EM] ?: 0f,
+        lineHeightMultiplier = prefs[Keys.LINE_HEIGHT_MULT] ?: 1.15f,
+        minLabelFontSp = prefs[Keys.MIN_LABEL_FONT_SP] ?: 11f,
+        labelMaxLines = prefs[Keys.LABEL_MAX_LINES] ?: 2,
+        autoContrastText = prefs[Keys.AUTO_CONTRAST_TEXT] ?: true,
+        customSurfaceColorHex = prefs[Keys.CUSTOM_SURFACE_COLOR],
+        customCardColorHex = prefs[Keys.CUSTOM_CARD_COLOR],
+        customOutlineColorHex = prefs[Keys.CUSTOM_OUTLINE_COLOR],
+        infinitePageLoop = prefs[Keys.INFINITE_PAGE_LOOP] ?: false,
+        wallpaperParallax = prefs[Keys.WALLPAPER_PARALLAX] ?: 0.35f,
+        wallpaperVignette = prefs[Keys.WALLPAPER_VIGNETTE] ?: 0f,
+        wallpaperSaturation = prefs[Keys.WALLPAPER_SATURATION] ?: 1f,
+        wallpaperContrast = prefs[Keys.WALLPAPER_CONTRAST] ?: 1f,
+        wallpaperBrightness = prefs[Keys.WALLPAPER_BRIGHTNESS] ?: 0f,
+        ambientEffectType = prefs[Keys.AMBIENT_EFFECT_TYPE] ?: "NONE",
+        showCustomStatusStrip = prefs[Keys.SHOW_CUSTOM_STATUS_STRIP] ?: false,
+        pageIndicatorPlacement = prefs[Keys.PAGE_INDICATOR_PLACEMENT] ?: "BOTTOM",
+        folderCoverStyle = prefs[Keys.FOLDER_COVER_STYLE] ?: "GRID_2X2",
+        drawerSearchPosition = prefs[Keys.DRAWER_SEARCH_POSITION] ?: "TOP",
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -440,6 +535,44 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.CLOUD_BACKUP_ENABLED] = updated.cloudBackupEnabled
             if (updated.cloudBackupTreeUri != null) prefs[Keys.CLOUD_BACKUP_TREE_URI] = updated.cloudBackupTreeUri
             else prefs.remove(Keys.CLOUD_BACKUP_TREE_URI)
+
+            if (updated.customFontId != null) prefs[Keys.CUSTOM_FONT_ID] = updated.customFontId
+            else prefs.remove(Keys.CUSTOM_FONT_ID)
+            if (updated.customFontPath != null) prefs[Keys.CUSTOM_FONT_PATH] = updated.customFontPath
+            else prefs.remove(Keys.CUSTOM_FONT_PATH)
+            prefs[Keys.HIGH_READABILITY_MODE] = updated.highReadabilityMode
+            prefs[Keys.BOLD_LABELS_ENABLED] = updated.boldLabelsEnabled
+            prefs[Keys.LABEL_BACKDROP_ENABLED] = updated.labelBackdropEnabled
+            prefs[Keys.LABEL_BACKDROP_COLOR] = updated.labelBackdropColorHex
+            prefs[Keys.LABEL_BACKDROP_ALPHA] = updated.labelBackdropAlpha
+            prefs[Keys.TEXT_OUTLINE_ENABLED] = updated.textOutlineEnabled
+            prefs[Keys.TEXT_OUTLINE_COLOR] = updated.textOutlineColorHex
+            prefs[Keys.TEXT_OUTLINE_WIDTH] = updated.textOutlineWidthDp
+            prefs[Keys.TEXT_SHADOW_ENABLED] = updated.textShadowEnabled
+            prefs[Keys.TEXT_SHADOW_RADIUS] = updated.textShadowRadiusDp
+            prefs[Keys.LETTER_SPACING_EM] = updated.letterSpacingEm
+            prefs[Keys.LINE_HEIGHT_MULT] = updated.lineHeightMultiplier
+            prefs[Keys.MIN_LABEL_FONT_SP] = updated.minLabelFontSp
+            prefs[Keys.LABEL_MAX_LINES] = updated.labelMaxLines
+            prefs[Keys.AUTO_CONTRAST_TEXT] = updated.autoContrastText
+
+            if (updated.customSurfaceColorHex != null) prefs[Keys.CUSTOM_SURFACE_COLOR] = updated.customSurfaceColorHex
+            else prefs.remove(Keys.CUSTOM_SURFACE_COLOR)
+            if (updated.customCardColorHex != null) prefs[Keys.CUSTOM_CARD_COLOR] = updated.customCardColorHex
+            else prefs.remove(Keys.CUSTOM_CARD_COLOR)
+            if (updated.customOutlineColorHex != null) prefs[Keys.CUSTOM_OUTLINE_COLOR] = updated.customOutlineColorHex
+            else prefs.remove(Keys.CUSTOM_OUTLINE_COLOR)
+            prefs[Keys.INFINITE_PAGE_LOOP] = updated.infinitePageLoop
+            prefs[Keys.WALLPAPER_PARALLAX] = updated.wallpaperParallax
+            prefs[Keys.WALLPAPER_VIGNETTE] = updated.wallpaperVignette
+            prefs[Keys.WALLPAPER_SATURATION] = updated.wallpaperSaturation
+            prefs[Keys.WALLPAPER_CONTRAST] = updated.wallpaperContrast
+            prefs[Keys.WALLPAPER_BRIGHTNESS] = updated.wallpaperBrightness
+            prefs[Keys.AMBIENT_EFFECT_TYPE] = updated.ambientEffectType
+            prefs[Keys.SHOW_CUSTOM_STATUS_STRIP] = updated.showCustomStatusStrip
+            prefs[Keys.PAGE_INDICATOR_PLACEMENT] = updated.pageIndicatorPlacement
+            prefs[Keys.FOLDER_COVER_STYLE] = updated.folderCoverStyle
+            prefs[Keys.DRAWER_SEARCH_POSITION] = updated.drawerSearchPosition
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }

@@ -113,13 +113,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
+import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.NotificationAccess
 import com.example.data.system.CloudBackupScheduler
 import com.example.ui.components.BackgroundPresetDialog
+import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.IconOutlineProcessor
 import com.example.ui.components.IconStyleConfig
@@ -144,6 +148,9 @@ private val GestureLabels = listOf(
     "LONG_PRESS" to "Long Press",
     "TWO_FINGER_SWIPE_UP" to "Two-Finger Swipe Up",
     "TWO_FINGER_SWIPE_DOWN" to "Two-Finger Swipe Down",
+    "TWO_FINGER_TAP" to "Two-Finger Tap",
+    "PINCH_IN" to "Pinch In",
+    "PINCH_OUT" to "Pinch Out",
 )
 
 private val ActionOptions = listOf(
@@ -158,6 +165,10 @@ private val ActionOptions = listOf(
     "OPEN_RULE" to "Launcher: Open Dynamic Rule",
     "NEXT_PAGE" to "Launcher: Next Home Page",
     "PREV_PAGE" to "Launcher: Previous Home Page",
+    "JUMP_PAGE" to "Launcher: Jump to Specific Page",
+    "SHOW_OBJECT" to "Studio: Show Home Element / Group",
+    "HIDE_OBJECT" to "Studio: Hide Home Element / Group",
+    "TOGGLE_OBJECT" to "Studio: Toggle Home Element / Group",
     "TOGGLE_EDIT_MODE" to "Launcher: Toggle Home Edit Studio",
     "OPEN_SETTINGS" to "Launcher: Open Settings",
     "OPEN_APP_MANAGER" to "Launcher: Open App Icons Manager",
@@ -165,6 +176,9 @@ private val ActionOptions = listOf(
     "OPEN_APP" to "App Action: Launch Specific App",
     "OPEN_APP_SHORTCUT" to "App Action: Trigger App Shortcut",
     "OPEN_APP_INFO" to "App Action: Open App Info & Permissions",
+    "TOGGLE_TORCH" to "Device Action: Toggle Flashlight",
+    "CYCLE_RINGER" to "Device Action: Cycle Ringer Mode",
+    "OPEN_SYSTEM_PANEL" to "Device Action: Quick Panel (Wi-Fi/BT/Volume)",
     "OPEN_SYSTEM_SETTING" to "Device Action: Open System Setting",
     "OPEN_WEBSITE" to "Web Action: Open URL Shortcut",
 )
@@ -253,6 +267,13 @@ fun SettingsScreen(
     onRemoveIconPack: (String) -> Unit = {},
     onMoveIconPack: (String, Int) -> Unit = { _, _ -> },
     onResetDefaultGestures: () -> Unit = {},
+    onSaveCategory: (CategoryEntity) -> Unit = {},
+    onImportCustomFont: (Uri) -> Unit = {},
+    onApplyCustomFont: (CustomFontEntity?) -> Unit = {},
+    onDeleteCustomFont: (CustomFontEntity) -> Unit = {},
+    onSaveThemeProfile: (String) -> Unit = {},
+    onApplyThemeProfile: (ThemeProfileEntity) -> Unit = {},
+    onDeleteThemeProfile: (Long) -> Unit = {},
     appDiscovery: AppDiscoveryManager? = null,
     initialSearchQuery: String = "",
     onConsumeInitialSearchQuery: () -> Unit = {},
@@ -294,6 +315,7 @@ fun SettingsScreen(
     }
     var showHomeGesturesDialog by remember { mutableStateOf(false) }
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
+    var editingCategoryForIcon by remember { mutableStateOf<CategoryEntity?>(null) }
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
@@ -505,6 +527,18 @@ fun SettingsScreen(
                 }
             }
 
+            // Dedicated Category Icons & Open-State Badges section
+            if (LauncherSettingsCatalog.SECTION_CATEGORY_ICONS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_CATEGORY_ICONS) {
+                    CategoryIconsSettingsSection(
+                        categories = state.categories,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
+                        onEditCategory = { cat -> editingCategoryForIcon = cat },
+                        onOpenFullTagManager = { onNavigate(LauncherRoute.Tags) },
+                    )
+                }
+            }
+
             // Default Home Launcher Card
             if (LauncherSettingsCatalog.SECTION_DEFAULT_HOME in matchingSections) {
                 item(key = LauncherSettingsCatalog.SECTION_DEFAULT_HOME) {
@@ -614,7 +648,7 @@ fun SettingsScreen(
                     Slider(
                         value = s.fontScale,
                         onValueChange = { v -> onUpdateSettings { it.copy(fontScale = v) } },
-                        valueRange = 0.80f..1.40f,
+                        valueRange = 0.80f..1.80f,
                         modifier = Modifier.testTag("settings_font_scale_slider"),
                     )
 
@@ -626,6 +660,20 @@ fun SettingsScreen(
                         tagPrefix = "settings_text_color",
                     )
                     }
+                }
+            }
+
+            // Custom Fonts (.TTF / .OTF) & Readability Studio
+            if (LauncherSettingsCatalog.SECTION_CUSTOM_FONTS_READABILITY in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_CUSTOM_FONTS_READABILITY) {
+                    CustomFontsReadabilitySection(
+                        state = state,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_CUSTOM_FONTS_READABILITY].orEmpty() else emptyList(),
+                        onUpdateSettings = onUpdateSettings,
+                        onImportCustomFont = onImportCustomFont,
+                        onApplyCustomFont = onApplyCustomFont,
+                        onDeleteCustomFont = onDeleteCustomFont,
+                    )
                 }
             }
 
@@ -698,6 +746,14 @@ fun SettingsScreen(
                         value = s.animationSpeedScale,
                         onValueChange = { v -> onUpdateSettings { it.copy(animationSpeedScale = v) } },
                         valueRange = 0.2f..1.8f,
+                    )
+
+                    ThemeProfilesAndSurfacePaletteControls(
+                        state = state,
+                        onUpdateSettings = onUpdateSettings,
+                        onSaveThemeProfile = onSaveThemeProfile,
+                        onApplyThemeProfile = onApplyThemeProfile,
+                        onDeleteThemeProfile = onDeleteThemeProfile,
                     )
                     }
                 }
@@ -1335,6 +1391,11 @@ fun SettingsScreen(
                         onSelect = { c -> onUpdateSettings { it.copy(wallpaperDimColorHex = c) } },
                         tagPrefix = "settings_wp_dim",
                     )
+
+                    WallpaperFxStudioControls(
+                        settings = s,
+                        onUpdateSettings = onUpdateSettings,
+                    )
                     }
                 }
             }
@@ -1400,6 +1461,19 @@ fun SettingsScreen(
 
                     ToggleRow("Show Search Bar in Drawer", s.drawerSearchBarVisible) { v ->
                         onUpdateSettings { it.copy(drawerSearchBarVisible = v) }
+                    }
+                    if (s.drawerSearchBarVisible) {
+                        Text("Search Bar Position", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("TOP", "BOTTOM").forEach { pos ->
+                                FilterChip(
+                                    selected = s.drawerSearchPosition == pos,
+                                    onClick = { onUpdateSettings { it.copy(drawerSearchPosition = pos) } },
+                                    label = { Text(pos) },
+                                    modifier = Modifier.testTag("settings_drawer_search_pos_$pos"),
+                                )
+                            }
+                        }
                     }
 
                     Text("Background Style", style = MaterialTheme.typography.labelLarge)
@@ -1568,6 +1642,11 @@ fun SettingsScreen(
                         onUpdateSettings { it.copy(layoutLocked = v) }
                     }
 
+                    FolderAndChromeStudioControls(
+                        settings = s,
+                        onUpdateSettings = onUpdateSettings,
+                    )
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                     ToggleRow("Grid Snap", s.gridSnapEnabled) { v ->
@@ -1621,16 +1700,10 @@ fun SettingsScreen(
                         icon = Icons.Rounded.ViewCarousel,
                         matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES].orEmpty() else emptyList(),
                     ) {
-                    Text("Page Transition Style", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("SLIDE", "DEPTH", "FADE").forEach { tr ->
-                            FilterChip(
-                                selected = s.pageTransitionStyle == tr,
-                                onClick = { onUpdateSettings { it.copy(pageTransitionStyle = tr) } },
-                                label = { Text(tr) },
-                            )
-                        }
-                    }
+                    ExtendedPagingAndIndicatorControls(
+                        settings = s,
+                        onUpdateSettings = onUpdateSettings,
+                    )
 
                     ToggleRow("Enable Widget Feed", s.widgetFeedEnabled) { v ->
                         onUpdateSettings { it.copy(widgetFeedEnabled = v) }
@@ -1657,7 +1730,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        listOf("DOTS", "PILL", "NUMBERS", "HIDDEN").forEach { st ->
+                        listOf("DOTS", "PILL", "NUMBERS", "PROGRESS", "TABS", "HIDDEN").forEach { st ->
                             FilterChip(
                                 selected = s.pageIndicatorStyle == st,
                                 onClick = { onUpdateSettings { it.copy(pageIndicatorStyle = st) } },
@@ -2087,6 +2160,18 @@ fun SettingsScreen(
         )
     }
 
+    editingCategoryForIcon?.let { cat ->
+        CategoryEditorDialog(
+            initialCategory = cat,
+            onImportImage = { uri -> onImportImage(uri, "CategoryIcons", null) },
+            onSave = { updated ->
+                onSaveCategory(updated)
+                editingCategoryForIcon = null
+            },
+            onDismiss = { editingCategoryForIcon = null },
+        )
+    }
+
     if (showResetConfirm) {
         AlertDialog(
             onDismissRequest = { showResetConfirm = false },
@@ -2119,7 +2204,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsCard(
+internal fun SettingsCard(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     matchedEntries: List<SettingEntrySpec> = emptyList(),
@@ -2160,7 +2245,7 @@ private fun SettingsCard(
 }
 
 @Composable
-private fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
+internal fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2449,6 +2534,41 @@ private fun GestureBindingDialog(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("gesture_url_input"),
                         )
+                    }
+                    "JUMP_PAGE" -> {
+                        Text("Select Page", style = MaterialTheme.typography.labelLarge)
+                        state.homePages.forEachIndexed { idx, p ->
+                            Text(
+                                text = (if (targetUrl == idx.toString()) "● " else "○ ") + "${idx + 1}. ${p.title}",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { targetUrl = idx.toString() }
+                                    .padding(8.dp),
+                            )
+                        }
+                    }
+                    "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT" -> {
+                        OutlinedTextField(
+                            value = targetUrl,
+                            onValueChange = { targetUrl = it },
+                            label = { Text("Target Element ID or Visibility Group Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    "OPEN_SYSTEM_PANEL" -> {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            listOf("WIFI_PANEL" to "Wi-Fi", "BLUETOOTH_PANEL" to "Bluetooth", "VOLUME_PANEL" to "Volume", "DISPLAY_SETTINGS" to "Display").forEach { (k, lbl) ->
+                                FilterChip(
+                                    selected = targetUrl == k,
+                                    onClick = { targetUrl = k },
+                                    label = { Text(lbl) },
+                                )
+                            }
+                        }
                     }
                 }
             }

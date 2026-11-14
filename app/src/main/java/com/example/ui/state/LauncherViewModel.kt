@@ -10,6 +10,8 @@ import com.example.data.db.AppEntity
 import com.example.data.db.AppWithTags
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ElementStyleExtras
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
@@ -20,14 +22,19 @@ import com.example.data.db.SavedTagRuleEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.db.TagEntity
 import com.example.data.db.TagWithApps
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.data.repository.LauncherRepository
 import com.example.data.system.AppDiscoveryManager
+import com.example.data.system.BackupManager
+import com.example.data.system.DeviceControlsManager
+import com.example.data.system.FontStorageManager
 import com.example.data.system.ImageStorageManager
 import com.example.data.system.InstalledIconPack
 import com.example.data.system.LauncherWidgetHost
 import com.example.data.system.LineIconProfile
 import com.example.data.system.NotificationAccess
+import com.example.data.system.StarterTemplates
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +45,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 private data class TransientLauncherState(
     val isLoading: Boolean = true,
@@ -48,6 +56,13 @@ private data class TransientLauncherState(
     val selectedElementId: Long? = null,
     val multiSelectedIds: Set<Long> = emptySet(),
     val clipboardElement: HomeElementEntity? = null,
+    val copiedStyle: CopiedElementStyle? = null,
+    val activeVisibilityGroups: Set<String> = emptySet(),
+    val hiddenVisibilityGroups: Set<String> = emptySet(),
+    val runtimeHiddenElementIds: Set<Long> = emptySet(),
+    val runtimeShownElementIds: Set<Long> = emptySet(),
+    val activeContainerFocusId: Long? = null,
+    val stackIndexOverrides: Map<Long, Int> = emptyMap(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val activeOverlay: ActiveOverlay = ActiveOverlay.None,
@@ -63,6 +78,8 @@ class LauncherViewModel(
     val appDiscovery: AppDiscoveryManager,
     val imageStorage: ImageStorageManager,
     val widgetHost: LauncherWidgetHost,
+    val fontStorage: FontStorageManager = (appDiscovery.context.applicationContext as? com.example.TagDeckApplication)?.fontStorageManager
+        ?: FontStorageManager(appDiscovery.context),
 ) : ViewModel() {
 
     private val transientState = MutableStateFlow(TransientLauncherState())
@@ -101,12 +118,20 @@ class LauncherViewModel(
         DataSlice3(sidebars, gestures, imgs, presets, settings)
     }
 
+    private val dataFlow4 = combine(
+        repository.customFontsFlow,
+        repository.themeProfilesFlow,
+    ) { customFonts, themeProfiles ->
+        customFonts to themeProfiles
+    }
+
     val uiState: StateFlow<LauncherUiState> = combine(
         dataFlow1,
         dataFlow2,
         dataFlow3,
+        dataFlow4,
         transientState,
-    ) { d1, d2, d3, t ->
+    ) { d1, d2, d3, d4, t ->
         LauncherUiState(
             isLoading = t.isLoading,
             appsWithTags = d1.apps,
@@ -123,6 +148,8 @@ class LauncherViewModel(
             gestures = d3.gestures.associateBy { it.gestureType },
             imageResources = d3.imageResources,
             backgroundPresets = d3.backgroundPresets,
+            customFonts = d4.first,
+            themeProfiles = d4.second,
             settings = d3.settings,
             installedIconPacks = t.installedIconPacks,
             isDefaultLauncher = t.isDefaultLauncher,
@@ -131,6 +158,13 @@ class LauncherViewModel(
             selectedElementId = t.selectedElementId,
             multiSelectedIds = t.multiSelectedIds,
             clipboardElement = t.clipboardElement,
+            copiedStyle = t.copiedStyle,
+            activeVisibilityGroups = t.activeVisibilityGroups,
+            hiddenVisibilityGroups = t.hiddenVisibilityGroups,
+            runtimeHiddenElementIds = t.runtimeHiddenElementIds,
+            runtimeShownElementIds = t.runtimeShownElementIds,
+            activeContainerFocusId = t.activeContainerFocusId,
+            stackIndexOverrides = t.stackIndexOverrides,
             canUndo = t.canUndo,
             canRedo = t.canRedo,
             activeOverlay = t.activeOverlay,
@@ -846,6 +880,11 @@ class LauncherViewModel(
         viewModelScope.launch {
             recordUndoCheckpoint()
             element.appWidgetId?.let { widgetHost.deleteAppWidgetId(it) }
+            // Clean up any stacked/contained child items referencing this element
+            uiState.value.homeElements.filter { it.parentContainerId == element.elementId }.forEach { child ->
+                child.appWidgetId?.let { widgetHost.deleteAppWidgetId(it) }
+                repository.deleteHomeElement(child.elementId)
+            }
             repository.deleteHomeElement(element.elementId)
             if (transientState.value.selectedElementId == element.elementId) {
                 transientState.update { it.copy(selectedElementId = null) }
@@ -871,6 +910,285 @@ class LauncherViewModel(
         }
         val minZ = siblings.minOfOrNull { it.zIndex } ?: 0
         saveHomeElement(element.copy(zIndex = (minZ - 1).coerceAtLeast(0)))
+    }
+
+    // --- PRECISION ARRANGE, FORMAT PAINTER & WIDGET STACKS ---
+    fun copyElementStyle(element: HomeElementEntity) {
+        val style = CopiedElementStyle(
+            backgroundColorHex = element.backgroundColorHex,
+            backgroundGradientEndHex = element.backgroundGradientEndHex,
+            textColorHex = element.textColorHex,
+            borderColorHex = element.borderColorHex,
+            borderWidthDp = element.borderWidthDp,
+            cornerRadiusDp = element.cornerRadiusDp,
+            paddingDp = element.paddingDp,
+            shadowElevationDp = element.shadowElevationDp,
+            alpha = element.alpha,
+            extras = element.parsedExtras(),
+        )
+        transientState.update { it.copy(copiedStyle = style) }
+        showMessage("Copied style from \"${element.label.ifBlank { element.type }}\"")
+    }
+
+    fun pasteStyleToElements(ids: Set<Long>) {
+        val style = transientState.value.copiedStyle ?: return
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            val extrasJson = style.extras.toJson()
+            uiState.value.homeElements.filter { it.elementId in ids }.forEach { el ->
+                repository.saveHomeElement(
+                    el.copy(
+                        backgroundColorHex = style.backgroundColorHex,
+                        backgroundGradientEndHex = style.backgroundGradientEndHex,
+                        textColorHex = style.textColorHex,
+                        borderColorHex = style.borderColorHex,
+                        borderWidthDp = style.borderWidthDp,
+                        cornerRadiusDp = style.cornerRadiusDp,
+                        paddingDp = style.paddingDp,
+                        shadowElevationDp = style.shadowElevationDp,
+                        alpha = style.alpha,
+                        styleExtrasJson = extrasJson,
+                    )
+                )
+            }
+            showMessage("Pasted style to ${ids.size} item(s)")
+        }
+    }
+
+    fun groupElements(ids: Set<Long>) {
+        if (ids.size < 2) return
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            val gid = "grp_${UUID.randomUUID().toString().take(8)}"
+            uiState.value.homeElements.filter { it.elementId in ids }.forEach { el ->
+                repository.saveHomeElement(el.copy(groupId = gid))
+            }
+            showMessage("Grouped ${ids.size} items")
+        }
+    }
+
+    fun ungroupElements(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            uiState.value.homeElements.filter { it.elementId in ids }.forEach { el ->
+                repository.saveHomeElement(el.copy(groupId = null))
+            }
+            showMessage("Ungrouped items")
+        }
+    }
+
+    fun alignElements(ids: Set<Long>, mode: String) {
+        val targets = uiState.value.homeElements.filter { it.elementId in ids && !it.locked }
+        if (targets.size < 2) return
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            when (mode) {
+                "LEFT" -> {
+                    val minX = targets.minOf { it.xFraction }
+                    targets.forEach { repository.saveHomeElement(it.copy(xFraction = minX)) }
+                }
+                "RIGHT" -> {
+                    val maxX = targets.maxOf { it.xFraction }
+                    targets.forEach { repository.saveHomeElement(it.copy(xFraction = maxX)) }
+                }
+                "CENTER_H" -> {
+                    val avgX = targets.map { it.xFraction }.average().toFloat().coerceIn(0f, 0.90f)
+                    targets.forEach { repository.saveHomeElement(it.copy(xFraction = avgX)) }
+                }
+                "TOP" -> {
+                    val minY = targets.minOf { it.yFraction }
+                    targets.forEach { repository.saveHomeElement(it.copy(yFraction = minY)) }
+                }
+                "BOTTOM" -> {
+                    val maxY = targets.maxOf { it.yFraction }
+                    targets.forEach { repository.saveHomeElement(it.copy(yFraction = maxY)) }
+                }
+                "CENTER_V" -> {
+                    val avgY = targets.map { it.yFraction }.average().toFloat().coerceIn(0f, 0.90f)
+                    targets.forEach { repository.saveHomeElement(it.copy(yFraction = avgY)) }
+                }
+            }
+            showMessage("Aligned ${targets.size} items")
+        }
+    }
+
+    fun distributeElements(ids: Set<Long>, axis: String) {
+        val targets = uiState.value.homeElements.filter { it.elementId in ids && !it.locked }
+        if (targets.size < 3) {
+            showMessage("Select at least 3 items to distribute")
+            return
+        }
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            if (axis == "HORIZONTAL") {
+                val sorted = targets.sortedBy { it.xFraction }
+                val start = sorted.first().xFraction
+                val end = sorted.last().xFraction
+                val step = (end - start) / (sorted.size - 1)
+                sorted.forEachIndexed { idx, el ->
+                    repository.saveHomeElement(el.copy(xFraction = (start + step * idx).coerceIn(0f, 0.90f)))
+                }
+            } else {
+                val sorted = targets.sortedBy { it.yFraction }
+                val start = sorted.first().yFraction
+                val end = sorted.last().yFraction
+                val step = (end - start) / (sorted.size - 1)
+                sorted.forEachIndexed { idx, el ->
+                    repository.saveHomeElement(el.copy(yFraction = (start + step * idx).coerceIn(0f, 0.90f)))
+                }
+            }
+            showMessage("Distributed ${targets.size} items")
+        }
+    }
+
+    fun matchElementSizes(ids: Set<Long>, dimension: String) {
+        val targets = uiState.value.homeElements.filter { it.elementId in ids && !it.locked }
+        if (targets.size < 2) return
+        val ref = uiState.value.homeElements.find { it.elementId == transientState.value.selectedElementId }
+            ?: targets.first()
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            targets.forEach { el ->
+                repository.saveHomeElement(
+                    el.copy(
+                        widthDp = if (dimension == "WIDTH" || dimension == "BOTH") ref.widthDp else el.widthDp,
+                        heightDp = if (dimension == "HEIGHT" || dimension == "BOTH") ref.heightDp else el.heightDp,
+                    )
+                )
+            }
+            showMessage("Matched size across ${targets.size} items")
+        }
+    }
+
+    fun stackElements(ids: Set<Long>) {
+        val candidates = uiState.value.homeElements.filter {
+            it.elementId in ids && it.parentContainerId == null && it.type != "WIDGET_STACK"
+        }
+        if (candidates.size < 2) {
+            showMessage("Select 2 or more items on the page to create a Widget Stack")
+            return
+        }
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            val first = candidates.minByOrNull { it.yFraction } ?: candidates.first()
+            val maxW = candidates.maxOf { it.widthDp }.coerceAtLeast(150f)
+            val maxH = candidates.maxOf { it.heightDp }.coerceAtLeast(120f)
+            val maxZ = uiState.value.homeElements.maxOfOrNull { it.zIndex } ?: 0
+            val stackId = repository.saveHomeElement(
+                HomeElementEntity(
+                    pageId = first.pageId,
+                    ownerType = first.ownerType,
+                    ownerWindowId = first.ownerWindowId,
+                    type = "WIDGET_STACK",
+                    xFraction = first.xFraction,
+                    yFraction = first.yFraction,
+                    widthDp = maxW,
+                    heightDp = maxH,
+                    zIndex = maxZ + 1,
+                    label = "Widget Stack",
+                    backgroundColorHex = 0xAA0E1629L,
+                    borderColorHex = 0x6638BDF8L,
+                    borderWidthDp = 1.2f,
+                    cornerRadiusDp = 24f,
+                    styleExtrasJson = ElementStyleExtras(
+                        stackSwipeAxis = "VERTICAL",
+                        stackIndicatorStyle = "DOTS",
+                    ).toJson(),
+                )
+            )
+            candidates.forEachIndexed { idx, child ->
+                repository.saveHomeElement(
+                    child.copy(
+                        parentContainerId = stackId,
+                        pinnedToAllPages = false,
+                        xFraction = 0f,
+                        yFraction = 0f,
+                        zIndex = idx,
+                    )
+                )
+            }
+            transientState.update {
+                it.copy(multiSelectedIds = emptySet(), selectedElementId = stackId)
+            }
+            showMessage("Stacked ${candidates.size} items")
+        }
+    }
+
+    fun unstackElement(stackId: Long) {
+        val stack = uiState.value.homeElements.find { it.elementId == stackId } ?: return
+        val children = uiState.value.homeElements.filter { it.parentContainerId == stackId }.sortedBy { it.zIndex }
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            val baseZ = (uiState.value.homeElements.maxOfOrNull { it.zIndex } ?: 0) + 1
+            children.forEachIndexed { idx, child ->
+                repository.saveHomeElement(
+                    child.copy(
+                        pageId = stack.pageId,
+                        ownerType = stack.ownerType,
+                        ownerWindowId = stack.ownerWindowId,
+                        parentContainerId = null,
+                        xFraction = (stack.xFraction + (idx * 0.04f)).coerceIn(0f, 0.85f),
+                        yFraction = (stack.yFraction + (idx * 0.04f)).coerceIn(0f, 0.85f),
+                        zIndex = baseZ + idx,
+                    )
+                )
+            }
+            repository.deleteHomeElement(stackId)
+            transientState.update { it.copy(selectedElementId = children.firstOrNull()?.elementId) }
+            showMessage("Unstacked ${children.size} items")
+        }
+    }
+
+    fun addChildToContainer(parentId: Long, child: HomeElementEntity) {
+        val siblings = uiState.value.homeElements.filter { it.parentContainerId == parentId }
+        val nextZ = (siblings.maxOfOrNull { it.zIndex } ?: -1) + 1
+        saveHomeElement(
+            child.copy(
+                parentContainerId = parentId,
+                pinnedToAllPages = false,
+                xFraction = 0f,
+                yFraction = 0f,
+                zIndex = nextZ,
+            ),
+            selectAfter = false,
+        )
+    }
+
+    fun moveChildInParent(childId: Long, delta: Int) {
+        val child = uiState.value.homeElements.find { it.elementId == childId } ?: return
+        val parentId = child.parentContainerId ?: return
+        val siblings = uiState.value.homeElements
+            .filter { it.parentContainerId == parentId }
+            .sortedWith(compareBy<HomeElementEntity> { it.zIndex }.thenBy { it.elementId })
+            .toMutableList()
+        val idx = siblings.indexOfFirst { it.elementId == childId }
+        if (idx == -1) return
+        val target = (idx + delta).coerceIn(0, siblings.lastIndex)
+        if (target == idx) return
+        val moved = siblings.removeAt(idx)
+        siblings.add(target, moved)
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            siblings.forEachIndexed { i, item ->
+                repository.saveHomeElement(item.copy(zIndex = i))
+            }
+        }
+    }
+
+    fun cycleWidgetStack(stackId: Long, delta: Int) {
+        val children = uiState.value.homeElements.filter { it.parentContainerId == stackId }
+        if (children.isEmpty()) return
+        transientState.update { t ->
+            val curr = t.stackIndexOverrides[stackId] ?: 0
+            val next = ((curr + delta) % children.size + children.size) % children.size
+            t.copy(stackIndexOverrides = t.stackIndexOverrides + (stackId to next))
+        }
+    }
+
+    fun setActiveContainerFocus(containerId: Long?) {
+        transientState.update { it.copy(activeContainerFocusId = containerId) }
     }
 
     // --- SNAPSHOTS ---
@@ -1011,13 +1329,120 @@ class LauncherViewModel(
             "NEXT_PAGE" -> {
                 val pages = uiState.value.homePages.size
                 if (pages > 1) {
-                    val next = (uiState.value.currentPageIndex + 1).coerceAtMost(pages - 1)
+                    val next = if (uiState.value.settings.infinitePageLoop) {
+                        (uiState.value.currentPageIndex + 1) % pages
+                    } else {
+                        (uiState.value.currentPageIndex + 1).coerceAtMost(pages - 1)
+                    }
                     onScrollPage(next)
                 }
             }
             "PREV_PAGE" -> {
-                val prev = (uiState.value.currentPageIndex - 1).coerceAtLeast(0)
-                onScrollPage(prev)
+                val pages = uiState.value.homePages.size
+                if (pages > 1) {
+                    val prev = if (uiState.value.settings.infinitePageLoop) {
+                        (uiState.value.currentPageIndex - 1 + pages) % pages
+                    } else {
+                        (uiState.value.currentPageIndex - 1).coerceAtLeast(0)
+                    }
+                    onScrollPage(prev)
+                }
+            }
+            "JUMP_PAGE" -> {
+                val idx = targetUrl?.trim()?.toIntOrNull()
+                if (idx != null && idx in uiState.value.homePages.indices) {
+                    onScrollPage(idx)
+                }
+            }
+            "SHOW_OBJECT" -> {
+                val elemId = targetUrl?.trim()?.toLongOrNull()
+                if (elemId != null) {
+                    transientState.update {
+                        it.copy(
+                            runtimeShownElementIds = it.runtimeShownElementIds + elemId,
+                            runtimeHiddenElementIds = it.runtimeHiddenElementIds - elemId,
+                        )
+                    }
+                } else if (!targetUrl.isNullOrBlank()) {
+                    val group = targetUrl.trim()
+                    transientState.update {
+                        it.copy(
+                            activeVisibilityGroups = it.activeVisibilityGroups + group,
+                            hiddenVisibilityGroups = it.hiddenVisibilityGroups - group,
+                        )
+                    }
+                }
+            }
+            "HIDE_OBJECT" -> {
+                val elemId = targetUrl?.trim()?.toLongOrNull()
+                if (elemId != null) {
+                    transientState.update {
+                        it.copy(
+                            runtimeHiddenElementIds = it.runtimeHiddenElementIds + elemId,
+                            runtimeShownElementIds = it.runtimeShownElementIds - elemId,
+                        )
+                    }
+                } else if (!targetUrl.isNullOrBlank()) {
+                    val group = targetUrl.trim()
+                    transientState.update {
+                        it.copy(
+                            hiddenVisibilityGroups = it.hiddenVisibilityGroups + group,
+                            activeVisibilityGroups = it.activeVisibilityGroups - group,
+                        )
+                    }
+                }
+            }
+            "TOGGLE_OBJECT" -> {
+                val elemId = targetUrl?.trim()?.toLongOrNull()
+                if (elemId != null) {
+                    transientState.update { t ->
+                        val elem = uiState.value.homeElements.find { it.elementId == elemId }
+                        val currentlyVisible = when {
+                            elemId in t.runtimeHiddenElementIds -> false
+                            elemId in t.runtimeShownElementIds -> true
+                            else -> elem?.visible ?: true
+                        }
+                        if (currentlyVisible) {
+                            t.copy(
+                                runtimeHiddenElementIds = t.runtimeHiddenElementIds + elemId,
+                                runtimeShownElementIds = t.runtimeShownElementIds - elemId,
+                            )
+                        } else {
+                            t.copy(
+                                runtimeShownElementIds = t.runtimeShownElementIds + elemId,
+                                runtimeHiddenElementIds = t.runtimeHiddenElementIds - elemId,
+                            )
+                        }
+                    }
+                } else if (!targetUrl.isNullOrBlank()) {
+                    val group = targetUrl.trim()
+                    transientState.update { t ->
+                        if (group in t.hiddenVisibilityGroups) {
+                            t.copy(
+                                hiddenVisibilityGroups = t.hiddenVisibilityGroups - group,
+                                activeVisibilityGroups = t.activeVisibilityGroups + group,
+                            )
+                        } else {
+                            t.copy(
+                                hiddenVisibilityGroups = t.hiddenVisibilityGroups + group,
+                                activeVisibilityGroups = t.activeVisibilityGroups - group,
+                            )
+                        }
+                    }
+                }
+            }
+            "STACK_NEXT" -> targetUrl?.trim()?.toLongOrNull()?.let { cycleWidgetStack(it, +1) }
+            "STACK_PREV" -> targetUrl?.trim()?.toLongOrNull()?.let { cycleWidgetStack(it, -1) }
+            "TOGGLE_TORCH" -> {
+                val (_, msg) = DeviceControlsManager.toggleTorch(appDiscovery.context)
+                showMessage(msg)
+            }
+            "CYCLE_RINGER" -> {
+                val msg = DeviceControlsManager.cycleRingerMode(appDiscovery.context)
+                showMessage(msg)
+            }
+            "OPEN_SYSTEM_PANEL" -> {
+                DeviceControlsManager.openSystemPanel(appDiscovery.context, targetUrl ?: "WIFI_PANEL")
             }
             "TOGGLE_EDIT_MODE" -> setEditMode(!uiState.value.isEditMode)
             "MACRO" -> {
@@ -1047,6 +1472,123 @@ class LauncherViewModel(
                     }
                 }
             }
+        }
+    }
+
+    // --- CUSTOM FONTS (.TTF / .OTF) ---
+    fun importCustomFont(uri: Uri, preferredName: String? = null, applyImmediately: Boolean = true) {
+        viewModelScope.launch {
+            val imported = fontStorage.importFontFromUri(uri, preferredName)
+            if (imported == null) {
+                showMessage("Could not import font. Select a valid .ttf or .otf file.")
+                return@launch
+            }
+            val id = repository.saveCustomFont(imported)
+            val saved = imported.copy(fontId = id)
+            if (applyImmediately) {
+                applyCustomFontGlobally(saved)
+            } else {
+                showMessage("Imported font \"${saved.name}\"")
+            }
+        }
+    }
+
+    fun applyCustomFontGlobally(font: CustomFontEntity?) {
+        viewModelScope.launch {
+            if (font == null) {
+                repository.updateSettings {
+                    it.copy(
+                        fontStyle = if (it.fontStyle == "CUSTOM") "DEFAULT" else it.fontStyle,
+                        customFontId = null,
+                        customFontPath = null,
+                    )
+                }
+                showMessage("Switched back to built-in font")
+            } else {
+                repository.updateSettings {
+                    it.copy(
+                        fontStyle = "CUSTOM",
+                        customFontId = font.fontId,
+                        customFontPath = font.localPath,
+                    )
+                }
+                showMessage("Applied font \"${font.name}\"")
+            }
+        }
+    }
+
+    fun deleteCustomFont(font: CustomFontEntity) {
+        viewModelScope.launch {
+            if (uiState.value.settings.customFontId == font.fontId) {
+                repository.updateSettings {
+                    it.copy(fontStyle = "DEFAULT", customFontId = null, customFontPath = null)
+                }
+            }
+            repository.deleteCustomFont(font)
+            showMessage("Deleted font \"${font.name}\"")
+        }
+    }
+
+    // --- THEME PROFILES & STARTER TEMPLATES ---
+    fun saveThemeProfile(name: String) {
+        val clean = name.trim().ifBlank { "Custom Theme" }
+        viewModelScope.launch {
+            val json = BackupManager.encodeSettingsObject(uiState.value.settings).toString()
+            repository.saveThemeProfile(ThemeProfileEntity(name = clean, settingsJson = json))
+            showMessage("Saved theme profile \"$clean\"")
+        }
+    }
+
+    fun applyThemeProfile(profile: ThemeProfileEntity) {
+        viewModelScope.launch {
+            try {
+                val decoded = BackupManager.decodeSettingsObject(JSONObject(profile.settingsJson))
+                repository.updateSettings { current ->
+                    decoded.copy(
+                        lockedAppsCsv = current.lockedAppsCsv,
+                        cloudBackupEnabled = current.cloudBackupEnabled,
+                        cloudBackupTreeUri = current.cloudBackupTreeUri,
+                        seededDefaults = true,
+                    )
+                }
+                showMessage("Applied theme \"${profile.name}\"")
+            } catch (_: Exception) {
+                showMessage("Failed to apply theme profile")
+            }
+        }
+    }
+
+    fun deleteThemeProfile(profileId: Long) {
+        viewModelScope.launch {
+            repository.deleteThemeProfile(profileId)
+            showMessage("Deleted theme profile")
+        }
+    }
+
+    fun applyStarterTemplate(templateId: String) {
+        viewModelScope.launch {
+            val descriptor = StarterTemplates.catalog.find { it.id == templateId }
+            val title = descriptor?.title ?: templateId
+            // Automatic safety backup snapshot before replacing workspace
+            repository.saveCurrentLayoutSnapshot("Auto-Backup before $title")
+            recordUndoCheckpoint()
+            val generated = StarterTemplates.generate(
+                templateId = templateId,
+                apps = uiState.value.appsWithTags.map { it.app },
+                tags = uiState.value.allTags,
+            )
+            repository.replaceHomeLayout(generated.pages, generated.elements)
+            repository.updateSettings(generated.settingsTransform)
+            transientState.update {
+                it.copy(
+                    currentPageIndex = 0,
+                    selectedElementId = null,
+                    multiSelectedIds = emptySet(),
+                    activeContainerFocusId = null,
+                    stackIndexOverrides = emptyMap(),
+                )
+            }
+            showMessage("Applied \"$title\" (previous layout saved to Snapshots)")
         }
     }
 

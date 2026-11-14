@@ -4,6 +4,8 @@ import com.example.data.db.AppCategoryCrossRef
 import com.example.data.db.AppWithTags
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ElementStyleExtras
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
@@ -14,6 +16,7 @@ import com.example.data.db.SavedTagRuleEntity
 import com.example.data.db.SidebarConfigEntity
 import com.example.data.db.TagEntity
 import com.example.data.db.TagWithApps
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.InstalledIconPack
 
@@ -35,6 +38,19 @@ sealed class LauncherRoute(val route: String) {
     data object Settings : LauncherRoute("settings")
 }
 
+data class CopiedElementStyle(
+    val backgroundColorHex: Long,
+    val backgroundGradientEndHex: Long?,
+    val textColorHex: Long,
+    val borderColorHex: Long,
+    val borderWidthDp: Float,
+    val cornerRadiusDp: Float,
+    val paddingDp: Float,
+    val shadowElevationDp: Float,
+    val alpha: Float,
+    val extras: ElementStyleExtras,
+)
+
 data class LauncherUiState(
     val isLoading: Boolean = true,
     val appsWithTags: List<AppWithTags> = emptyList(),
@@ -51,6 +67,8 @@ data class LauncherUiState(
     val gestures: Map<String, GestureBindingEntity> = emptyMap(),
     val imageResources: List<ImageResourceEntity> = emptyList(),
     val backgroundPresets: List<BackgroundPresetEntity> = emptyList(),
+    val customFonts: List<CustomFontEntity> = emptyList(),
+    val themeProfiles: List<ThemeProfileEntity> = emptyList(),
     val settings: LauncherSettings = LauncherSettings(),
     val installedIconPacks: List<InstalledIconPack> = emptyList(),
     val isDefaultLauncher: Boolean = false,
@@ -59,6 +77,13 @@ data class LauncherUiState(
     val selectedElementId: Long? = null,
     val multiSelectedIds: Set<Long> = emptySet(),
     val clipboardElement: HomeElementEntity? = null,
+    val copiedStyle: CopiedElementStyle? = null,
+    val activeVisibilityGroups: Set<String> = emptySet(),
+    val hiddenVisibilityGroups: Set<String> = emptySet(),
+    val runtimeHiddenElementIds: Set<Long> = emptySet(),
+    val runtimeShownElementIds: Set<Long> = emptySet(),
+    val activeContainerFocusId: Long? = null,
+    val stackIndexOverrides: Map<Long, Int> = emptyMap(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val activeOverlay: ActiveOverlay = ActiveOverlay.None,

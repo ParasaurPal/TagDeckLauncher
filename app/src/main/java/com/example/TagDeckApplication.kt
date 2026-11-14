@@ -26,6 +26,8 @@ class TagDeckApplication : Application(), ImageLoaderFactory {
         private set
     lateinit var imageStorageManager: ImageStorageManager
         private set
+    lateinit var fontStorageManager: com.example.data.system.FontStorageManager
+        private set
     lateinit var widgetHost: LauncherWidgetHost
         private set
     lateinit var launcherRepository: LauncherRepository
@@ -37,12 +39,14 @@ class TagDeckApplication : Application(), ImageLoaderFactory {
         preferencesRepository = LauncherPreferencesRepository(this)
         appDiscoveryManager = AppDiscoveryManager(this)
         imageStorageManager = ImageStorageManager(this)
+        fontStorageManager = com.example.data.system.FontStorageManager(this)
         widgetHost = LauncherWidgetHost(this)
         launcherRepository = LauncherRepository(
             dao = database.launcherDao(),
             appDiscovery = appDiscoveryManager,
             prefsRepo = preferencesRepository,
             imageStorage = imageStorageManager,
+            fontStorage = fontStorageManager,
         )
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             val settings = preferencesRepository.getSettingsOnce()

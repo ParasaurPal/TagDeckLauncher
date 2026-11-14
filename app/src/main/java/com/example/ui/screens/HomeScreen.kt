@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.automirrored.rounded.ViewSidebar
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentPaste
@@ -63,6 +65,8 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewAgenda
+import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -86,6 +90,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -93,6 +98,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -104,21 +110,27 @@ import com.example.data.db.AppEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
 import com.example.data.db.LayoutSnapshotEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.InstalledWidgetProvider
 import com.example.data.system.LauncherWidgetHost
+import com.example.ui.components.LayerStackDrawer
 import com.example.ui.components.LocalAppDragCoordinator
 import com.example.ui.components.LocalIconStyleConfig
+import com.example.ui.components.MultiSelectArrangeBar
 import com.example.ui.components.OutlinedVectorIcon
+import com.example.ui.components.ReadableLauncherText
 import com.example.ui.components.StudioQuickCustomizerDialog
 import com.example.ui.components.TagBadgeIcon
+import com.example.ui.components.TemplateAndThemeGalleryDialog
 import com.example.ui.components.WallpaperBackground
 import com.example.ui.components.WidgetPickerDialog
 import com.example.ui.state.LauncherRoute
 import com.example.ui.state.LauncherUiState
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 @Composable
@@ -168,31 +180,83 @@ fun HomeScreen(
     onRequestSetDefaultHome: () -> Unit,
     onDismissDefaultBanner: () -> Unit,
     onStartSystemWidgetBind: (InstalledWidgetProvider, Long, String) -> Unit,
+    onCopyStyle: (HomeElementEntity) -> Unit = {},
+    onPasteStyle: (Set<Long>) -> Unit = {},
+    onGroupElements: (Set<Long>) -> Unit = {},
+    onUngroupElements: (Set<Long>) -> Unit = {},
+    onAlignElements: (Set<Long>, String) -> Unit = { _, _ -> },
+    onDistributeElements: (Set<Long>, String) -> Unit = { _, _ -> },
+    onMatchElementSizes: (Set<Long>, String) -> Unit = { _, _ -> },
+    onStackElements: (Set<Long>) -> Unit = {},
+    onUnstackElement: (Long) -> Unit = {},
+    onAddChildToContainer: (Long, HomeElementEntity) -> Unit = { _, _ -> },
+    onMoveChildInParent: (Long, Int) -> Unit = { _, _ -> },
+    onCycleWidgetStack: (Long, Int) -> Unit = { _, _ -> },
+    onApplyStarterTemplate: (String) -> Unit = {},
+    onSaveThemeProfile: (String) -> Unit = {},
+    onApplyThemeProfile: (ThemeProfileEntity) -> Unit = {},
+    onDeleteThemeProfile: (Long) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val systemDark = isSystemInDarkTheme()
+
     val visiblePages = remember(state.homePages, state.isEditMode) {
         val list = if (state.isEditMode) state.homePages else state.homePages.filter { !it.isHidden }
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
     }
     val feedEnabled = state.settings.widgetFeedEnabled
-    val pagerState = rememberPagerState(
-        initialPage = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
-    ) {
-        visiblePages.size + if (feedEnabled) 1 else 0
+    val loopActive = !feedEnabled && state.settings.infinitePageLoop && visiblePages.size > 1 && !state.isEditMode
+    val virtualPageCount = if (loopActive) visiblePages.size * 200 else (visiblePages.size + if (feedEnabled) 1 else 0)
+    val loopBaseOffset = if (loopActive) (virtualPageCount / 2) - ((virtualPageCount / 2) % visiblePages.size) else 0
+
+    fun realPageIndex(virtualIdx: Int): Int {
+        if (!loopActive) return virtualIdx
+        val n = visiblePages.size
+        return ((virtualIdx % n) + n) % n
     }
 
-    LaunchedEffect(pagerState.currentPage, visiblePages.size) {
-        if (pagerState.currentPage < visiblePages.size) {
-            onPageChanged(pagerState.currentPage)
+    val pagerState = rememberPagerState(
+        initialPage = if (loopActive) {
+            loopBaseOffset + state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
+        } else {
+            state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
+        }
+    ) {
+        virtualPageCount
+    }
+
+    fun resolveVirtualTarget(realTarget: Int): Int {
+        val clamped = realTarget.coerceIn(0, visiblePages.lastIndex)
+        if (!loopActive) return clamped
+        val curReal = realPageIndex(pagerState.currentPage)
+        var delta = clamped - curReal
+        val n = visiblePages.size
+        if (delta > n / 2) delta -= n
+        if (delta < -n / 2) delta += n
+        return (pagerState.currentPage + delta).coerceIn(0, virtualPageCount - 1)
+    }
+
+    val scrollToRealPage: (Int) -> Unit = { targetReal ->
+        scope.launch {
+            pagerState.animateScrollToPage(resolveVirtualTarget(targetReal))
         }
     }
 
-    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled) {
+    LaunchedEffect(pagerState.currentPage, visiblePages.size, loopActive) {
+        val realIdx = realPageIndex(pagerState.currentPage)
+        if (realIdx < visiblePages.size) {
+            onPageChanged(realIdx)
+        }
+    }
+
+    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled, loopActive) {
         val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
-        if (!feedEnabled || pagerState.currentPage < visiblePages.size) {
-            if (pagerState.currentPage != target) {
-                pagerState.animateScrollToPage(target)
-            }
+        val curReal = realPageIndex(pagerState.currentPage)
+        if ((!feedEnabled || pagerState.currentPage < visiblePages.size) && curReal != target) {
+            pagerState.animateScrollToPage(resolveVirtualTarget(target))
         }
     }
 
@@ -201,6 +265,8 @@ fun HomeScreen(
     var showWidgetPicker by remember { mutableStateOf(false) }
     var showFeedWidgetPicker by remember { mutableStateOf(false) }
     var showStyleDialog by remember { mutableStateOf(false) }
+    var showLayerDrawer by remember { mutableStateOf(false) }
+    var showTemplateGallery by remember { mutableStateOf(false) }
     var inspectingElement by remember { mutableStateOf<HomeElementEntity?>(null) }
     var multiSelectActive by remember { mutableStateOf(false) }
 
@@ -209,7 +275,9 @@ fun HomeScreen(
         onToggleEditMode(false)
     }
 
-    val currentPage = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }
+    val currentRealPageIdx = realPageIndex(pagerState.currentPage).coerceAtMost(visiblePages.lastIndex)
+    val onFeedPage = feedEnabled && !loopActive && pagerState.currentPage == visiblePages.size
+    val currentPage = visiblePages.getOrElse(currentRealPageIdx) { visiblePages.first() }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
     val rightEdgeSidebar = state.sidebars.firstOrNull { it.side == "RIGHT" && it.edgeZoneEnabled }
     val topEdgeSidebar = state.sidebars.firstOrNull { it.side == "TOP" && it.edgeZoneEnabled }
@@ -219,6 +287,7 @@ fun HomeScreen(
         WallpaperBackground(
             settings = state.settings,
             currentPage = currentPage,
+            pagerOffsetFraction = (currentRealPageIdx - (visiblePages.size - 1) / 2f) + pagerState.currentPageOffsetFraction,
         )
 
         Box(
@@ -227,32 +296,59 @@ fun HomeScreen(
                 .pointerInput(state.isEditMode, state.gestures) {
                     if (!state.isEditMode) {
                         var twoFingerStartY = 0f
+                        var twoFingerStartDist = 0f
                         var trackingTwoFinger = false
+                        var twoFingerMoved = false
+                        var twoFingerTriggered = false
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
                                 val pressed = event.changes.filter { it.pressed }
                                 if (pressed.size == 2) {
-                                    val avgY = (pressed[0].position.y + pressed[1].position.y) / 2f
+                                    val p0 = pressed[0].position
+                                    val p1 = pressed[1].position
+                                    val avgY = (p0.y + p1.y) / 2f
+                                    val dist = hypot((p0.x - p1.x).toDouble(), (p0.y - p1.y).toDouble()).toFloat()
                                     if (!trackingTwoFinger) {
                                         trackingTwoFinger = true
+                                        twoFingerMoved = false
+                                        twoFingerTriggered = false
                                         twoFingerStartY = avgY
-                                    } else {
+                                        twoFingerStartDist = dist.coerceAtLeast(24f)
+                                    } else if (!twoFingerTriggered) {
                                         val dy = avgY - twoFingerStartY
-                                        if (dy < -110f) {
-                                            trackingTwoFinger = false
-                                            onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(target) }
+                                        val dDist = dist - twoFingerStartDist
+                                        if (abs(dy) > 26f || abs(dDist) > 26f) {
+                                            twoFingerMoved = true
+                                        }
+                                        when {
+                                            dy < -110f -> {
+                                                twoFingerTriggered = true
+                                                onTriggerGesture("TWO_FINGER_SWIPE_UP") { target -> scrollToRealPage(target) }
                                             }
-                                        } else if (dy > 110f) {
-                                            trackingTwoFinger = false
-                                            onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(target) }
+                                            dy > 110f -> {
+                                                twoFingerTriggered = true
+                                                onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target -> scrollToRealPage(target) }
+                                            }
+                                            dist < twoFingerStartDist * 0.72f && twoFingerStartDist - dist > 45f -> {
+                                                twoFingerTriggered = true
+                                                onTriggerGesture("PINCH_IN") { target -> scrollToRealPage(target) }
+                                            }
+                                            dist > twoFingerStartDist * 1.35f && dist - twoFingerStartDist > 45f -> {
+                                                twoFingerTriggered = true
+                                                onTriggerGesture("PINCH_OUT") { target -> scrollToRealPage(target) }
                                             }
                                         }
                                     }
                                 } else {
-                                    trackingTwoFinger = false
+                                    if (pressed.isEmpty() && trackingTwoFinger) {
+                                        if (!twoFingerTriggered && !twoFingerMoved) {
+                                            onTriggerGesture("TWO_FINGER_TAP") { target -> scrollToRealPage(target) }
+                                        }
+                                        trackingTwoFinger = false
+                                        twoFingerMoved = false
+                                        twoFingerTriggered = false
+                                    }
                                 }
                             }
                         }
@@ -289,6 +385,8 @@ fun HomeScreen(
                         onAddElement = { showAddElementDialog = true },
                         onOpenWidgets = { showWidgetPicker = true },
                         onOpenPages = { showPagesDialog = true },
+                        onOpenLayers = { showLayerDrawer = true },
+                        onOpenTemplates = { showTemplateGallery = true },
                         onOpenStyleStudio = { showStyleDialog = true },
                         onOpenSettings = { onNavigate(LauncherRoute.Settings) },
                         onUnlockPage = { onSavePage(currentPage.copy(isLocked = false)) },
@@ -297,32 +395,82 @@ fun HomeScreen(
                             onToggleEditMode(false)
                         },
                     )
-                } else if (!state.isDefaultLauncher && state.settings.showDefaultHomeBanner) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.35f, 0.95f)),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                    if (state.multiSelectedIds.isNotEmpty()) {
+                        MultiSelectArrangeBar(
+                            selectedCount = state.multiSelectedIds.size,
+                            hasCopiedStyle = state.copiedStyle != null,
+                            onStackSelected = { onStackElements(state.multiSelectedIds) },
+                            onGroupSelected = { onGroupElements(state.multiSelectedIds) },
+                            onUngroupSelected = { onUngroupElements(state.multiSelectedIds) },
+                            onAlign = { mode -> onAlignElements(state.multiSelectedIds, mode) },
+                            onDistribute = { axis -> onDistributeElements(state.multiSelectedIds, axis) },
+                            onMatchSize = { dim -> onMatchElementSizes(state.multiSelectedIds, dim) },
+                            onPasteStyle = { onPasteStyle(state.multiSelectedIds) },
+                            onLockSelected = onLockMultiSelected,
+                            onDeleteSelected = onDeleteMultiSelected,
+                        )
+                    }
+                } else {
+                    if (state.settings.showCustomStatusStrip) {
+                        val hudText = resolveExtendedDynamicTokens(
+                            template = "{GREETING}  •  {BATTERY} ({CHARGING})  •  {NETWORK}  •  {TIME}",
+                            state = state,
+                            context = context,
+                        )
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .testTag("home_custom_status_strip"),
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.28f, 0.9f)),
+                            border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.16f)),
                         ) {
-                            Icon(Icons.Rounded.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Set TagDeck as your default Home launcher",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
+                            ReadableLauncherText(
+                                text = hudText,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                             )
-                            AssistChip(onClick = onRequestSetDefaultHome, label = { Text("Enable") })
-                            IconButton(onClick = onDismissDefaultBanner, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Rounded.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    if (!state.isDefaultLauncher && state.settings.showDefaultHomeBanner) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.35f, 0.95f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Rounded.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Set TagDeck as your default Home launcher",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                AssistChip(onClick = onRequestSetDefaultHome, label = { Text("Enable") })
+                                IconButton(onClick = onDismissDefaultBanner, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Rounded.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
+                }
+
+                if (state.settings.pageIndicatorPlacement == "TOP" && visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
+                    HomePageIndicatorBar(
+                        visiblePages = visiblePages,
+                        currentRealPageIdx = currentRealPageIdx,
+                        settings = state.settings,
+                        onSelectPage = scrollToRealPage,
+                    )
                 }
 
                 val totalPagerPages = visiblePages.size + if (feedEnabled) 1 else 0
@@ -336,171 +484,288 @@ fun HomeScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
-                        key = { idx -> if (idx == visiblePages.size) "WIDGET_FEED" else visiblePages[idx].pageId },
+                        key = { idx ->
+                            when {
+                                loopActive -> "loop_$idx"
+                                feedEnabled && idx == visiblePages.size -> "WIDGET_FEED"
+                                else -> visiblePages[idx].pageId
+                            }
+                        },
                         userScrollEnabled = !state.isEditMode && totalPagerPages > 1 && !hasCustomHorizontalSwipeOverride,
                         modifier = Modifier.fillMaxSize(),
-                    ) { pageIdx ->
-                                                    if (feedEnabled && pageIdx == visiblePages.size) {
-                                val feedElements = state.homeElements
-                                    .filter { it.ownerType == "FEED" && it.visible }
-                                    .sortedBy { it.zIndex }
+                    ) { virtualIdx ->
+                        if (feedEnabled && !loopActive && virtualIdx == visiblePages.size) {
+                            val feedElements = state.homeElements
+                                .filter { it.ownerType == "FEED" && it.parentContainerId == null && it.visible }
+                                .sortedBy { it.zIndex }
 
-                                val feedScrollState = rememberScrollState()
-            Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .pointerInput(feedScrollState) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(
-                                requireUnconsumed = false,
-                                pass = PointerEventPass.Initial,
-                            )
-                            var last = down.position
-                            var total = Offset.Zero
-                            var verticalDrag = false
+                            val feedScrollState = rememberScrollState()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(feedScrollState) {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(
+                                                requireUnconsumed = false,
+                                                pass = PointerEventPass.Initial,
+                                            )
+                                            var last = down.position
+                                            var total = Offset.Zero
+                                            var verticalDrag = false
 
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) break
+                                            while (true) {
+                                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                                if (!change.pressed) break
 
-                                val delta = change.position - last
-                                total += delta
+                                                val delta = change.position - last
+                                                total += delta
 
-                                if (!verticalDrag && total.getDistance() > viewConfiguration.touchSlop) {
-                                    if (kotlin.math.abs(total.y) > kotlin.math.abs(total.x)) {
-                                        verticalDrag = true
-                                    } else {
-                                        break
-                                    }
-                                }
+                                                if (!verticalDrag && total.getDistance() > viewConfiguration.touchSlop) {
+                                                    if (kotlin.math.abs(total.y) > kotlin.math.abs(total.x)) {
+                                                        verticalDrag = true
+                                                    } else {
+                                                        break
+                                                    }
+                                                }
 
-                                if (verticalDrag) {
-                                    change.consume()
-                                    feedScrollState.dispatchRawDelta(-delta.y)
-                                }
-                                last = change.position
-                            }
-                        }
-                    }
-                    .verticalScroll(feedScrollState)
-                                        .padding(16.dp),
-                                ) {
-                                    Text(
-                                        text = "Widget Feed",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = if (state.settings.widgetFeedTitleColor == "BLACK") Color.Black else Color.White,
-                                    )
-                                    Button(
-                                        onClick = { showFeedWidgetPicker = true },
-                                        modifier = Modifier.padding(vertical = 12.dp),
-                                    ) {
-                                        Text("Add widget")
-                                    }
-
-                                    feedElements.forEach { element ->
-                                        Box(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(element.widthDp.coerceIn(120f, 600f).dp)
-                                                    .height(element.heightDp.coerceIn(80f, 600f).dp),
-                                            ) {
-                                                HomeElementBody(
-                                                    element = element,
-                                                    state = state.copy(isEditMode = false),
-                                                    appDiscovery = appDiscovery,
-                                                    widgetHost = widgetHost,
-                                                    onLaunchApp = onLaunchApp,
-                                                    onOpenTagSidebar = onOpenTagSidebar,
-                                                    onOpenCategorySidebar = onOpenCategorySidebar,
-                                                    onOpenRuleSidebar = onOpenRuleSidebar,
-                                                    onOpenSidebar = onOpenConfiguredSidebar,
-                                                    onOpenWindow = onOpenWindow,
-                                                    onOpenFolder = onOpenFolder,
-                                                    onElementTrigger = { elem, trigger ->
-                                                        onExecuteElementAction(elem, trigger) { target ->
-                                                            scope.launch { pagerState.animateScrollToPage(target) }
-                                                        }
-                                                    },
-                                                )
+                                                if (verticalDrag) {
+                                                    change.consume()
+                                                    feedScrollState.dispatchRawDelta(-delta.y)
+                                                }
+                                                last = change.position
                                             }
                                         }
                                     }
+                                    .verticalScroll(feedScrollState)
+                                    .padding(16.dp),
+                            ) {
+                                Text(
+                                    text = "Widget Feed",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = if (state.settings.widgetFeedTitleColor == "BLACK") Color.Black else Color.White,
+                                )
+                                Button(
+                                    onClick = { showFeedWidgetPicker = true },
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                ) {
+                                    Text("Add widget")
                                 }
-                            } else {
-val page = visiblePages[pageIdx]
-                        val pageOffset = ((pagerState.currentPage - pageIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
-                        val pageTransitionMod = when (state.settings.pageTransitionStyle) {
-                            "FADE" -> Modifier.graphicsLayer {
-                                alpha = 1f - abs(pageOffset) * 0.72f
-                            }
-                            "DEPTH" -> Modifier.graphicsLayer {
-                                val absOff = abs(pageOffset)
-                                alpha = 1f - absOff * 0.45f
-                                val sc = 1f - absOff * 0.10f
-                                scaleX = sc
-                                scaleY = sc
-                            }
-                            else -> Modifier
-                        }
-                        val elements = remember(state.homeElements, page.pageId) {
-                            state.homeElements
-                                .filter { it.ownerType == "PAGE" && it.pageId == page.pageId && it.visible }
-                                .filter { element ->
-                                    element.type != "TAG_SHORTCUT" ||
-                                        state.allTags.find { it.tagId == element.targetTagId }?.showOnHome != false
+
+                                feedElements.forEach { element ->
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(element.widthDp.coerceIn(120f, 600f).dp)
+                                                .height(element.heightDp.coerceIn(80f, 600f).dp),
+                                        ) {
+                                            HomeElementBody(
+                                                element = element,
+                                                state = state.copy(isEditMode = false),
+                                                appDiscovery = appDiscovery,
+                                                widgetHost = widgetHost,
+                                                onLaunchApp = onLaunchApp,
+                                                onOpenTagSidebar = onOpenTagSidebar,
+                                                onOpenCategorySidebar = onOpenCategorySidebar,
+                                                onOpenRuleSidebar = onOpenRuleSidebar,
+                                                onOpenSidebar = onOpenConfiguredSidebar,
+                                                onOpenWindow = onOpenWindow,
+                                                onOpenFolder = onOpenFolder,
+                                                onElementTrigger = { elem, trigger ->
+                                                    onExecuteElementAction(elem, trigger) { target -> scrollToRealPage(target) }
+                                                },
+                                                onOpenSearch = onOpenSearch,
+                                                onJumpToPage = scrollToRealPage,
+                                                onSaveElement = onSaveElement,
+                                                onCycleStack = onCycleWidgetStack,
+                                            )
+                                        }
+                                    }
                                 }
-                                .sortedBy { it.zIndex }
+                            }
+                        } else {
+                            val pageIdx = realPageIndex(virtualIdx)
+                            val page = visiblePages[pageIdx]
+                            val pageOffset = ((pagerState.currentPage - virtualIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
+                            val effectiveTransition = page.transitionOverride ?: state.settings.pageTransitionStyle
+                            val camDist = 16f * density.density
+                            val pageTransitionMod = when (effectiveTransition) {
+                                "FADE" -> Modifier.graphicsLayer {
+                                    alpha = (1f - abs(pageOffset) * 0.85f).coerceIn(0f, 1f)
+                                }
+                                "DEPTH" -> Modifier.graphicsLayer {
+                                    val absOff = abs(pageOffset)
+                                    alpha = (1f - absOff * 0.45f).coerceIn(0f, 1f)
+                                    val sc = 1f - absOff * 0.14f
+                                    scaleX = sc
+                                    scaleY = sc
+                                }
+                                "CUBE" -> Modifier.graphicsLayer {
+                                    cameraDistance = camDist
+                                    rotationY = pageOffset * 90f
+                                    transformOrigin = TransformOrigin(if (pageOffset < 0f) 1f else 0f, 0.5f)
+                                    alpha = (1f - abs(pageOffset) * 0.25f).coerceIn(0f, 1f)
+                                }
+                                "FLIP" -> Modifier.graphicsLayer {
+                                    cameraDistance = camDist
+                                    rotationY = pageOffset * 180f
+                                    alpha = if (abs(pageOffset) > 0.5f) 0f else 1f
+                                }
+                                "STACK" -> Modifier.graphicsLayer {
+                                    if (pageOffset > 0f) {
+                                        translationX = size.width * pageOffset * 0.72f
+                                        val sc = 1f - pageOffset * 0.12f
+                                        scaleX = sc
+                                        scaleY = sc
+                                        alpha = (1f - pageOffset * 0.4f).coerceIn(0f, 1f)
+                                    }
+                                }
+                                "ZOOM" -> Modifier.graphicsLayer {
+                                    val sc = 1f - abs(pageOffset) * 0.35f
+                                    scaleX = sc
+                                    scaleY = sc
+                                    alpha = (1f - abs(pageOffset) * 0.65f).coerceIn(0f, 1f)
+                                }
+                                "ACCORDION" -> Modifier.graphicsLayer {
+                                    scaleX = (1f - abs(pageOffset)).coerceIn(0.05f, 1f)
+                                    transformOrigin = TransformOrigin(if (pageOffset < 0f) 0f else 1f, 0.5f)
+                                }
+                                "ROTATE" -> Modifier.graphicsLayer {
+                                    rotationZ = pageOffset * 28f
+                                    translationY = abs(pageOffset) * 70f
+                                    alpha = (1f - abs(pageOffset) * 0.35f).coerceIn(0f, 1f)
+                                }
+                                "PARALLAX" -> Modifier.graphicsLayer {
+                                    translationX = -pageOffset * size.width * 0.28f
+                                }
+                                "WINDMILL" -> Modifier.graphicsLayer {
+                                    rotationZ = pageOffset * 42f
+                                    transformOrigin = TransformOrigin(0.5f, 1.35f)
+                                    alpha = (1f - abs(pageOffset) * 0.35f).coerceIn(0f, 1f)
+                                }
+                                else -> Modifier
+                            }
+                            val elements = remember(
+                                state.homeElements,
+                                page.pageId,
+                                state.isEditMode,
+                                state.runtimeShownElementIds,
+                                state.runtimeHiddenElementIds,
+                                state.activeVisibilityGroups,
+                                state.hiddenVisibilityGroups,
+                                state.settings.themeMode,
+                                isLandscape,
+                                systemDark,
+                            ) {
+                                state.homeElements
+                                    .filter {
+                                        it.ownerType == "PAGE" &&
+                                            it.pageId == page.pageId &&
+                                            it.parentContainerId == null &&
+                                            !it.pinnedToAllPages
+                                    }
+                                    .filter { el ->
+                                        if (state.isEditMode) el.visible
+                                        else isElementConditionMet(el, state, context, isLandscape, systemDark)
+                                    }
+                                    .filter { element ->
+                                        element.type != "TAG_SHORTCUT" ||
+                                            state.allTags.find { it.tagId == element.targetTagId }?.showOnHome != false
+                                    }
+                                    .sortedBy { it.zIndex }
+                            }
+                            Box(modifier = Modifier.fillMaxSize().then(pageTransitionMod)) {
+                                FreeformPageCanvas(
+                                    page = page,
+                                    isCurrentPage = page.pageId == currentPage.pageId,
+                                    allowHorizontalSwipe = allowCanvasHorizontalSwipe,
+                                    elements = elements,
+                                    state = state,
+                                    multiSelectActive = multiSelectActive,
+                                    appDiscovery = appDiscovery,
+                                    widgetHost = widgetHost,
+                                    onEnterEditMode = { onToggleEditMode(true) },
+                                    onCanvasTap = {
+                                        if (state.isEditMode) {
+                                            onSelectElement(null)
+                                        } else {
+                                            onTriggerGesture("SINGLE_TAP") { target -> scrollToRealPage(target) }
+                                        }
+                                    },
+                                    onCanvasDoubleTap = {
+                                        if (!state.isEditMode) {
+                                            onTriggerGesture("DOUBLE_TAP") { target -> scrollToRealPage(target) }
+                                        }
+                                    },
+                                    onCanvasLongPress = {
+                                        if (!state.isEditMode) {
+                                            onToggleEditMode(true)
+                                        }
+                                    },
+                                    onVerticalSwipe = { isUp ->
+                                        if (!state.isEditMode) {
+                                            onTriggerGesture(if (isUp) "SWIPE_UP" else "SWIPE_DOWN") { target -> scrollToRealPage(target) }
+                                        }
+                                    },
+                                    onHorizontalSwipe = { isLeft ->
+                                        if (!state.isEditMode) {
+                                            onTriggerGesture(if (isLeft) "SWIPE_LEFT" else "SWIPE_RIGHT") { target -> scrollToRealPage(target) }
+                                        }
+                                    },
+                                    onLaunchApp = onLaunchApp,
+                                    onOpenTagSidebar = onOpenTagSidebar,
+                                    onOpenCategorySidebar = onOpenCategorySidebar,
+                                    onOpenRuleSidebar = onOpenRuleSidebar,
+                                    onOpenSidebar = onOpenConfiguredSidebar,
+                                    onOpenWindow = onOpenWindow,
+                                    onOpenFolder = onOpenFolder,
+                                    onElementTrigger = { elem, trigger ->
+                                        onExecuteElementAction(elem, trigger) { target -> scrollToRealPage(target) }
+                                    },
+                                    onOpenSearch = onOpenSearch,
+                                    onJumpToPage = scrollToRealPage,
+                                    onCycleStack = onCycleWidgetStack,
+                                    onSelectElement = { id ->
+                                        if (multiSelectActive && id != null) onToggleMultiSelect(id) else onSelectElement(id)
+                                    },
+                                    onInspectElement = { inspectingElement = it },
+                                    onSaveElement = onSaveElement,
+                                )
+                            }
                         }
-                        Box(modifier = Modifier.fillMaxSize().then(pageTransitionMod)) {
-                            FreeformPageCanvas(
-                            page = page,
-                            isCurrentPage = page.pageId == currentPage.pageId,
-                            allowHorizontalSwipe = allowCanvasHorizontalSwipe,
-                            elements = elements,
+                    }
+
+                    // Sticky Pinned Overlay Layer across all non-feed home pages
+                    val pinnedElements = remember(
+                        state.homeElements,
+                        state.isEditMode,
+                        state.runtimeShownElementIds,
+                        state.runtimeHiddenElementIds,
+                        state.activeVisibilityGroups,
+                        state.hiddenVisibilityGroups,
+                        state.settings.themeMode,
+                        isLandscape,
+                        systemDark,
+                    ) {
+                        state.homeElements
+                            .filter { it.ownerType == "PAGE" && it.pinnedToAllPages && it.parentContainerId == null }
+                            .filter { el ->
+                                if (state.isEditMode) el.visible
+                                else isElementConditionMet(el, state, context, isLandscape, systemDark)
+                            }
+                            .sortedBy { it.zIndex }
+                    }
+                    if (!onFeedPage && pinnedElements.isNotEmpty()) {
+                        PinnedElementsOverlay(
+                            page = currentPage,
+                            elements = pinnedElements,
                             state = state,
                             multiSelectActive = multiSelectActive,
                             appDiscovery = appDiscovery,
                             widgetHost = widgetHost,
-                            onEnterEditMode = { onToggleEditMode(true) },
-                            onCanvasTap = {
-                                if (state.isEditMode) {
-                                    onSelectElement(null)
-                                } else {
-                                    onTriggerGesture("SINGLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target) }
-                                    }
-                                }
-                            },
-                            onCanvasDoubleTap = {
-                                if (!state.isEditMode) {
-                                    onTriggerGesture("DOUBLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target) }
-                                    }
-                                }
-                            },
-                            onCanvasLongPress = {
-                                if (!state.isEditMode) {
-                                    onToggleEditMode(true)
-                                }
-                            },
-                            onVerticalSwipe = { isUp ->
-                                if (!state.isEditMode) {
-                                    onTriggerGesture(if (isUp) "SWIPE_UP" else "SWIPE_DOWN") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target) }
-                                    }
-                                }
-                            },
-                            onHorizontalSwipe = { isLeft ->
-                                if (!state.isEditMode) {
-                                    onTriggerGesture(if (isLeft) "SWIPE_LEFT" else "SWIPE_RIGHT") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target) }
-                                    }
-                                }
-                            },
                             onLaunchApp = onLaunchApp,
                             onOpenTagSidebar = onOpenTagSidebar,
                             onOpenCategorySidebar = onOpenCategorySidebar,
@@ -509,19 +774,18 @@ val page = visiblePages[pageIdx]
                             onOpenWindow = onOpenWindow,
                             onOpenFolder = onOpenFolder,
                             onElementTrigger = { elem, trigger ->
-                                onExecuteElementAction(elem, trigger) { target ->
-                                    scope.launch { pagerState.animateScrollToPage(target) }
-                                }
+                                onExecuteElementAction(elem, trigger) { target -> scrollToRealPage(target) }
                             },
+                            onOpenSearch = onOpenSearch,
+                            onJumpToPage = scrollToRealPage,
+                            onCycleStack = onCycleWidgetStack,
                             onSelectElement = { id ->
                                 if (multiSelectActive && id != null) onToggleMultiSelect(id) else onSelectElement(id)
                             },
                             onInspectElement = { inspectingElement = it },
                             onSaveElement = onSaveElement,
                         )
-                        }
-                                            }
-}
+                    }
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
                     if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && leftEdgeSidebar != null) {
@@ -655,65 +919,19 @@ val page = visiblePages[pageIdx]
                     }
                 }
 
-                if (visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
-                    val indicatorColor = Color(state.settings.pageIndicatorColorHex)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .testTag("home_page_indicator"),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        when (state.settings.pageIndicatorStyle) {
-                            "PILL" -> {
-                                visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == pagerState.currentPage
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(horizontal = 3.dp)
-                                            .width(if (active) 22.dp else 7.dp)
-                                            .height(7.dp)
-                                            .clip(RoundedCornerShape(50))
-                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
-                                    )
-                                }
-                            }
-                            "NUMBERS" -> {
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = Color.Black.copy(alpha = 0.45f),
-                                    border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
-                                ) {
-                                    Text(
-                                        text = "${pagerState.currentPage + 1} / ${visiblePages.size}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = indicatorColor,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                                    )
-                                }
-                            }
-                            else -> {
-                                visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == pagerState.currentPage
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(horizontal = 4.dp)
-                                            .size(if (active) 10.dp else 6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
-                                    )
-                                }
-                            }
-                        }
-                    }
+                if (state.settings.pageIndicatorPlacement != "TOP" && visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
+                    HomePageIndicatorBar(
+                        visiblePages = visiblePages,
+                        currentRealPageIdx = currentRealPageIdx,
+                        settings = state.settings,
+                        onSelectPage = scrollToRealPage,
+                    )
                 }
 
-                if (!state.isEditMode && state.settings.showDockBar) {
+                val effectiveShowDock = currentPage.showDockOverride ?: state.settings.showDockBar
+                if (!state.isEditMode && effectiveShowDock) {
                     val dockRadius = state.settings.globalCornerRadiusDp.coerceIn(12f, 32f).dp
                     val dockAlpha = state.settings.surfaceOpacity.coerceIn(0.42f, 0.96f)
-                    val dockBorderWidth = state.settings.globalBorderWidthDp
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -893,7 +1111,7 @@ val page = visiblePages[pageIdx]
                 val idx = visiblePages.indexOfFirst { it.pageId == pageId }
                 if (idx >= 0) {
                     onPageChanged(idx)
-                    scope.launch { pagerState.animateScrollToPage(idx) }
+                    scrollToRealPage(idx)
                 }
             },
             onImportImage = onImportImage,
@@ -935,6 +1153,16 @@ val page = visiblePages[pageIdx]
                 inspectingElement = null
             },
             onDismiss = { inspectingElement = null },
+            onCopyStyle = { onCopyStyle(elem) },
+            onPasteStyle = { onPasteStyle(setOf(elem.elementId)) },
+            onUnstack = {
+                onUnstackElement(elem.elementId)
+                inspectingElement = null
+            },
+            onAddChildToContainer = onAddChildToContainer,
+            onMoveChildInParent = onMoveChildInParent,
+            onInspectChild = { child -> inspectingElement = child },
+            onDeleteChild = onDeleteElement,
         )
     }
 
@@ -947,6 +1175,142 @@ val page = visiblePages[pageIdx]
             onImportImage = onImportImage,
             onDismiss = { showStyleDialog = false },
         )
+    }
+
+    if (showLayerDrawer) {
+        LayerStackDrawer(
+            currentPage = currentPage,
+            allElements = state.homeElements,
+            selectedElementId = state.selectedElementId,
+            onSelectElement = { el -> onSelectElement(el.elementId) },
+            onInspectElement = { el ->
+                showLayerDrawer = false
+                inspectingElement = el
+            },
+            onToggleVisibility = { el -> onSaveElement(el.copy(visible = !el.visible), false) },
+            onToggleLock = { el -> onSaveElement(el.copy(locked = !el.locked), false) },
+            onBringForward = onBringForward,
+            onSendBackward = onSendBackward,
+            onDismiss = { showLayerDrawer = false },
+        )
+    }
+
+    if (showTemplateGallery) {
+        TemplateAndThemeGalleryDialog(
+            themeProfiles = state.themeProfiles,
+            onApplyStarterTemplate = onApplyStarterTemplate,
+            onSaveThemeProfile = onSaveThemeProfile,
+            onApplyThemeProfile = onApplyThemeProfile,
+            onDeleteThemeProfile = onDeleteThemeProfile,
+            onDismiss = { showTemplateGallery = false },
+        )
+    }
+}
+
+@Composable
+private fun HomePageIndicatorBar(
+    visiblePages: List<HomePageEntity>,
+    currentRealPageIdx: Int,
+    settings: LauncherSettings,
+    onSelectPage: (Int) -> Unit,
+) {
+    val indicatorColor = Color(settings.pageIndicatorColorHex)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 12.dp)
+            .testTag("home_page_indicator"),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (settings.pageIndicatorStyle) {
+            "PILL" -> {
+                visiblePages.forEachIndexed { idx, _ ->
+                    val active = idx == currentRealPageIdx
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .width(if (active) 22.dp else 7.dp)
+                            .height(7.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
+                            .clickable { onSelectPage(idx) },
+                    )
+                }
+            }
+            "NUMBERS" -> {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.Black.copy(alpha = 0.45f),
+                    border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
+                ) {
+                    Text(
+                        text = "${currentRealPageIdx + 1} / ${visiblePages.size}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = indicatorColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            "PROGRESS" -> {
+                val fraction = (currentRealPageIdx + 1f) / visiblePages.size.coerceAtLeast(1).toFloat()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.45f)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.22f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(indicatorColor),
+                    )
+                }
+            }
+            "TABS" -> {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items(visiblePages.size) { idx ->
+                        val pg = visiblePages[idx]
+                        val active = idx == currentRealPageIdx
+                        Surface(
+                            onClick = { onSelectPage(idx) },
+                            shape = RoundedCornerShape(50),
+                            color = if (active) indicatorColor else Color.Black.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, if (active) indicatorColor else Color.White.copy(alpha = 0.25f)),
+                            modifier = Modifier.testTag("home_page_tab_${pg.pageId}"),
+                        ) {
+                            Text(
+                                text = pg.title,
+                                fontSize = 11.sp,
+                                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                                color = if (active) Color(0xFF06131F) else Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            else -> {
+                visiblePages.forEachIndexed { idx, _ ->
+                    val active = idx == currentRealPageIdx
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(if (active) 10.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
+                            .clickable { onSelectPage(idx) },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -974,6 +1338,8 @@ private fun StudioEditToolbar(
     onAddElement: () -> Unit,
     onOpenWidgets: () -> Unit,
     onOpenPages: () -> Unit,
+    onOpenLayers: () -> Unit = {},
+    onOpenTemplates: () -> Unit = {},
     onOpenStyleStudio: () -> Unit = {},
     onOpenSettings: () -> Unit,
     onUnlockPage: () -> Unit,
@@ -1083,8 +1449,28 @@ private fun StudioEditToolbar(
                     modifier = Modifier.size(48.dp).testTag("studio_pages_button"),
                 ) {
                     EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Layers,
+                        imageVector = Icons.Rounded.ViewCarousel,
                         contentDescription = "Pages",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenLayers,
+                    modifier = Modifier.size(48.dp).testTag("studio_layers_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Layers,
+                        contentDescription = "Layer Stack",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenTemplates,
+                    modifier = Modifier.size(48.dp).testTag("studio_templates_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = "Templates & Themes",
                         iconSize = 22.dp,
                     )
                 }
@@ -1161,17 +1547,6 @@ private fun StudioEditToolbar(
                     }
                 }
             }
-            if (multiSelectCount > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("$multiSelectCount selected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                    AssistChip(onClick = onLockMulti, leadingIcon = { Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp)) }, label = { Text("Lock") })
-                    AssistChip(onClick = onDeleteMulti, leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(16.dp)) }, label = { Text("Delete") })
-                }
-            }
         }
     }
 }
@@ -1235,6 +1610,9 @@ private fun FreeformPageCanvas(
     onOpenWindow: (Long) -> Unit,
     onOpenFolder: (Long) -> Unit,
     onElementTrigger: (HomeElementEntity, String) -> Boolean,
+    onOpenSearch: () -> Unit = {},
+    onJumpToPage: (Int) -> Unit = {},
+    onCycleStack: (Long, Int) -> Unit = { _, _ -> },
     onSelectElement: (Long?) -> Unit,
     onInspectElement: (HomeElementEntity) -> Unit,
     onSaveElement: (HomeElementEntity, Boolean) -> Unit,
@@ -1266,7 +1644,8 @@ private fun FreeformPageCanvas(
         val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
             val maxElemBottomDp = elements.maxOfOrNull { el ->
                 val yf = if (isLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
-                (yf * viewportHeightDp.value) + el.heightDp + 32f
+                val eh = if (isLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
+                (yf * viewportHeightDp.value) + eh + 32f
             }?.dp ?: viewportHeightDp
             maxOf(viewportHeightDp, maxElemBottomDp)
         } else {
@@ -1296,10 +1675,12 @@ private fun FreeformPageCanvas(
                             val hitElement = latestElements.any { el ->
                                 val xf = if (latestIsLandscape && el.landscapeXFraction != null) el.landscapeXFraction else el.xFraction
                                 val yf = if (latestIsLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
+                                val ew = if (latestIsLandscape && el.landscapeWidthDp != null) el.landscapeWidthDp else el.widthDp
+                                val eh = if (latestIsLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
                                 val left = xf * canvasWidthPx
                                 val top = yf * canvasHeightPx
-                                val wPx = with(density) { el.widthDp.dp.toPx() }
-                                val hPx = with(density) { el.heightDp.dp.toPx() }
+                                val wPx = with(density) { ew.dp.toPx() }
+                                val hPx = with(density) { eh.dp.toPx() }
                                 pressOffset.x in left..(left + wPx) && pressOffset.y in top..(top + hPx)
                             }
                             if (!hitElement) {
@@ -1383,7 +1764,6 @@ private fun FreeformPageCanvas(
                         }
                     }
 
-                    // Magnetic alignment guides during drag
                     activeGuideX?.let { gx ->
                         drawLine(guideColor, Offset(gx, 0f), Offset(gx, size.height), strokeWidth = 2.5f)
                     }
@@ -1394,200 +1774,340 @@ private fun FreeformPageCanvas(
             }
 
             elements.forEach { elem ->
-                val latestElem by rememberUpdatedState(elem)
-                val selected = state.isEditMode &&
-                    (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
-                val baseXFrac = if (isLandscape && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
-                val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
-                var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
-                var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
-                var widthDp by remember(elem.elementId, elem.widthDp) { mutableFloatStateOf(elem.widthDp) }
-                var heightDp by remember(elem.elementId, elem.heightDp) { mutableFloatStateOf(elem.heightDp) }
+                EditableCanvasElementBox(
+                    elem = elem,
+                    page = page,
+                    allPageElements = elements,
+                    canvasWidthPx = canvasWidthPx,
+                    canvasHeightPx = canvasHeightPx,
+                    snapStepPx = snapStepPx,
+                    isLandscape = isLandscape,
+                    state = state,
+                    multiSelectActive = multiSelectActive,
+                    appDiscovery = appDiscovery,
+                    widgetHost = widgetHost,
+                    onGuideChanged = { gx, gy ->
+                        activeGuideX = gx
+                        activeGuideY = gy
+                    },
+                    onLaunchApp = onLaunchApp,
+                    onOpenTagSidebar = onOpenTagSidebar,
+                    onOpenCategorySidebar = onOpenCategorySidebar,
+                    onOpenRuleSidebar = onOpenRuleSidebar,
+                    onOpenSidebar = onOpenSidebar,
+                    onOpenWindow = onOpenWindow,
+                    onOpenFolder = onOpenFolder,
+                    onElementTrigger = onElementTrigger,
+                    onOpenSearch = onOpenSearch,
+                    onJumpToPage = onJumpToPage,
+                    onCycleStack = onCycleStack,
+                    onSelectElement = onSelectElement,
+                    onInspectElement = onInspectElement,
+                    onSaveElement = onSaveElement,
+                )
+            }
+        }
+        }
+    }
+}
 
-                val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
-                val dragModifier = if (canMove) {
-                    Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
-                        detectDragGestures(
-                            onDragStart = { onSelectElement(latestElem.elementId) },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
-                                var nextY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+@Composable
+private fun PinnedElementsOverlay(
+    page: HomePageEntity,
+    elements: List<HomeElementEntity>,
+    state: LauncherUiState,
+    multiSelectActive: Boolean,
+    appDiscovery: AppDiscoveryManager,
+    widgetHost: LauncherWidgetHost,
+    onLaunchApp: (AppEntity) -> Unit,
+    onOpenTagSidebar: (Long) -> Unit,
+    onOpenCategorySidebar: (Long) -> Unit,
+    onOpenRuleSidebar: (Long) -> Unit,
+    onOpenSidebar: (Long) -> Unit,
+    onOpenWindow: (Long) -> Unit,
+    onOpenFolder: (Long) -> Unit,
+    onElementTrigger: (HomeElementEntity, String) -> Boolean,
+    onOpenSearch: () -> Unit,
+    onJumpToPage: (Int) -> Unit,
+    onCycleStack: (Long, Int) -> Unit,
+    onSelectElement: (Long?) -> Unit,
+    onInspectElement: (HomeElementEntity) -> Unit,
+    onSaveElement: (HomeElementEntity, Boolean) -> Unit,
+) {
+    val density = LocalDensity.current
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(page.paddingDp.coerceIn(0f, 40f).dp)
+            .testTag("home_pinned_overlay"),
+    ) {
+        val canvasWidthPx = with(density) { maxWidth.toPx().coerceAtLeast(1f) }
+        val canvasHeightPx = with(density) { maxHeight.toPx().coerceAtLeast(1f) }
+        val snapStepPx = with(density) { state.settings.gridSnapStepDp.dp.toPx().coerceAtLeast(8f) }
 
-                                if (state.settings.gridSnapEnabled) {
-                                    nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
-                                    nextY = (nextY / snapStepPx).roundToInt() * snapStepPx
-                                }
+        elements.forEach { elem ->
+            EditableCanvasElementBox(
+                elem = elem,
+                page = page,
+                allPageElements = elements,
+                canvasWidthPx = canvasWidthPx,
+                canvasHeightPx = canvasHeightPx,
+                snapStepPx = snapStepPx,
+                isLandscape = isLandscape,
+                state = state,
+                multiSelectActive = multiSelectActive,
+                appDiscovery = appDiscovery,
+                widgetHost = widgetHost,
+                onGuideChanged = { _, _ -> },
+                onLaunchApp = onLaunchApp,
+                onOpenTagSidebar = onOpenTagSidebar,
+                onOpenCategorySidebar = onOpenCategorySidebar,
+                onOpenRuleSidebar = onOpenRuleSidebar,
+                onOpenSidebar = onOpenSidebar,
+                onOpenWindow = onOpenWindow,
+                onOpenFolder = onOpenFolder,
+                onElementTrigger = onElementTrigger,
+                onOpenSearch = onOpenSearch,
+                onJumpToPage = onJumpToPage,
+                onCycleStack = onCycleStack,
+                onSelectElement = onSelectElement,
+                onInspectElement = onInspectElement,
+                onSaveElement = onSaveElement,
+            )
+        }
+    }
+}
 
-                                if (state.settings.alignmentGuidesEnabled) {
-                                    val centerCanvasX = canvasWidthPx / 2f
-                                    val elemW = widthDp.dp.toPx()
-                                    val matchX = latestElements.filter { it.elementId != latestElem.elementId }
-                                        .map { (if (latestIsLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
-                                        .plus(centerCanvasX - elemW / 2f)
-                                        .firstOrNull { abs(it - nextX) < 12f }
-                                    if (matchX != null) {
-                                        nextX = matchX
-                                        activeGuideX = matchX
-                                    } else activeGuideX = null
+@Composable
+private fun EditableCanvasElementBox(
+    elem: HomeElementEntity,
+    page: HomePageEntity,
+    allPageElements: List<HomeElementEntity>,
+    canvasWidthPx: Float,
+    canvasHeightPx: Float,
+    snapStepPx: Float,
+    isLandscape: Boolean,
+    state: LauncherUiState,
+    multiSelectActive: Boolean,
+    appDiscovery: AppDiscoveryManager,
+    widgetHost: LauncherWidgetHost,
+    onGuideChanged: (Float?, Float?) -> Unit,
+    onLaunchApp: (AppEntity) -> Unit,
+    onOpenTagSidebar: (Long) -> Unit,
+    onOpenCategorySidebar: (Long) -> Unit,
+    onOpenRuleSidebar: (Long) -> Unit,
+    onOpenSidebar: (Long) -> Unit,
+    onOpenWindow: (Long) -> Unit,
+    onOpenFolder: (Long) -> Unit,
+    onElementTrigger: (HomeElementEntity, String) -> Boolean,
+    onOpenSearch: () -> Unit,
+    onJumpToPage: (Int) -> Unit,
+    onCycleStack: (Long, Int) -> Unit,
+    onSelectElement: (Long?) -> Unit,
+    onInspectElement: (HomeElementEntity) -> Unit,
+    onSaveElement: (HomeElementEntity, Boolean) -> Unit,
+) {
+    val density = LocalDensity.current
+    val latestElem by rememberUpdatedState(elem)
+    val latestElements by rememberUpdatedState(allPageElements)
+    val latestIsLandscape by rememberUpdatedState(isLandscape)
 
-                                    val matchY = latestElements.filter { it.elementId != latestElem.elementId }
-                                        .map { (if (latestIsLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
-                                        .firstOrNull { abs(it - nextY) < 12f }
-                                    if (matchY != null) {
-                                        nextY = matchY
-                                        activeGuideY = matchY
-                                    } else activeGuideY = null
-                                }
+    val selected = state.isEditMode &&
+        (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
+    val baseXFrac = if (isLandscape && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
+    val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
+    val baseWidthDp = if (isLandscape && elem.landscapeWidthDp != null) elem.landscapeWidthDp else elem.widthDp
+    val baseHeightDp = if (isLandscape && elem.landscapeHeightDp != null) elem.landscapeHeightDp else elem.heightDp
 
-                                dragX = nextX
-                                dragY = nextY
-                            },
-                            onDragEnd = {
-                                activeGuideX = null
-                                activeGuideY = null
-                                val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
-                                val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
-                                val cur = latestElem
-                                val updated = if (latestIsLandscape) {
-                                    cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                                } else {
-                                    cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                                }
-                                onSaveElement(updated, true)
-                            },
-                        )
+    var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
+    var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
+    var widthDp by remember(elem.elementId, baseWidthDp) { mutableFloatStateOf(baseWidthDp) }
+    var heightDp by remember(elem.elementId, baseHeightDp) { mutableFloatStateOf(baseHeightDp) }
+
+    val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
+    val dragModifier = if (canMove) {
+        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
+            detectDragGestures(
+                onDragStart = { onSelectElement(latestElem.elementId) },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
+                    var nextY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+
+                    if (state.settings.gridSnapEnabled) {
+                        nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
+                        nextY = (nextY / snapStepPx).roundToInt() * snapStepPx
                     }
-                } else Modifier
 
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
-                        .size(width = widthDp.dp, height = heightDp.dp)
-                        .graphicsLayer {
-                            rotationZ = elem.rotationDeg
-                            scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
-                            scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
+                    var gx: Float? = null
+                    var gy: Float? = null
+                    if (state.settings.alignmentGuidesEnabled) {
+                        val centerCanvasX = canvasWidthPx / 2f
+                        val elemW = widthDp.dp.toPx()
+                        val matchX = latestElements.filter { it.elementId != latestElem.elementId }
+                            .map { (if (latestIsLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
+                            .plus(centerCanvasX - elemW / 2f)
+                            .firstOrNull { abs(it - nextX) < 12f }
+                        if (matchX != null) {
+                            nextX = matchX
+                            gx = matchX
                         }
-                        .alpha(elem.alpha.coerceIn(0.1f, 1f))
-                        .then(
-                            if (state.isEditMode) {
-                                Modifier.border(
-                                    width = if (selected) 2.dp else 1.dp,
-                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.25f),
-                                    shape = RoundedCornerShape(elem.cornerRadiusDp.dp),
-                                )
-                            } else Modifier
-                        )
-                        .testTag("home_element_${elem.elementId}"),
-                ) {
-                    HomeElementBody(
-                        element = elem,
-                        state = state,
-                        appDiscovery = appDiscovery,
-                        widgetHost = widgetHost,
-                        onLaunchApp = onLaunchApp,
-                        onOpenTagSidebar = onOpenTagSidebar,
-                        onOpenCategorySidebar = onOpenCategorySidebar,
-                        onOpenRuleSidebar = onOpenRuleSidebar,
-                        onOpenSidebar = onOpenSidebar,
-                        onOpenWindow = onOpenWindow,
-                        onOpenFolder = onOpenFolder,
-                        onElementTrigger = onElementTrigger,
+
+                        val matchY = latestElements.filter { it.elementId != latestElem.elementId }
+                            .map { (if (latestIsLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
+                            .firstOrNull { abs(it - nextY) < 12f }
+                        if (matchY != null) {
+                            nextY = matchY
+                            gy = matchY
+                        }
+                    }
+                    onGuideChanged(gx, gy)
+                    dragX = nextX
+                    dragY = nextY
+                },
+                onDragEnd = {
+                    onGuideChanged(null, null)
+                    val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                    val cur = latestElem
+                    val updated = if (latestIsLandscape) {
+                        cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
+                    } else {
+                        cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                    }
+                    onSaveElement(updated, true)
+                },
+            )
+        }
+    } else Modifier
+
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+            .size(width = widthDp.dp, height = heightDp.dp)
+            .graphicsLayer {
+                rotationZ = elem.rotationDeg
+                scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
+                scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
+            }
+            .alpha(elem.alpha.coerceIn(0.1f, 1f))
+            .then(
+                if (state.isEditMode) {
+                    Modifier.border(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(elem.cornerRadiusDp.dp),
                     )
+                } else Modifier
+            )
+            .testTag("home_element_${elem.elementId}"),
+    ) {
+        HomeElementBody(
+            element = elem,
+            state = state,
+            appDiscovery = appDiscovery,
+            widgetHost = widgetHost,
+            onLaunchApp = onLaunchApp,
+            onOpenTagSidebar = onOpenTagSidebar,
+            onOpenCategorySidebar = onOpenCategorySidebar,
+            onOpenRuleSidebar = onOpenRuleSidebar,
+            onOpenSidebar = onOpenSidebar,
+            onOpenWindow = onOpenWindow,
+            onOpenFolder = onOpenFolder,
+            onElementTrigger = onElementTrigger,
+            onOpenSearch = onOpenSearch,
+            onJumpToPage = onJumpToPage,
+            onSaveElement = onSaveElement,
+            onCycleStack = onCycleStack,
+        )
 
-                    if (state.isEditMode) {
-                        // Touch shield sits above AndroidView / LazyVerticalGrid / widget buttons
-                        // so any placed element can be reliably tapped, dragged, or inspected in edit mode.
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .then(dragModifier)
-                                .clickable {
-                                    val cur = latestElem
-                                    if (selected && !multiSelectActive) onInspectElement(cur) else onSelectElement(cur.elementId)
-                                }
-                                .testTag("edit_shield_${elem.elementId}"),
-                        )
+        if (state.isEditMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(dragModifier)
+                    .clickable {
+                        val cur = latestElem
+                        if (selected && !multiSelectActive) onInspectElement(cur) else onSelectElement(cur.elementId)
+                    }
+                    .testTag("edit_shield_${elem.elementId}"),
+            )
 
-                        if (elem.locked || page.isLocked) {
-                            Icon(
-                                Icons.Rounded.Lock,
-                                contentDescription = "Locked",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
+            if (elem.locked || page.isLocked) {
+                Icon(
+                    Icons.Rounded.Lock,
+                    contentDescription = "Locked",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
+                )
+            }
+            if (selected) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = (-6).dp)
+                        .size(28.dp)
+                        .clickable { onInspectElement(latestElem) }
+                        .testTag("inspect_element_${elem.elementId}"),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        val iconStyle = LocalIconStyleConfig.current
+                        if (iconStyle.enabled) {
+                            OutlinedVectorIcon(
+                                imageVector = Icons.Rounded.Tune,
+                                contentDescription = "Inspect",
+                                fillColor = Color(iconStyle.fillColorHex),
+                                outlineColor = Color(iconStyle.outlineColorHex),
+                                outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
+                                modifier = Modifier.size(15.dp),
                             )
+                        } else {
+                            Icon(Icons.Rounded.Tune, contentDescription = "Inspect", tint = Color.Black, modifier = Modifier.size(15.dp))
                         }
-                        if (selected) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 6.dp, y = (-6).dp)
-                                    .size(28.dp)
-                                    .clickable { onInspectElement(latestElem) }
-                                    .testTag("inspect_element_${elem.elementId}"),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    val iconStyle = LocalIconStyleConfig.current
-                                    if (iconStyle.enabled) {
-                                        OutlinedVectorIcon(
-                                            imageVector = Icons.Rounded.Tune,
-                                            contentDescription = "Inspect",
-                                            fillColor = Color(iconStyle.fillColorHex),
-                                            outlineColor = Color(iconStyle.outlineColorHex),
-                                            outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
-                                            modifier = Modifier.size(15.dp),
-                                        )
-                                    } else {
-                                        Icon(Icons.Rounded.Tune, contentDescription = "Inspect", tint = Color.Black, modifier = Modifier.size(15.dp))
-                                    }
-                                }
-                            }
+                    }
+                }
 
-                            if (canMove) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .offset(x = 6.dp, y = 6.dp)
-                                        .size(28.dp)
-                                        .pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx) {
-                                            detectDragGestures(
-                                                onDrag = { change, dragAmount ->
-                                                    change.consume()
-                                                    val dxDp = with(density) { dragAmount.x.toDp().value }
-                                                    val dyDp = with(density) { dragAmount.y.toDp().value }
-                                                    widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
-                                                    heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
-                                                },
-                                                onDragEnd = {
-                                                    val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
-                                                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
-                                                    val cur = latestElem
-                                                    val updated = if (latestIsLandscape) {
-                                                        cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                                                    } else {
-                                                        cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
-                                                    }
-                                                    onSaveElement(updated, true)
-                                                },
-                                            )
+                if (canMove) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 6.dp, y = 6.dp)
+                            .size(28.dp)
+                            .pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx) {
+                                detectDragGestures(
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val dxDp = with(density) { dragAmount.x.toDp().value }
+                                        val dyDp = with(density) { dragAmount.y.toDp().value }
+                                        widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
+                                        heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
+                                    },
+                                    onDragEnd = {
+                                        val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
+                                        val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                                        val cur = latestElem
+                                        val updated = if (latestIsLandscape) {
+                                            cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
+                                        } else {
+                                            cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
                                         }
-                                        .testTag("resize_element_${elem.elementId}"),
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Rounded.OpenInFull, contentDescription = "Resize", tint = Color.White, modifier = Modifier.size(15.dp))
-                                    }
-                                }
+                                        onSaveElement(updated, true)
+                                    },
+                                )
                             }
+                            .testTag("resize_element_${elem.elementId}"),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.OpenInFull, contentDescription = "Resize", tint = Color.White, modifier = Modifier.size(15.dp))
                         }
                     }
                 }
             }
-        }
         }
     }
 }

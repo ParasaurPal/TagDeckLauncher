@@ -31,28 +31,37 @@ val JetBrainsMonoFamily = FontFamily(
 fun buildTagDeckTypography(
     fontStyle: String = "DEFAULT",
     fontScale: Float = 1.0f,
+    customFontPath: String? = null,
 ): Typography {
-    val scale = fontScale.coerceIn(0.75f, 1.5f)
+    val scale = fontScale.coerceIn(0.75f, 1.8f)
+    val customFamily = if (fontStyle == "CUSTOM" && !customFontPath.isNullOrBlank()) {
+        com.example.data.system.CustomFontRegistry.resolveFontFamily(customFontPath)
+    } else null
     val displayFamily: FontFamily
     val bodyFamily: FontFamily
     val monoFamily: FontFamily
-    when (fontStyle) {
-        "SPACE_GROTESK" -> {
+    when {
+        customFamily != null -> {
+            displayFamily = customFamily
+            bodyFamily = customFamily
+            monoFamily = JetBrainsMonoFamily
+        }
+        fontStyle == "SPACE_GROTESK" -> {
             displayFamily = SpaceGroteskFamily
             bodyFamily = SpaceGroteskFamily
             monoFamily = SpaceGroteskFamily
         }
-        "PLUS_JAKARTA" -> {
+        fontStyle == "PLUS_JAKARTA" -> {
             displayFamily = PlusJakartaSansFamily
             bodyFamily = PlusJakartaSansFamily
             monoFamily = PlusJakartaSansFamily
         }
-        "JETBRAINS_MONO" -> {
+        fontStyle == "JETBRAINS_MONO" -> {
             displayFamily = JetBrainsMonoFamily
             bodyFamily = JetBrainsMonoFamily
             monoFamily = JetBrainsMonoFamily
         }
-        "SYSTEM" -> {
+        fontStyle == "SYSTEM" -> {
             displayFamily = FontFamily.Default
             bodyFamily = FontFamily.Default
             monoFamily = FontFamily.Monospace

@@ -1946,7 +1946,7 @@ private fun FolderPopupModal(
                             ) {
                                 AppIconView(app, appDiscovery, 52.dp, iconShapeKey)
                                 Spacer(Modifier.height(6.dp))
-                                Text(
+                                ReadableLauncherText(
                                     text = app.displayName,
                                     color = Color.White,
                                     style = MaterialTheme.typography.bodyMedium,

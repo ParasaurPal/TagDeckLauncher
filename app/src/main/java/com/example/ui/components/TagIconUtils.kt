@@ -195,6 +195,7 @@ fun CategoryBadgeIcon(
     size: Dp = category.iconSizeDp.dp,
     contentDescription: String? = category.name,
     contrastStyle: String? = null,
+    isOpen: Boolean = false,
 ) {
     val context = LocalContext.current
     val iconStyle = LocalIconStyleConfig.current
@@ -206,6 +207,28 @@ fun CategoryBadgeIcon(
         storedBg
     }
     val shape = RoundedCornerShape(size * 0.30f)
+
+    // When open, prioritize openCustomIconPath -> openCustomEmoji -> openIconKey before falling back to closed icon
+    val resolvedCustomPath = when {
+        isOpen && !category.openCustomIconPath.isNullOrBlank() && File(category.openCustomIconPath).exists() ->
+            category.openCustomIconPath
+        isOpen && (!category.openCustomEmoji.isNullOrBlank() || !category.openIconKey.isNullOrBlank()) ->
+            null
+        !category.customIconPath.isNullOrBlank() && File(category.customIconPath).exists() ->
+            category.customIconPath
+        else -> null
+    }
+    val resolvedEmoji = when {
+        isOpen && !category.openCustomEmoji.isNullOrBlank() -> category.openCustomEmoji
+        isOpen && !category.openIconKey.isNullOrBlank() -> null
+        resolvedCustomPath == null && !category.customEmoji.isNullOrBlank() -> category.customEmoji
+        else -> null
+    }
+    val resolvedIconKey = when {
+        isOpen && !category.openIconKey.isNullOrBlank() -> category.openIconKey
+        else -> category.iconKey
+    }
+
     Box(
         modifier = Modifier
             .size(size)
@@ -214,10 +237,10 @@ fun CategoryBadgeIcon(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            !category.customIconPath.isNullOrBlank() && File(category.customIconPath).exists() -> {
-                val request = remember(category.customIconPath, iconStyle) {
+            resolvedCustomPath != null -> {
+                val request = remember(resolvedCustomPath, iconStyle) {
                     ImageRequest.Builder(context)
-                        .data(File(category.customIconPath))
+                        .data(File(resolvedCustomPath))
                         .allowHardware(false)
                         .apply {
                             if (iconStyle.enabled) transformations(BlackIconCoilTransformation(iconStyle))
@@ -231,16 +254,16 @@ fun CategoryBadgeIcon(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            !category.customEmoji.isNullOrBlank() -> {
+            resolvedEmoji != null -> {
                 Text(
-                    text = category.customEmoji,
+                    text = resolvedEmoji,
                     fontSize = (size.value * 0.54f).sp,
                 )
             }
             contrastStyle != null -> {
                 val whiteFill = contrastStyle == "WHITE_BLACK"
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
                     fillColor = if (whiteFill) Color.White else Color.Black,
                     outlineColor = if (whiteFill) Color.Black else Color.White,
@@ -251,7 +274,7 @@ fun CategoryBadgeIcon(
             iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
                 val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
                     fillColor = fill,
                     outlineColor = Color(iconStyle.outlineColorHex),
@@ -261,7 +284,7 @@ fun CategoryBadgeIcon(
             }
             else -> {
                 Icon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
                     tint = accent,
                     modifier = Modifier.size(size * 0.58f),

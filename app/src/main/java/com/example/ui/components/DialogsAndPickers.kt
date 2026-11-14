@@ -968,6 +968,16 @@ fun WidgetPickerDialog(
     }
 
     val builtinWidgets = listOf(
+        Triple("WIDGET_STACK", "Widget Stack (Swipeable)", 280f to 160f),
+        Triple("GAUGE_WIDGET", "Graphic Gauge (Battery/RAM/Day)", 150f to 150f),
+        Triple("CONTAINER_BOX", "Scrollable Container Box", 300f to 160f),
+        Triple("APP_GROUP_WIDGET", "App Group Grid", 300f to 180f),
+        Triple("PAGE_SWITCHER_WIDGET", "Page Switcher Strip", 300f to 56f),
+        Triple("SEARCH_BAR_WIDGET", "Embedded Search Bar", 300f to 52f),
+        Triple("QUICK_NOTES_WIDGET", "Quick Notes Card", 260f to 150f),
+        Triple("FOCUS_TIMER_WIDGET", "Focus Timer", 156f to 156f),
+        Triple("MINI_CALCULATOR_WIDGET", "Mini Calculator", 260f to 220f),
+        Triple("DEVICE_TOGGLE_WIDGET", "Quick Toggle (Torch/Ringer/Panel)", 110f to 84f),
         Triple("DIGITAL_CLOCK", "Live Digital Clock", 220f to 100f),
         Triple("ANALOG_CLOCK", "Analog Clock", 148f to 148f),
         Triple("CALENDAR_WIDGET", "Live Calendar Date", 160f to 120f),

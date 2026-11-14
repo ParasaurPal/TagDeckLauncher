@@ -54,6 +54,9 @@ data class CategoryEntity(
     val backgroundAlpha: Float = 1f,
     val showInMainBar: Boolean = true,
     val iconSizeDp: Int = 24,
+    val openIconKey: String? = null,
+    val openCustomIconPath: String? = null,
+    val openCustomEmoji: String? = null,
     val parentCategoryId: Long? = null,
     val sortOrder: Int = 0,
     val categoryType: String = "APP", // SYSTEM_ALL, SYSTEM_FAVORITES, APP, GAMES_PARENT, GAME_SUB, CUSTOM
@@ -201,6 +204,9 @@ data class HomePageEntity(
     val backgroundBlurDp: Float = 0f,
     val backgroundAlpha: Float = 0.85f,
     val pageTapActionJson: String? = null,
+    val pageGesturesJson: String? = null,
+    val transitionOverride: String? = null,
+    val showDockOverride: Boolean? = null,
 )
 
 @Entity(tableName = "launcher_windows")
@@ -277,12 +283,20 @@ data class HomeElementEntity(
     val fontSizeSp: Float = 13f,
     val showLabel: Boolean = true,
     val iconSizeDp: Float = 48f,
+    val pinnedToAllPages: Boolean = false,
+    val parentContainerId: Long? = null,
+    val visibilityGroupId: String? = null,
+    val landscapeWidthDp: Float? = null,
+    val landscapeHeightDp: Float? = null,
+    val styleExtrasJson: String = "",
 ) {
     fun folderPackages(): List<String> =
         folderAppPackagesCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
     fun nestedFolderIds(): List<Long> =
         nestedFolderIdsCsv.split(",").mapNotNull { it.trim().toLongOrNull() }
+
+    fun parsedExtras(): ElementStyleExtras = ElementStyleExtras.fromJson(styleExtrasJson)
 }
 
 @Entity(tableName = "layout_snapshots")
@@ -362,3 +376,21 @@ data class BackgroundPresetEntity(
     val blurDp: Float = 0f,
     val alpha: Float = 1f,
 )
+
+@Entity(tableName = "custom_fonts")
+data class CustomFontEntity(
+    @PrimaryKey(autoGenerate = true) val fontId: Long = 0,
+    val name: String,
+    val fileFormat: String = "TTF", // TTF or OTF
+    val localPath: String,
+    val importedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(tableName = "theme_profiles")
+data class ThemeProfileEntity(
+    @PrimaryKey(autoGenerate = true) val profileId: Long = 0,
+    val name: String,
+    val settingsJson: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+

@@ -60,9 +60,12 @@ import com.example.ui.components.LocalAppDragCoordinator
 import com.example.ui.components.LocalIconPackOrder
 import com.example.ui.components.LocalNotificationBadgesEnabled
 import com.example.ui.components.LocalLineIconProfiles
-import com.example.ui.components.LocalDefaultLineIconProfile
 import com.example.ui.components.LineIconStudioDialog
+import com.example.ui.components.LocalCustomFonts
+import com.example.ui.components.LocalDefaultLineIconProfile
 import com.example.ui.components.LocalIconStyleConfig
+import com.example.ui.components.LocalReadabilityConfig
+import com.example.ui.components.ReadabilityConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
 import com.example.ui.components.rememberAppDragToDesktopController
@@ -146,6 +149,10 @@ class MainActivity : ComponentActivity() {
                 fontStyle = state.settings.fontStyle,
                 fontScale = state.settings.fontScale,
                 cornerRadiusDp = state.settings.globalCornerRadiusDp,
+                customFontPath = state.settings.customFontPath,
+                customSurfaceColorHex = state.settings.customSurfaceColorHex,
+                customCardColorHex = state.settings.customCardColorHex,
+                customOutlineColorHex = state.settings.customOutlineColorHex,
             ) {
                 TagDeckRoot(
                     viewModel = viewModel,
@@ -334,6 +341,8 @@ private fun TagDeckRoot(
         LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
         LocalDefaultLineIconProfile provides if (state.settings.lineIconsEnabled) state.settings.defaultLineIconProfile() else null,
         LocalAppDragCoordinator provides appDragCoordinator,
+        LocalReadabilityConfig provides remember(state.settings) { ReadabilityConfig.fromSettings(state.settings) },
+        LocalCustomFonts provides state.customFonts,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -401,6 +410,22 @@ private fun TagDeckRoot(
                     onStartSystemWidgetBind = { provider, pageId, ownerType ->
                         startSystemWidgetBind(provider, pageId, null, ownerType)
                     },
+                    onCopyStyle = { viewModel.copyElementStyle(it) },
+                    onPasteStyle = { viewModel.pasteStyleToElements(it) },
+                    onGroupElements = { viewModel.groupElements(it) },
+                    onUngroupElements = { viewModel.ungroupElements(it) },
+                    onAlignElements = { ids, mode -> viewModel.alignElements(ids, mode) },
+                    onDistributeElements = { ids, axis -> viewModel.distributeElements(ids, axis) },
+                    onMatchElementSizes = { ids, dim -> viewModel.matchElementSizes(ids, dim) },
+                    onStackElements = { viewModel.stackElements(it) },
+                    onUnstackElement = { viewModel.unstackElement(it) },
+                    onAddChildToContainer = { parentId, child -> viewModel.addChildToContainer(parentId, child) },
+                    onMoveChildInParent = { childId, delta -> viewModel.moveChildInParent(childId, delta) },
+                    onCycleWidgetStack = { stackId, delta -> viewModel.cycleWidgetStack(stackId, delta) },
+                    onApplyStarterTemplate = { viewModel.applyStarterTemplate(it) },
+                    onSaveThemeProfile = { viewModel.saveThemeProfile(it) },
+                    onApplyThemeProfile = { viewModel.applyThemeProfile(it) },
+                    onDeleteThemeProfile = { viewModel.deleteThemeProfile(it) },
                 )
             }
 
@@ -539,6 +564,13 @@ private fun TagDeckRoot(
                     onAddIconPack = { viewModel.addIconPackToHierarchy(it) },
                     onRemoveIconPack = { viewModel.removeIconPackFromHierarchy(it) },
                     onMoveIconPack = { pkg, delta -> viewModel.moveIconPackInHierarchy(pkg, delta) },
+                    onSaveCategory = { viewModel.saveCategory(it) },
+                    onImportCustomFont = { viewModel.importCustomFont(it) },
+                    onApplyCustomFont = { viewModel.applyCustomFontGlobally(it) },
+                    onDeleteCustomFont = { viewModel.deleteCustomFont(it) },
+                    onSaveThemeProfile = { viewModel.saveThemeProfile(it) },
+                    onApplyThemeProfile = { viewModel.applyThemeProfile(it) },
+                    onDeleteThemeProfile = { viewModel.deleteThemeProfile(it) },
                     initialSearchQuery = state.pendingSettingsSearchQuery,
                     onConsumeInitialSearchQuery = { viewModel.consumePendingSettingsSearchQuery() },
                 )

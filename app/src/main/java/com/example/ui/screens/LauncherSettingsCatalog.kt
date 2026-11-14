@@ -19,9 +19,11 @@ data class SettingsSectionSpec(
 object LauncherSettingsCatalog {
 
     const val SECTION_MANAGE = "manage"
+    const val SECTION_CATEGORY_ICONS = "category_icons"
     const val SECTION_DEFAULT_HOME = "default_home"
     const val SECTION_MEDIA = "media"
     const val SECTION_THEME_TYPOGRAPHY = "theme_typography"
+    const val SECTION_CUSTOM_FONTS_READABILITY = "custom_fonts_readability"
     const val SECTION_PALETTE_SURFACES = "palette_surfaces"
     const val SECTION_ICON_PACKS = "icon_packs"
     const val SECTION_LINE_ICONS = "line_icons"
@@ -50,6 +52,14 @@ object LauncherSettingsCatalog {
             ),
         ),
         section(
+            id = SECTION_CATEGORY_ICONS,
+            title = "Category Icons & Open-State Badges",
+            keywords = listOf("category icon", "open icon", "closed icon", "app drawer", "emoji", "svg", "badge"),
+            entries = listOf(
+                entry("category_icons_picker", SECTION_CATEGORY_ICONS, "Closed & Open Category Icons", "Customize built-in icons, emojis, or PNG/SVG badges for every drawer category when closed or open", listOf("category", "open icon", "closed icon", "drawer chip", "header", "emoji", "custom image")),
+            ),
+        ),
+        section(
             id = SECTION_DEFAULT_HOME,
             title = "Default Home Application",
             keywords = listOf("home app", "launcher", "default"),
@@ -72,9 +82,18 @@ object LauncherSettingsCatalog {
             keywords = listOf("appearance", "style", "text", "fonts"),
             entries = listOf(
                 entry("theme_mode", SECTION_THEME_TYPOGRAPHY, "Theme Mode", "Switch between Dark, Light, System, or Dynamic color", listOf("dark", "light", "system", "dynamic", "material you")),
-                entry("font_family", SECTION_THEME_TYPOGRAPHY, "Font Family", "Choose Space Grotesk, Plus Jakarta, JetBrains Mono, or System", listOf("font", "typography", "monospace", "grotesk", "jakarta")),
-                entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.40x", listOf("text size", "font size", "zoom", "scale")),
+                entry("font_family", SECTION_THEME_TYPOGRAPHY, "Font Family", "Choose Space Grotesk, Plus Jakarta, JetBrains Mono, System, or Custom uploaded font", listOf("font", "typography", "monospace", "grotesk", "jakarta", "ttf", "otf")),
+                entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.80x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
+            ),
+        ),
+        section(
+            id = SECTION_CUSTOM_FONTS_READABILITY,
+            title = "Custom Fonts & Readability Studio",
+            keywords = listOf("ttf", "otf", "upload font", "readable", "legibility", "backdrop", "outline", "letter spacing", "contrast"),
+            entries = listOf(
+                entry("custom_font_upload", SECTION_CUSTOM_FONTS_READABILITY, "Upload & Manage Custom Fonts (.ttf / .otf)", "Import local font files and apply globally or per widget", listOf("upload", "custom font", "ttf", "otf", "typeface")),
+                entry("font_readability_studio", SECTION_CUSTOM_FONTS_READABILITY, "Font Readability Studio", "High-readability toggle, bold labels, pill backdrop, stroke outline, letter spacing, line height, and auto contrast", listOf("readability", "contrast", "pill", "backdrop", "stroke", "outline", "shadow", "letter spacing", "line height")),
             ),
         ),
         section(
@@ -82,7 +101,8 @@ object LauncherSettingsCatalog {
             title = "Palette, Surfaces & Motion",
             keywords = listOf("colors", "cards", "shapes", "animations"),
             entries = listOf(
-                entry("accent_colors", SECTION_PALETTE_SURFACES, "Primary, Secondary & Tertiary Colors", "Customize theme accent, secondary, and tertiary swatches", listOf("accent", "palette", "primary", "secondary", "tertiary", "color")),
+                entry("accent_colors", SECTION_PALETTE_SURFACES, "Primary, Secondary & Tertiary Colors", "Customize theme accent, secondary, tertiary, surface, card, and outline swatches", listOf("accent", "palette", "primary", "secondary", "tertiary", "surface", "card", "outline", "color")),
+                entry("theme_profiles", SECTION_PALETTE_SURFACES, "Saved Theme Profiles", "Save and switch full color, font, and atmosphere profiles", listOf("theme profile", "preset", "save theme")),
                 entry("surface_opacity", SECTION_PALETTE_SURFACES, "UI Surface Opacity", "Adjust transparency of cards, toolbars, and overlays", listOf("opacity", "alpha", "transparency", "glass")),
                 entry("border_width", SECTION_PALETTE_SURFACES, "Global Border Width", "Adjust outline thickness on cards and controls", listOf("border", "stroke", "outline")),
                 entry("icon_shape", SECTION_PALETTE_SURFACES, "Icon Shape", "Squircle, Circle, or Rounded Square app icon masks", listOf("squircle", "circle", "rounded square", "shape")),
@@ -129,20 +149,20 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_WALLPAPER,
             title = "Wallpaper & Atmosphere",
-            keywords = listOf("background", "prism", "topo", "gradient"),
+            keywords = listOf("background", "prism", "topo", "gradient", "parallax", "vignette", "aurora", "bokeh"),
             entries = listOf(
                 entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Android system/live wallpaper, Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "live wallpaper", "system wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
-                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Tint", "Adjust background blur radius, dim opacity, and overlay tint", listOf("blur", "dim", "darken", "tint")),
+                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim, Parallax & Color Grading", "Adjust background blur, dim tint, parallax depth, vignette, saturation, contrast, brightness, and ambient effects", listOf("blur", "dim", "darken", "tint", "parallax", "vignette", "saturation", "contrast", "brightness", "aurora", "bokeh", "ambient")),
             ),
         ),
         section(
             id = SECTION_DRAWER,
             title = "Universal All-Apps Drawer",
-            keywords = listOf("all apps", "drawer", "grid", "list", "sort"),
+            keywords = listOf("all apps", "drawer", "grid", "list", "sort", "search position"),
             entries = listOf(
                 entry("drawer_edge_size", SECTION_DRAWER, "Drawer Opening Side & Width", "Open from Right, Left, or Bottom and adjust drawer width", listOf("edge", "side", "width", "drawer")),
                 entry("drawer_layout_sort", SECTION_DRAWER, "Drawer Layout Mode & App Sort", "Switch Grid vs List and sort A-Z, Most Used, Recent, Manual", listOf("grid", "list", "sort", "alphabetical", "most used", "recent", "manual")),
-                entry("drawer_search_toggle", SECTION_DRAWER, "Show Search Bar in Drawer", "Toggle the search field inside the All-Apps drawer", listOf("drawer search", "search bar")),
+                entry("drawer_search_toggle", SECTION_DRAWER, "Drawer Search Bar & Position", "Toggle the search bar and place it at Top or Bottom", listOf("drawer search", "search bar", "top", "bottom")),
                 entry("drawer_appearance", SECTION_DRAWER, "Drawer Background, Columns, Icon & Label Size", "Customize drawer background, blur, card opacity, columns, icon size", listOf("columns", "icon size", "label size", "card opacity", "corner radius", "blur")),
             ),
         ),
@@ -157,10 +177,10 @@ object LauncherSettingsCatalog {
         ),
         section(
             id = SECTION_HOME_CANVAS,
-            title = "Home Canvas, Grid & Indicators",
-            keywords = listOf("home screen", "dock", "grid", "snap", "lock"),
+            title = "Home Canvas, Grid & Folders",
+            keywords = listOf("home screen", "dock", "grid", "snap", "lock", "folder", "status strip"),
             entries = listOf(
-                entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Labels & Home Banner", "Show bottom dock search bar, quick tag strip, shortcut labels, outline labels, banner", listOf("dock", "search bar", "tag strip", "labels", "outline labels", "banner")),
+                entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Status Strip & Folder Cover Style", "Toggle dock, tag strip, custom HUD status strip, shortcut labels, and folder cover layout", listOf("dock", "search bar", "tag strip", "labels", "status strip", "hud", "folder", "fan", "stack", "grid")),
                 entry("layout_lock", SECTION_HOME_CANVAS, "Lock Entire Home Layout", "Prevent accidental moves or edits across all home pages", listOf("lock", "freeze", "protect")),
                 entry("grid_snap", SECTION_HOME_CANVAS, "Grid Snap, Edit Grid Lines & Alignment Guides", "Toggle grid snap, snap step (dp), edit grid overlay, magnetic guides", listOf("grid", "snap", "step", "guidelines", "magnetic", "alignment")),
             ),
@@ -168,9 +188,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_INDICATORS_HANDLES,
             title = "Page Indicators & Edge Handles",
-            keywords = listOf("pages", "transitions", "dots", "handles", "widget feed"),
+            keywords = listOf("pages", "transitions", "dots", "handles", "widget feed", "loop", "3d"),
             entries = listOf(
-                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition, Widget Feed & Indicator Style", "Slide, Depth, or Fade transitions; Widget Feed page; Dots, Pill, Numbers", listOf("transition", "depth", "fade", "slide", "widget feed", "indicator", "dots", "pill", "numbers")),
+                entry("page_transitions", SECTION_INDICATORS_HANDLES, "3D Page Transitions, Infinite Loop & Indicators", "Choose 11 transitions (Cube, Flip, Stack, Windmill, etc.), infinite page loop, indicator placement, and Widget Feed", listOf("transition", "depth", "fade", "slide", "cube", "flip", "windmill", "loop", "infinite", "widget feed", "indicator", "dots", "pill", "numbers", "progress", "tabs", "top", "bottom")),
                 entry("edge_handles", SECTION_INDICATORS_HANDLES, "Edge Sidebar Handles", "Toggle edge handles and customize opacity, thickness, and length", listOf("edge handle", "sidebar handle", "thickness", "length")),
             ),
         ),
@@ -188,9 +208,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_GESTURES,
             title = "Gestures & Shortcuts",
-            keywords = listOf("swipe", "tap", "double tap", "long press", "custom gesture"),
+            keywords = listOf("swipe", "tap", "double tap", "long press", "pinch", "macro", "custom gesture"),
             entries = listOf(
-                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Configure custom Swipe Up/Down/Left/Right, Double Tap, Single Tap & Two-Finger actions", listOf("gesture", "custom swipe", "swipe up", "swipe down", "swipe left", "swipe right", "double tap", "two finger", "app action", "launcher function")),
+                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Configure Swipe Up/Down/Left/Right, Pinch In/Out, Two-Finger Tap, Double Tap, Torch, Ringer, and Launcher actions", listOf("gesture", "custom swipe", "pinch", "two finger", "double tap", "torch", "ringer", "macro", "app action", "launcher function")),
             ),
         ),
         section(
