@@ -3,8 +3,8 @@ package com.example.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -121,35 +121,24 @@ fun NiagaraWaveAlphabetBar(
                 .width(30.dp)
                 .onSizeChanged { containerHeightPx = it.height.coerceAtLeast(1) }
                 .pointerInput(activeLetters) {
-                    detectTapGestures(
-                        onPress = { offset ->
-                            isTouching = true
-                            handlePointerY(offset.y)
-                            tryAwaitRelease()
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isTouching = true
+                        try {
+                            handlePointerY(down.position.y)
+                            var pressed = true
+                            while (pressed) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                handlePointerY(change.position.y)
+                                change.consume()
+                                pressed = change.pressed
+                            }
+                        } finally {
                             isTouching = false
                             activeLetter = null
                         }
-                    )
-                }
-                .pointerInput(activeLetters) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            isTouching = true
-                            handlePointerY(offset.y)
-                        },
-                        onDragEnd = {
-                            isTouching = false
-                            activeLetter = null
-                        },
-                        onDragCancel = {
-                            isTouching = false
-                            activeLetter = null
-                        },
-                        onDrag = { change, _ ->
-                            change.consume()
-                            handlePointerY(change.position.y)
-                        }
-                    )
+                    }
                 },
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,

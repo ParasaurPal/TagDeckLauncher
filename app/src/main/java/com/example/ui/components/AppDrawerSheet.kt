@@ -314,68 +314,84 @@ fun AppDrawerOverlay(
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
-                                if (activeTag != null) {
-                                    TagBadgeIcon(
-                                        iconKey = activeTag.iconKey,
-                                        customImagePath = activeTag.customImagePath,
-                                        colorHex = activeTag.colorHex,
-                                        size = 28.dp,
-                                    )
-                                } else if (activeCategory != null) {
-                                    CategoryBadgeIcon(activeCategory, size = 28.dp)
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = headerTitle,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.Black.copy(alpha = 0.62f))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp),
-                                    )
-                                    Text(
-                                        text = "${visibleApps.size} apps • ${state.settings.drawerSortOrder.lowercase().replace('_', ' ')}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                        modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 6.dp, vertical = 3.dp),
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { onOpenGlobalSearch(query) },
-                                    modifier = Modifier.testTag("drawer_global_search_button"),
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Icon(Icons.Rounded.Search, contentDescription = "Global Search")
+                                    if (activeTag != null) {
+                                        TagBadgeIcon(
+                                            iconKey = activeTag.iconKey,
+                                            customImagePath = activeTag.customImagePath,
+                                            colorHex = activeTag.colorHex,
+                                            size = 28.dp,
+                                        )
+                                    } else if (activeCategory != null) {
+                                        CategoryBadgeIcon(activeCategory, size = 28.dp)
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = headerTitle,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Clip,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color.Black.copy(alpha = 0.62f))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                                        )
+                                        Text(
+                                            text = "${visibleApps.size} apps • ${state.settings.drawerSortOrder.lowercase().replace('_', ' ')}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Clip,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(5.dp))
+                                                .background(Color.Black.copy(alpha = 0.68f))
+                                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        )
+                                    }
                                 }
-                                IconButton(onClick = { showCustomizeDialog = true }) {
-                                    Icon(Icons.Rounded.Tune, contentDescription = "Customize drawer")
-                                }
-                                IconButton(onClick = onCycleSort) {
-                                    Icon(Icons.Rounded.SortByAlpha, contentDescription = "Cycle sort order")
-                                }
-                                IconButton(onClick = onToggleLayout) {
-                                    Icon(
-                                        imageVector = if (state.settings.drawerLayoutMode == "GRID") {
-                                            Icons.AutoMirrored.Rounded.ViewList
-                                        } else {
-                                            Icons.Rounded.GridView
-                                        },
-                                        contentDescription = "Toggle grid or list",
-                                    )
-                                }
-                                IconButton(
-                                    onClick = onClose,
-                                    modifier = Modifier.testTag("drawer_close_button"),
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Icon(Icons.Rounded.Close, contentDescription = "Close drawer")
+                                    val blackFill = state.settings.sidebarCategoryIconStyle == "BLACK_WHITE"
+    val toolbarFill = if (blackFill) Color.Black else Color.White
+    val toolbarOutline = if (blackFill) Color.White else Color.Black
+
+    IconButton(onClick = { onOpenGlobalSearch(query) }, modifier = Modifier.testTag("drawer_global_search_button")) {
+                                        OutlinedVectorIcon(Icons.Rounded.Search, "Global Search", toolbarFill, toolbarOutline)
+                                    }
+                                    IconButton(onClick = { showCustomizeDialog = true }) {
+                                        OutlinedVectorIcon(Icons.Rounded.Tune, "Customize drawer", toolbarFill, toolbarOutline)
+                                    }
+                                    IconButton(onClick = onCycleSort) {
+                                        OutlinedVectorIcon(Icons.Rounded.SortByAlpha, "Cycle sort order", toolbarFill, toolbarOutline)
+                                    }
+                                    IconButton(onClick = onToggleLayout) {
+                                        OutlinedVectorIcon(
+                imageVector = if (state.settings.drawerLayoutMode == "GRID") {
+                    Icons.AutoMirrored.Rounded.ViewList
+                } else {
+                    Icons.Rounded.GridView
+                },
+                contentDescription = "Toggle grid or list",
+                fillColor = toolbarFill,
+                outlineColor = toolbarOutline,
+            )
+                                    }
+                                    IconButton(onClick = onClose, modifier = Modifier.testTag("drawer_close_button")) {
+                                        OutlinedVectorIcon(Icons.Rounded.Close, "Close drawer", toolbarFill, toolbarOutline)
+                                    }
                                 }
                             }
 
@@ -461,7 +477,7 @@ fun AppDrawerOverlay(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)))
+                                                
                                                 .combinedClickable(
                                                     onClick = {
                                                         onLaunchApp(item.app)
@@ -483,6 +499,7 @@ fun AppDrawerOverlay(
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Text(
                                                         text = item.app.displayName,
+                                                        color = Color.White,
                                                         style = MaterialTheme.typography.titleMedium,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis,
@@ -556,7 +573,7 @@ fun AppDrawerOverlay(
                                                 textAlign = TextAlign.Center,
                                                 lineHeight = (state.settings.drawerLabelSizeSp + 2).sp,
                                                 color = Color.White,
-                                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                             )
                                         }
                                     }
@@ -705,33 +722,6 @@ fun AppDrawerOverlay(
                                             onLongClick = { onEditCategory(cat) },
                                             modifier = Modifier.testTag("dock_chip_${cat.categoryId}"),
                                         )
-                                    }
-                                    items(state.allTags, key = { "tag_${it.tagId}" }) { tag ->
-                                        val selected = selectedTagFilterId == tag.tagId
-                                        Surface(
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = if (selected) Color(tag.colorHex).copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                            border = BorderStroke(1.dp, if (selected) Color(tag.colorHex) else Color.Transparent),
-                                            modifier = Modifier.combinedClickable(
-                                                onClick = {
-                                                    selectedTagFilterId = if (selected) null else tag.tagId
-                                                },
-                                                onLongClick = { onOpenTagSidebar(tag.tagId) },
-                                            ),
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                TagBadgeIcon(tag.iconKey, tag.customImagePath, tag.colorHex, 16.dp, circular = true)
-                                                Spacer(Modifier.width(6.dp))
-                                                Text(
-                                                    text = "#${tag.name}",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    color = if (selected) Color(tag.colorHex) else MaterialTheme.colorScheme.onSurface,
-                                                )
-                                            }
-                                        }
                                     }
                                 }
                             }

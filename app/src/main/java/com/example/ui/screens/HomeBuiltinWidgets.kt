@@ -1,8 +1,16 @@
 package com.example.ui.screens
 
 import android.content.Context
+import android.app.AppOpsManager
+import android.app.usage.UsageStatsManager
+import android.Manifest
+import android.content.pm.PackageManager
+import android.provider.CalendarContract
+import androidx.core.content.ContextCompat
+import android.os.Process
 import android.view.KeyEvent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,10 +63,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.db.HomeElementEntity
+import com.example.data.db.AppEntity
+import com.example.data.db.AppWithTags
 import com.example.data.db.ImageResourceEntity
 import com.example.data.system.BatteryTelemetry
 import com.example.data.system.DeviceTelemetryProvider
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -386,5 +403,291 @@ fun PhotoSlideshowWidgetContent(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+    }
+}
+
+
+private data class WeatherSnapshot(
+    val city: String,
+    val temperature: String,
+    val feelsLike: String,
+    val condition: String,
+    val humidity: String,
+    val wind: String,
+)
+
+private fun loadCityWeather(city: String): WeatherSnapshot {
+    fun getJson(url: String): JSONObject {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8000
+            readTimeout = 8000
+            requestMethod = "GET"
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("User-Agent", "TagDeckLauncher/1.0")
+        }
+        return try {
+            if (connection.responseCode !in 200..299) error("Weather service returned ${connection.responseCode}")
+            JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    val encoded = URLEncoder.encode(city.trim(), "UTF-8")
+    val geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=$encoded&count=1&language=en&format=json")
+    val place = geo.optJSONArray("results")?.optJSONObject(0) ?: error("City not found")
+    val lat = place.getDouble("latitude")
+    val lon = place.getDouble("longitude")
+    val displayCity = listOfNotNull(place.optString("name").takeIf { it.isNotBlank() }, place.optString("admin1").takeIf { it.isNotBlank() }).distinct().joinToString(", ")
+    val forecast = getJson(
+        "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto"
+    ).getJSONObject("current")
+    val code = forecast.optInt("weather_code", -1)
+    val condition = when (code) {
+        0 -> "Clear sky"
+        1 -> "Mainly clear"
+        2 -> "Partly cloudy"
+        3 -> "Overcast"
+        45, 48 -> "Fog"
+        51, 53, 55 -> "Drizzle"
+        56, 57 -> "Freezing drizzle"
+        61, 63, 65 -> "Rain"
+        66, 67 -> "Freezing rain"
+        71, 73, 75, 77 -> "Snow"
+        80, 81, 82 -> "Rain showers"
+        85, 86 -> "Snow showers"
+        95 -> "Thunderstorm"
+        96, 99 -> "Thunderstorm with hail"
+        else -> "Current conditions"
+    }
+    return WeatherSnapshot(
+        city = displayCity.ifBlank { city },
+        temperature = "${forecast.optDouble("temperature_2m").roundToInt()}°",
+        feelsLike = "${forecast.optDouble("apparent_temperature").roundToInt()}°",
+        condition = condition,
+        humidity = "${forecast.optInt("relative_humidity_2m")}%",
+        wind = "${forecast.optDouble("wind_speed_10m").roundToInt()} km/h",
+    )
+}
+
+@Composable
+fun WeatherWidgetContent(element: HomeElementEntity) {
+    val city = element.label.trim()
+    var snapshot by remember(element.elementId, city) { mutableStateOf<WeatherSnapshot?>(null) }
+    var error by remember(element.elementId, city) { mutableStateOf<String?>(null) }
+    LaunchedEffect(city) {
+        if (city.isBlank()) {
+            error = "Edit widget label to set a city"
+        } else {
+            while (true) {
+                runCatching { withContext(Dispatchers.IO) { loadCityWeather(city) } }
+                    .onSuccess { snapshot = it; error = null }
+                    .onFailure { error = it.message ?: "Weather unavailable" }
+                delay(30L * 60L * 1000L)
+            }
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(12.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val data = snapshot
+        if (data != null) {
+            Text(data.city, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(data.temperature, color = Color.White, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Text(data.condition, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(5.dp))
+            Text("Feels ${data.feelsLike}  •  Humidity ${data.humidity}  •  Wind ${data.wind}", color = Color.White.copy(alpha = 0.78f), style = MaterialTheme.typography.labelSmall, maxLines = 2)
+        } else {
+            Text(error ?: "Loading weather…", color = Color.White, style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("Weather by Open-Meteo", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+
+private fun readTopAppUsage(context: Context): List<Pair<String, String>> {
+    val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return emptyList()
+    val allowed = runCatching {
+        appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+    }.getOrDefault(false)
+    if (!allowed) return emptyList()
+    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return emptyList()
+    val end = System.currentTimeMillis()
+    val stats = runCatching {
+        manager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, end - 24L * 60L * 60L * 1000L, end)
+    }.getOrDefault(emptyList())
+    return stats.asSequence()
+        .filter { it.packageName != context.packageName && it.totalTimeInForeground > 0L }
+        .groupBy { it.packageName }
+        .map { (pkg, rows) -> pkg to rows.sumOf { it.totalTimeInForeground } }
+        .sortedByDescending { it.second }
+        .take(4)
+        .mapNotNull { (pkg, millis) ->
+            runCatching {
+                val app = context.packageManager.getApplicationInfo(pkg, 0)
+                val label = context.packageManager.getApplicationLabel(app).toString()
+                val minutes = (millis / 60_000L).coerceAtLeast(1L)
+                val duration = if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
+                label to duration
+            }.getOrNull()
+        }
+}
+
+@Composable
+fun AppUsageWidgetContent(element: HomeElementEntity) {
+    val context = LocalContext.current
+    var topApps by remember(element.elementId) { mutableStateOf(emptyList<Pair<String, String>>()) }
+    var hasAccess by remember(element.elementId) { mutableStateOf(false) }
+    LaunchedEffect(element.elementId) {
+        while (true) {
+            val result = withContext(Dispatchers.IO) {
+                val access = runCatching {
+                    val ops = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+                    ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+                }.getOrDefault(false)
+                access to if (access) readTopAppUsage(context) else emptyList()
+            }
+            hasAccess = result.first
+            topApps = result.second
+            delay(15L * 60L * 1000L)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("APP USAGE • LAST 24 HOURS", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        when {
+            !hasAccess -> Text("Enable Usage Access in Android Settings to see your most-used apps.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            topApps.isEmpty() -> Text("No app usage recorded yet.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            else -> topApps.forEach { (name, duration) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(name, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text(duration, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun RecentAppsWidgetContent(
+    apps: List<AppWithTags>,
+    onLaunchApp: (AppEntity) -> Unit,
+) {
+    val recent = remember(apps) {
+        apps.filter { it.app.lastLaunchedAt > 0L && !it.app.hidden }
+            .sortedByDescending { it.app.lastLaunchedAt }
+            .take(5)
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("RECENT APPS", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        if (recent.isEmpty()) {
+            Text("Apps you launch will appear here.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+        } else {
+            recent.forEach { item ->
+                Text(
+                    item.app.displayName,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onLaunchApp(item.app) }.padding(vertical = 4.dp, horizontal = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+
+private fun readUpcomingCalendarEvents(context: Context): List<String> {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return emptyList()
+    val start = System.currentTimeMillis()
+    val end = start + 7L * 24L * 60L * 60L * 1000L
+    val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().apply {
+        android.content.ContentUris.appendId(this, start)
+        android.content.ContentUris.appendId(this, end)
+    }.build()
+    return runCatching {
+        context.contentResolver.query(
+            uri,
+            arrayOf(CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN),
+            "${CalendarContract.Instances.BEGIN} >= ?",
+            arrayOf(start.toString()),
+            "${CalendarContract.Instances.BEGIN} ASC",
+        )?.use { cursor ->
+            val titleIndex = cursor.getColumnIndex(CalendarContract.Instances.TITLE)
+            val beginIndex = cursor.getColumnIndex(CalendarContract.Instances.BEGIN)
+            buildList {
+                while (cursor.moveToNext() && size < 3) {
+                    val title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: continue
+                    val begin = cursor.getLong(beginIndex)
+                    val time = SimpleDateFormat("EEE h:mm a", Locale.getDefault()).format(Date(begin))
+                    add("$time  $title")
+                }
+            }
+        }.orEmpty()
+    }.getOrDefault(emptyList())
+}
+
+@Composable
+fun AtAGlanceWidgetContent(element: HomeElementEntity) {
+    val context = LocalContext.current
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var weather by remember(element.elementId, element.label) { mutableStateOf<WeatherSnapshot?>(null) }
+    var weatherError by remember(element.elementId, element.label) { mutableStateOf<String?>(null) }
+    var upcomingEvents by remember(element.elementId) { mutableStateOf(emptyList<String>()) }
+    var hasCalendarAccess by remember(element.elementId) { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMillis = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+    LaunchedEffect(element.label) {
+        if (element.label.isNotBlank()) {
+            while (true) {
+                runCatching { withContext(Dispatchers.IO) { loadCityWeather(element.label) } }
+                    .onSuccess { weather = it; weatherError = null }
+                    .onFailure { weatherError = it.message ?: "Weather unavailable" }
+                delay(30L * 60L * 1000L)
+            }
+        } else {
+            weatherError = "Set a city in the widget label"
+        }
+    }
+    LaunchedEffect(element.elementId) {
+        while (true) {
+            hasCalendarAccess = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+            upcomingEvents = withContext(Dispatchers.IO) { readUpcomingCalendarEvents(context) }
+            delay(30L * 60L * 1000L)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(14.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(nowMillis)), color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleSmall)
+        Text(SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(nowMillis)), color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+        val current = weather
+        if (current != null) {
+            Text("${current.city}  •  ${current.temperature}", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(current.condition, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text(weatherError ?: "Loading weather…", color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+        }
+        if (!hasCalendarAccess) Text("Grant Calendar access to show upcoming events", color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall)
+        upcomingEvents.forEach { event ->
+            Text(event, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }

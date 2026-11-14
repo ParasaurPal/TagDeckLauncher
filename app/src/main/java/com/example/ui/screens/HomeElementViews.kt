@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.OutlinedLabelText
+
 import android.net.Uri
 import android.os.Build
 import android.widget.FrameLayout
@@ -130,11 +132,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private fun contrastLabelModifier(textColor: Color): Modifier {
-    val luminance = 0.2126f * textColor.red + 0.7152f * textColor.green + 0.0722f * textColor.blue
-    val plate = if (luminance > 0.5f) Color.Black.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.94f)
-    return Modifier.clip(RoundedCornerShape(7.dp)).background(plate).padding(horizontal = 7.dp, vertical = 3.dp)
-}
+private fun contrastLabelModifier(@Suppress("UNUSED_PARAMETER") textColor: Color): Modifier = Modifier
 
 private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
     "CIRCLE" -> CircleShape
@@ -179,12 +177,11 @@ fun HomeElementBody(
     val shape = resolveMaskShape(element)
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
-    val bg = if (isPlainAppShortcut || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
+    val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
     val gradBrush = bgGradEnd?.let { endHex ->
         Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
     }
-    val borderColor = Color(element.borderColorHex)
-    val border = if (!isPlainAppShortcut && element.borderWidthDp > 0.2f) BorderStroke(element.borderWidthDp.dp, borderColor) else null
+    val border: BorderStroke? = null
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
@@ -252,6 +249,10 @@ fun HomeElementBody(
                 "STORAGE_RAM_WIDGET" -> StorageRamWidgetContent(element)
                 "COMPASS_WIDGET" -> CompassWidgetContent(element)
                 "MEDIA_WIDGET" -> MediaWidgetContent(element)
+                "WEATHER_WIDGET" -> WeatherWidgetContent(element)
+                "AT_A_GLANCE_WIDGET" -> AtAGlanceWidgetContent(element)
+                "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
+                "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
 
                 "TEXT_LABEL" -> {
@@ -342,7 +343,17 @@ fun HomeElementBody(
                             .fillMaxSize()
                             .clickable(enabled = !state.isEditMode && app != null) {
                                 if (!onElementTrigger(element, "TAP")) {
-                                    app?.let(onLaunchApp)
+                                    app?.let { targetApp ->
+                                        val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
+                                        val isLocked = targetApp.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
+                                        if (shortcutId != null && !isLocked) {
+                                            if (!appDiscovery.launchAppShortcut(targetApp.packageName, shortcutId, targetApp.componentName)) {
+                                                onLaunchApp(targetApp)
+                                            }
+                                        } else {
+                                            onLaunchApp(targetApp)
+                                        }
+                                    }
                                 }
                             }
                             .padding(element.paddingDp.dp),
@@ -358,19 +369,20 @@ fun HomeElementBody(
                             )
                             if (element.showLabel && state.settings.showHomeAppLabels) {
                                 Spacer(Modifier.height(4.dp))
-                                Text(
+                                OutlinedLabelText(
                                     text = element.label.ifBlank { app.displayName },
-                                    color = Color(element.textColorHex),
-                                    fontSize = element.fontSizeSp.sp,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
                                     modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                    outlineEnabled = state.settings.appLabelOutlineEnabled,
                                 )
                             }
                         } else {
                             Icon(Icons.Rounded.Apps, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp))
+                            Text("Missing app", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
@@ -610,7 +622,7 @@ fun HomeElementBody(
                                     AppIconView(app, appDiscovery, 38.dp, state.settings.globalIconShape)
                                     Text(
                                         text = app.displayName,
-                                        color = Color(element.textColorHex),
+                                        color = Color.White,
                                         fontSize = 11.sp,
                                         modifier = contrastLabelModifier(Color(element.textColorHex)),
                                         maxLines = 1,

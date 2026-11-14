@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.ui.components.IconStyleConfig
+import com.example.data.system.LineIconProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -27,7 +28,10 @@ data class LauncherSettings(
     val surfaceOpacity: Float = 0.86f, // 0.2f..1.0f
     val globalBorderWidthDp: Float = 1.0f, // 0f..4.0f
     val globalTextColorHex: Long = 0xFFF8FAFC,
+    val sidebarTextColorMode: String = "AUTO", // AUTO, LIGHT, DARK, CUSTOM
+    val sidebarCategoryIconStyle: String = "BLACK_WHITE", // BLACK_WHITE, WHITE_BLACK
     val showHomeAppLabels: Boolean = true,
+    val appLabelOutlineEnabled: Boolean = false,
     val wallpaperType: String = "BUILTIN_PRISM", // BUILTIN_PRISM, BUILTIN_TOPO, CUSTOM_IMAGE, GRADIENT, SOLID
     val wallpaperCustomPath: String? = null,
     val wallpaperGradientStartHex: Long = 0xFF0A1124L,
@@ -72,6 +76,8 @@ data class LauncherSettings(
     val editGridColorHex: Long = 0xFFFFFFFFL,
     val layoutLocked: Boolean = false,
     val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE
+    val widgetFeedEnabled: Boolean = true,
+    val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
     val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
     val pageIndicatorColorHex: Long = 0xFF38BDF8L,
     val edgeHandlesVisible: Boolean = true,
@@ -88,7 +94,7 @@ data class LauncherSettings(
     val showStatusBar: Boolean = true,
     val showNavBar: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
-    val notificationsBadgeHint: Boolean = true,
+    val notificationsBadgeHint: Boolean = false,
     val recentSearchesCsv: String = "",
     val iconPackOrderCsv: String = "",
     // Black Icon Styling (Default: white fill with crisp black outline)
@@ -98,8 +104,29 @@ data class LauncherSettings(
     val blackIconOutlineColorHex: Long = IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
     val blackIconOutlineWidthDp: Float = IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
     val blackIconDarknessThreshold: Float = IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
+    val lineIconProfilesJson: String = "",
+    val lineIconsEnabled: Boolean = false,
+    val lineIconDefaultColorHex: Long = 0xFFFFFFFFL,
+    val lineIconDefaultLineWidthPx: Float = 1.8f,
+    val lineIconDefaultOutlineEnabled: Boolean = false,
+    val lineIconDefaultOutlineColorHex: Long = 0xFF000000L,
+    val lineIconDefaultOutlineWidthPx: Float = 1.2f,
+    val lockedAppsCsv: String = "",
+    val cloudBackupEnabled: Boolean = false,
+    val cloudBackupTreeUri: String? = null,
     val seededDefaults: Boolean = false,
 ) {
+    fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
+        lineColorHex = lineIconDefaultColorHex,
+        lineWidthPx = lineIconDefaultLineWidthPx,
+        outlineEnabled = lineIconDefaultOutlineEnabled,
+        outlineColorHex = lineIconDefaultOutlineColorHex,
+        outlineWidthPx = lineIconDefaultOutlineWidthPx,
+    )
+
+    fun lineIconProfile(packageName: String): LineIconProfile? =
+        LineIconProfile.decodeForPackage(lineIconProfilesJson, packageName) ?: defaultLineIconProfile().takeIf { lineIconsEnabled }
+
     fun iconPackOrder(): List<String> =
         iconPackOrderCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
@@ -125,7 +152,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         val SURFACE_OPACITY = floatPreferencesKey("surface_opacity")
         val GLOBAL_BORDER_WIDTH = floatPreferencesKey("global_border_width")
         val GLOBAL_TEXT_COLOR = longPreferencesKey("global_text_color")
+        val SIDEBAR_TEXT_COLOR_MODE = stringPreferencesKey("sidebar_text_color_mode")
+        val SIDEBAR_CATEGORY_ICON_STYLE = stringPreferencesKey("sidebar_category_icon_style")
         val SHOW_HOME_APP_LABELS = booleanPreferencesKey("show_home_app_labels")
+        val APP_LABEL_OUTLINE_ENABLED = booleanPreferencesKey("app_label_outline_enabled")
         val WALLPAPER_TYPE = stringPreferencesKey("wallpaper_type")
         val WALLPAPER_CUSTOM_PATH = stringPreferencesKey("wallpaper_custom_path")
         val WALLPAPER_GRADIENT_START = longPreferencesKey("wallpaper_gradient_start")
@@ -171,6 +201,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val EDIT_GRID_COLOR = longPreferencesKey("edit_grid_color")
         val LAYOUT_LOCKED = booleanPreferencesKey("layout_locked")
         val PAGE_TRANSITION = stringPreferencesKey("page_transition")
+    val WIDGET_FEED_ENABLED = booleanPreferencesKey("widget_feed_enabled")
+        val WIDGET_FEED_TITLE_COLOR = stringPreferencesKey("widget_feed_title_color")
         val PAGE_INDICATOR_STYLE = stringPreferencesKey("page_indicator_style")
         val PAGE_INDICATOR_COLOR = longPreferencesKey("page_indicator_color")
         val EDGE_HANDLES_VISIBLE = booleanPreferencesKey("edge_handles_visible")
@@ -196,6 +228,16 @@ class LauncherPreferencesRepository(private val context: Context) {
         val BLACK_ICON_OUTLINE_COLOR = longPreferencesKey("black_icon_outline_color")
         val BLACK_ICON_OUTLINE_WIDTH = floatPreferencesKey("black_icon_outline_width")
         val BLACK_ICON_DARKNESS_THRESHOLD = floatPreferencesKey("black_icon_darkness_threshold")
+        val LINE_ICON_PROFILES = stringPreferencesKey("line_icon_profiles_json")
+        val LINE_ICONS_ENABLED = booleanPreferencesKey("line_icons_enabled")
+        val LINE_ICON_DEFAULT_COLOR = longPreferencesKey("line_icon_default_color")
+        val LINE_ICON_DEFAULT_WIDTH = floatPreferencesKey("line_icon_default_width")
+        val LINE_ICON_DEFAULT_OUTLINE_ENABLED = booleanPreferencesKey("line_icon_default_outline_enabled")
+        val LINE_ICON_DEFAULT_OUTLINE_COLOR = longPreferencesKey("line_icon_default_outline_color")
+        val LINE_ICON_DEFAULT_OUTLINE_WIDTH = floatPreferencesKey("line_icon_default_outline_width")
+        val LOCKED_APPS = stringPreferencesKey("locked_apps_csv")
+        val CLOUD_BACKUP_ENABLED = booleanPreferencesKey("cloud_backup_enabled")
+        val CLOUD_BACKUP_TREE_URI = stringPreferencesKey("cloud_backup_tree_uri")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -209,7 +251,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         surfaceOpacity = prefs[Keys.SURFACE_OPACITY] ?: 0.86f,
         globalBorderWidthDp = prefs[Keys.GLOBAL_BORDER_WIDTH] ?: 1.0f,
         globalTextColorHex = prefs[Keys.GLOBAL_TEXT_COLOR] ?: 0xFFF8FAFC,
+            sidebarTextColorMode = prefs[Keys.SIDEBAR_TEXT_COLOR_MODE] ?: "AUTO",
+        sidebarCategoryIconStyle = prefs[Keys.SIDEBAR_CATEGORY_ICON_STYLE] ?: "BLACK_WHITE",
         showHomeAppLabels = prefs[Keys.SHOW_HOME_APP_LABELS] ?: true,
+        appLabelOutlineEnabled = prefs[Keys.APP_LABEL_OUTLINE_ENABLED] ?: false,
         wallpaperType = prefs[Keys.WALLPAPER_TYPE] ?: "BUILTIN_PRISM",
         wallpaperCustomPath = prefs[Keys.WALLPAPER_CUSTOM_PATH],
         wallpaperGradientStartHex = prefs[Keys.WALLPAPER_GRADIENT_START] ?: 0xFF0A1124L,
@@ -251,6 +296,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         editGridColorHex = prefs[Keys.EDIT_GRID_COLOR] ?: 0xFFFFFFFFL,
         layoutLocked = prefs[Keys.LAYOUT_LOCKED] ?: false,
         pageTransitionStyle = prefs[Keys.PAGE_TRANSITION] ?: "SLIDE",
+        widgetFeedEnabled = prefs[Keys.WIDGET_FEED_ENABLED] ?: true,
+        widgetFeedTitleColor = prefs[Keys.WIDGET_FEED_TITLE_COLOR] ?: "WHITE",
         pageIndicatorStyle = prefs[Keys.PAGE_INDICATOR_STYLE] ?: "DOTS",
         pageIndicatorColorHex = prefs[Keys.PAGE_INDICATOR_COLOR] ?: 0xFF38BDF8L,
         edgeHandlesVisible = prefs[Keys.EDGE_HANDLES_VISIBLE] ?: true,
@@ -266,7 +313,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         showStatusBar = prefs[Keys.SHOW_STATUS_BAR] ?: true,
         showNavBar = prefs[Keys.SHOW_NAV_BAR] ?: true,
         hapticFeedbackEnabled = prefs[Keys.HAPTIC_FEEDBACK] ?: true,
-        notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: true,
+        notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: false,
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
         iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
         blackIconStyleEnabled = prefs[Keys.BLACK_ICON_STYLE_ENABLED] ?: true,
@@ -275,6 +322,16 @@ class LauncherPreferencesRepository(private val context: Context) {
         blackIconOutlineColorHex = prefs[Keys.BLACK_ICON_OUTLINE_COLOR] ?: IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX,
         blackIconOutlineWidthDp = prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] ?: IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP,
         blackIconDarknessThreshold = prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] ?: IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD,
+        lineIconProfilesJson = prefs[Keys.LINE_ICON_PROFILES] ?: "",
+        lineIconsEnabled = prefs[Keys.LINE_ICONS_ENABLED] ?: false,
+        lineIconDefaultColorHex = prefs[Keys.LINE_ICON_DEFAULT_COLOR] ?: 0xFFFFFFFFL,
+        lineIconDefaultLineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_WIDTH] ?: 1.8f,
+        lineIconDefaultOutlineEnabled = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] ?: false,
+        lineIconDefaultOutlineColorHex = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] ?: 0xFF000000L,
+        lineIconDefaultOutlineWidthPx = prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] ?: 1.2f,
+        lockedAppsCsv = prefs[Keys.LOCKED_APPS] ?: "",
+        cloudBackupEnabled = prefs[Keys.CLOUD_BACKUP_ENABLED] ?: false,
+        cloudBackupTreeUri = prefs[Keys.CLOUD_BACKUP_TREE_URI],
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -294,7 +351,10 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.SURFACE_OPACITY] = updated.surfaceOpacity
             prefs[Keys.GLOBAL_BORDER_WIDTH] = updated.globalBorderWidthDp
             prefs[Keys.GLOBAL_TEXT_COLOR] = updated.globalTextColorHex
+            prefs[Keys.SIDEBAR_TEXT_COLOR_MODE] = updated.sidebarTextColorMode
+            prefs[Keys.SIDEBAR_CATEGORY_ICON_STYLE] = updated.sidebarCategoryIconStyle
             prefs[Keys.SHOW_HOME_APP_LABELS] = updated.showHomeAppLabels
+            prefs[Keys.APP_LABEL_OUTLINE_ENABLED] = updated.appLabelOutlineEnabled
             prefs[Keys.WALLPAPER_TYPE] = updated.wallpaperType
             if (updated.wallpaperCustomPath != null) prefs[Keys.WALLPAPER_CUSTOM_PATH] = updated.wallpaperCustomPath
             else prefs.remove(Keys.WALLPAPER_CUSTOM_PATH)
@@ -342,6 +402,8 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.EDIT_GRID_COLOR] = updated.editGridColorHex
             prefs[Keys.LAYOUT_LOCKED] = updated.layoutLocked
             prefs[Keys.PAGE_TRANSITION] = updated.pageTransitionStyle
+            prefs[Keys.WIDGET_FEED_ENABLED] = updated.widgetFeedEnabled
+            prefs[Keys.WIDGET_FEED_TITLE_COLOR] = updated.widgetFeedTitleColor
             prefs[Keys.PAGE_INDICATOR_STYLE] = updated.pageIndicatorStyle
             prefs[Keys.PAGE_INDICATOR_COLOR] = updated.pageIndicatorColorHex
             prefs[Keys.EDGE_HANDLES_VISIBLE] = updated.edgeHandlesVisible
@@ -367,6 +429,17 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.BLACK_ICON_OUTLINE_COLOR] = updated.blackIconOutlineColorHex
             prefs[Keys.BLACK_ICON_OUTLINE_WIDTH] = updated.blackIconOutlineWidthDp
             prefs[Keys.BLACK_ICON_DARKNESS_THRESHOLD] = updated.blackIconDarknessThreshold
+            prefs[Keys.LINE_ICON_PROFILES] = updated.lineIconProfilesJson
+            prefs[Keys.LINE_ICONS_ENABLED] = updated.lineIconsEnabled
+            prefs[Keys.LINE_ICON_DEFAULT_COLOR] = updated.lineIconDefaultColorHex
+            prefs[Keys.LINE_ICON_DEFAULT_WIDTH] = updated.lineIconDefaultLineWidthPx
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_ENABLED] = updated.lineIconDefaultOutlineEnabled
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_COLOR] = updated.lineIconDefaultOutlineColorHex
+            prefs[Keys.LINE_ICON_DEFAULT_OUTLINE_WIDTH] = updated.lineIconDefaultOutlineWidthPx
+            prefs[Keys.LOCKED_APPS] = updated.lockedAppsCsv
+            prefs[Keys.CLOUD_BACKUP_ENABLED] = updated.cloudBackupEnabled
+            if (updated.cloudBackupTreeUri != null) prefs[Keys.CLOUD_BACKUP_TREE_URI] = updated.cloudBackupTreeUri
+            else prefs.remove(Keys.CLOUD_BACKUP_TREE_URI)
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }

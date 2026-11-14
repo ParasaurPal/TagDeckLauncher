@@ -194,6 +194,7 @@ fun CategoryBadgeIcon(
     category: CategoryEntity,
     size: Dp = category.iconSizeDp.dp,
     contentDescription: String? = category.name,
+    contrastStyle: String? = null,
 ) {
     val context = LocalContext.current
     val iconStyle = LocalIconStyleConfig.current
@@ -234,6 +235,17 @@ fun CategoryBadgeIcon(
                 Text(
                     text = category.customEmoji,
                     fontSize = (size.value * 0.54f).sp,
+                )
+            }
+            contrastStyle != null -> {
+                val whiteFill = contrastStyle == "WHITE_BLACK"
+                OutlinedVectorIcon(
+                    imageVector = tagIconVector(category.iconKey),
+                    contentDescription = contentDescription,
+                    fillColor = if (whiteFill) Color.White else Color.Black,
+                    outlineColor = if (whiteFill) Color.Black else Color.White,
+                    outlineWidthDp = 0.8.dp,
+                    modifier = Modifier.size(size * 0.58f),
                 )
             }
             iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {

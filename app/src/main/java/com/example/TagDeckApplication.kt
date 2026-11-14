@@ -10,6 +10,11 @@ import com.example.data.repository.LauncherRepository
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.ImageStorageManager
 import com.example.data.system.LauncherWidgetHost
+import com.example.data.system.CloudBackupScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class TagDeckApplication : Application(), ImageLoaderFactory {
 
@@ -39,6 +44,12 @@ class TagDeckApplication : Application(), ImageLoaderFactory {
             prefsRepo = preferencesRepository,
             imageStorage = imageStorageManager,
         )
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            val settings = preferencesRepository.getSettingsOnce()
+            if (settings.cloudBackupEnabled && !settings.cloudBackupTreeUri.isNullOrBlank()) {
+                CloudBackupScheduler.schedule(this@TagDeckApplication)
+            }
+        }
     }
 
     override fun newImageLoader(): ImageLoader {

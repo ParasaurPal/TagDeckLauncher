@@ -24,6 +24,7 @@ object LauncherSettingsCatalog {
     const val SECTION_THEME_TYPOGRAPHY = "theme_typography"
     const val SECTION_PALETTE_SURFACES = "palette_surfaces"
     const val SECTION_ICON_PACKS = "icon_packs"
+    const val SECTION_LINE_ICONS = "line_icons"
     const val SECTION_BLACK_ICONS = "black_icons"
     const val SECTION_BLACK_ICON_COLORS = "black_icon_colors"
     const val SECTION_WALLPAPER = "wallpaper"
@@ -43,7 +44,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("hub", "editors", "managers"),
             entries = listOf(
                 entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, and smart rules", listOf("tag", "category", "rules", "collections")),
-                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename apps, hide apps, set per-app custom icons", listOf("app", "rename", "hide", "custom icon", "manager")),
+                entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename, hide, lock apps behind device authentication, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "lock", "app lock", "device authentication", "custom icon", "manager", "work profile", "managed apps", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
             ),
         ),
@@ -91,9 +92,19 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_ICON_PACKS,
             title = "Icon Packs & Loading Hierarchy",
-            keywords = listOf("icons", "packs", "priority", "theme"),
+            keywords = listOf("icons", "packs", "priority", "theme", "line icons", "monochrome"),
             entries = listOf(
-                entry("icon_pack_order", SECTION_ICON_PACKS, "Active Icon Pack Hierarchy", "Reorder installed icon packs or rescan ADW/Nova packs", listOf("icon pack", "apk", "priority", "order", "rescan", "adw", "nova")),
+                entry("icon_pack_order", SECTION_ICON_PACKS, "Active Icon Pack Hierarchy", "Reorder installed icon packs or rescan ADW/Nova packs; line-icon editing also works on pack artwork", listOf("icon pack", "apk", "priority", "order", "rescan", "adw", "nova", "line icon", "monochrome")),
+            ),
+        ),
+        section(
+            id = SECTION_LINE_ICONS,
+            title = "Arcticons-Style Line Icons",
+            keywords = listOf("line art", "monochrome", "white icons", "black icons", "drawing", "edge snap"),
+            entries = listOf(
+                entry("line_icon_toggle", SECTION_LINE_ICONS, "Generate Line Icons for All Apps", "Automatically convert installed app icons to clean black or white contours", listOf("line icons", "all apps", "arcticons", "monochrome", "automatic")),
+                entry("line_icon_style", SECTION_LINE_ICONS, "Line Color, Thickness & Contrast Outline", "Choose white or black lines and an optional thin contrast outline", listOf("line color", "white", "black", "outline", "thickness", "contrast")),
+                entry("line_icon_drawing", SECTION_LINE_ICONS, "Draw and Snap Custom Icon Lines", "Refine individual app icons by drawing over detected edges", listOf("draw", "edge snap", "custom lines", "per app")),
             ),
         ),
         section(
@@ -119,7 +130,7 @@ object LauncherSettingsCatalog {
             title = "Wallpaper & Atmosphere",
             keywords = listOf("background", "prism", "topo", "gradient"),
             entries = listOf(
-                entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
+                entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Android system/live wallpaper, Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "live wallpaper", "system wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
                 entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Tint", "Adjust background blur radius, dim opacity, and overlay tint", listOf("blur", "dim", "darken", "tint")),
             ),
         ),
@@ -168,7 +179,9 @@ object LauncherSettingsCatalog {
             keywords = listOf("status bar", "navigation bar", "vibration", "notifications"),
             entries = listOf(
                 entry("system_bars", SECTION_SYSTEM_UI, "Show Status Bar & Navigation Bar", "Toggle Android status bar and system navigation bar visibility", listOf("status bar", "nav bar", "immersive", "fullscreen")),
-                entry("feedback_notifs", SECTION_SYSTEM_UI, "Haptic Feedback & Notification Hints", "Toggle vibration feedback and notification badge permission", listOf("haptic", "vibrate", "notification", "badge")),
+                entry("feedback_notifs", SECTION_SYSTEM_UI, "Haptic Feedback & Notification Badges", "Toggle haptics and access Android notification counts", listOf("haptic", "vibrate", "notification", "badge")),
+                entry("usage_access", SECTION_SYSTEM_UI, "App Usage Access", "Grant Android Usage Access for the screen-time widget", listOf("usage", "screen time", "app time", "statistics", "privacy")),
+                entry("calendar_access", SECTION_SYSTEM_UI, "Calendar Event Access", "Allow the at-a-glance widget to show upcoming events", listOf("calendar", "events", "agenda", "at a glance", "permission")),
             ),
         ),
         section(
@@ -185,6 +198,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("json", "export", "import", "save", "restore"),
             entries = listOf(
                 entry("backup_restore", SECTION_BACKUP, "Export & Restore JSON Backup", "Save or restore pages, widgets, windows, tags, and settings", listOf("backup", "restore", "export", "import", "json")),
+                entry("cloud_backup", SECTION_BACKUP, "Automatic Cloud Backup", "Choose any connected cloud document provider and schedule backups every 12 hours", listOf("cloud", "automatic", "sync", "drive", "dropbox", "onedrive", "backup schedule")),
             ),
         ),
         section(

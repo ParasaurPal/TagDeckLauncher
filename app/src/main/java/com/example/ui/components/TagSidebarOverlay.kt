@@ -149,6 +149,10 @@ fun ActiveOverlayHost(
     onDeleteWindowElement: (HomeElementEntity) -> Unit = {},
     onStartSystemWidgetBindForWindow: (InstalledWidgetProvider, Long, Long) -> Unit = { _, _, _ -> },
     windowElementRenderer: @Composable (HomeElementEntity, Boolean) -> Unit = { _, _ -> },
+    onAddCategory: (CategoryEntity) -> Unit = {},
+    onAddButton: (CategoryEntity) -> Unit = {},
+    onClickSidebarButton: (HomeElementEntity) -> Unit = {},
+    onEditSidebarButton: (HomeElementEntity) -> Unit = {},
 ) {
     val visible = state.activeOverlay !is ActiveOverlay.None
     if (visible) {
@@ -299,6 +303,9 @@ fun ActiveOverlayHost(
                                     isRightSide = isRightSide,
                                     appDiscovery = appDiscovery,
                                     iconShapeKey = state.settings.globalIconShape,
+                                    sidebarTextColorMode = state.settings.sidebarTextColorMode,
+                                    sidebarCustomTextColorHex = state.settings.globalTextColorHex,
+                                    sidebarCategoryIconStyle = state.settings.sidebarCategoryIconStyle,
                                     onSwitchToTag = onSwitchToTag,
                                     onLaunchApp = { app ->
                                         onLaunchApp(app)
@@ -367,6 +374,11 @@ fun ActiveOverlayHost(
                                     allTags = state.allTags,
                                     quickCategories = subCategories,
                                     onClickSubChip = onSwitchToCategory,
+                                    sidebarButtons = state.homeElements.filter { it.type == "CUSTOM_BUTTON" && it.targetCategoryId == cat.categoryId },
+                                    onClickSidebarButton = onClickSidebarButton,
+                                    onEditSidebarButton = onEditSidebarButton,
+                                    onAddCategory = { onAddCategory(cat) },
+                                    onAddButton = { onAddButton(cat) },
                                     apps = matchingApps,
                                     appDiscovery = appDiscovery,
                                     iconShapeKey = state.settings.globalIconShape,
@@ -379,6 +391,9 @@ fun ActiveOverlayHost(
                                     onEditAction = { onEditCategory(cat) },
                                     onTogglePin = {},
                                     onClose = onDismiss,
+                                    sidebarTextColorMode = state.settings.sidebarTextColorMode,
+                                    sidebarCustomTextColorHex = state.settings.globalTextColorHex,
+
                                 )
                             }
                         }
@@ -426,6 +441,9 @@ fun ActiveOverlayHost(
                                     onAppLongPress = onAppLongPress,
                                     onTogglePin = {},
                                     onClose = onDismiss,
+                                    sidebarTextColorMode = state.settings.sidebarTextColorMode,
+                                    sidebarCustomTextColorHex = state.settings.globalTextColorHex,
+
                                 )
                             }
                         }
@@ -536,6 +554,9 @@ fun ActiveOverlayHost(
                                     onTogglePin = { onToggleSidebarPin(cfg.sidebarId, !cfg.pinned) },
                                     onUpdateLayout = { mode, size -> onSaveSidebar(cfg.copy(layoutMode = mode, iconSizeDp = size)) },
                                     onClose = onDismiss,
+                                    sidebarTextColorMode = "LIGHT",
+                                    sidebarCustomTextColorHex = state.settings.globalTextColorHex,
+
                                 )
                             }
                         }
@@ -1128,7 +1149,7 @@ private fun TagIconDock(
                     text = item.name,
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White,
-                    modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 5.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1141,6 +1162,7 @@ private fun TagIconDock(
 @Composable
 private fun CategoryIconDock(
     categories: List<CategoryEntity>,
+    contrastStyle: String,
     onSelect: (Long) -> Unit,
 ) {
     LazyRow(
@@ -1158,7 +1180,7 @@ private fun CategoryIconDock(
                     .testTag("sidebar_category_icon_${category.categoryId}"),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                CategoryBadgeIcon(category = category, size = 40.dp)
+                CategoryBadgeIcon(category = category, size = 40.dp, contrastStyle = contrastStyle)
             }
         }
     }
@@ -1174,6 +1196,9 @@ fun TagTriggeredSidebarContent(
     isRightSide: Boolean,
     appDiscovery: AppDiscoveryManager,
     iconShapeKey: String,
+    sidebarTextColorMode: String = "AUTO",
+    sidebarCustomTextColorHex: Long = 0xFFFFFFFFL,
+    sidebarCategoryIconStyle: String = "BLACK_WHITE",
     onSwitchToTag: (Long) -> Unit,
     onLaunchApp: (AppEntity) -> Unit,
     onAppLongPress: (AppEntity) -> Unit,
@@ -1182,6 +1207,13 @@ fun TagTriggeredSidebarContent(
     onUpdateTagLayout: (TagEntity) -> Unit,
     onClose: () -> Unit,
 ) {
+    val sidebarTextColor = when (sidebarTextColorMode) {
+        "LIGHT" -> Color.White
+        "DARK" -> Color.Black
+        "CUSTOM" -> Color(sidebarCustomTextColorHex)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
     val accent = Color(tag.colorHex)
     val shape = if (isRightSide) {
         RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
@@ -1241,7 +1273,7 @@ fun TagTriggeredSidebarContent(
                         text = tag.name,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = sidebarTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.testTag("tag_sidebar_title"),
@@ -1268,7 +1300,7 @@ fun TagTriggeredSidebarContent(
                 Text(
                     text = tag.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = sidebarTextColor.copy(alpha = 0.78f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1339,7 +1371,7 @@ fun TagTriggeredSidebarContent(
                                     Text(
                                         text = app.displayName,
                                         style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = Color.White,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -1380,7 +1412,7 @@ fun TagTriggeredSidebarContent(
                                 Text(
                                     text = app.displayName,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = Color.White,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
@@ -1390,15 +1422,6 @@ fun TagTriggeredSidebarContent(
                         }
                     }
                 }
-            }
-
-            if (allTags.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                TagIconDock(
-                    tags = allTags,
-                    selectedTagId = tag.tagId,
-                    onSelect = onSwitchToTag,
-                )
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -1499,6 +1522,11 @@ fun GenericSidebarContent(
     allTags: List<TagEntity>,
     quickCategories: List<CategoryEntity> = emptyList(),
     onClickSubChip: (Long) -> Unit = {},
+    sidebarButtons: List<HomeElementEntity> = emptyList(),
+    onClickSidebarButton: (HomeElementEntity) -> Unit = {},
+    onEditSidebarButton: (HomeElementEntity) -> Unit = {},
+    onAddCategory: (() -> Unit)? = null,
+    onAddButton: (() -> Unit)? = null,
     apps: List<AppEntity>,
     appDiscovery: AppDiscoveryManager,
     iconShapeKey: String,
@@ -1509,7 +1537,17 @@ fun GenericSidebarContent(
     onUpdateLayout: ((String, Int) -> Unit)? = null,
     onTogglePin: () -> Unit,
     onClose: () -> Unit,
+    sidebarTextColorMode: String = "AUTO",
+    sidebarCustomTextColorHex: Long = 0xFFFFFFFFL,
+    sidebarCategoryIconStyle: String = "BLACK_WHITE",
 ) {
+    val genericSidebarTextColor = when (sidebarTextColorMode) {
+        "LIGHT" -> Color.White
+        "DARK" -> Color.Black
+        "CUSTOM" -> Color(sidebarCustomTextColorHex)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
     var layoutMode by remember(title) { mutableStateOf("LIST") }
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
@@ -1583,17 +1621,17 @@ fun GenericSidebarContent(
                             text = title,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = genericSidebarTextColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 3.dp).testTag("generic_sidebar_title"),
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp).testTag("generic_sidebar_title"),
                         )
                         if (showCount) {
                             Text(
                                 text = "$subtitle • ${apps.size} apps",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color.White,
-                                modifier = Modifier.clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = 0.68f)).padding(horizontal = 5.dp, vertical = 2.dp),
+                                color = genericSidebarTextColor,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                             )
                         }
                     }
@@ -1621,7 +1659,7 @@ fun GenericSidebarContent(
                             Text(
                                 text = "No apps match this sidebar yet.",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = genericSidebarTextColor.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -1649,7 +1687,7 @@ fun GenericSidebarContent(
                                         text = app.displayName,
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
-                                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -1680,7 +1718,7 @@ fun GenericSidebarContent(
                                         text = app.displayName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color.White,
-                                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = 0.72f)).padding(horizontal = 6.dp, vertical = 3.dp),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         textAlign = TextAlign.Center,
@@ -1691,24 +1729,63 @@ fun GenericSidebarContent(
                         }
                     }
                 }
+                if (sidebarButtons.isNotEmpty()) {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        sidebarButtons.forEach { element ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .combinedClickable(
+                                        onClick = { onClickSidebarButton(element) },
+                                        onLongClick = { onEditSidebarButton(element) },
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, tint = accentColor)
+                                Spacer(Modifier.width(8.dp))
+                                Text(element.label.ifBlank { "Button" }, color = Color.White,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+
 
                 if (quickCategories.isNotEmpty()) {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                     CategoryIconDock(
                         categories = quickCategories,
+                        contrastStyle = sidebarCategoryIconStyle,
                         onSelect = onClickSubChip,
                     )
                 }
 
-                if (allTags.isNotEmpty()) {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-                    TagIconDock(
-                        tags = allTags,
-                        selectedTagId = null,
-                        onSelect = onSwitchToTag,
-                        darkSurface = true,
-                    )
+                if (onAddCategory != null || onAddButton != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (onAddCategory != null) {
+                            OutlinedButton(onClick = onAddCategory, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, tint = accentColor)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Add Category", color = accentColor)
+                            }
+                        }
+                        if (onAddButton != null) {
+                            OutlinedButton(onClick = onAddButton, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, tint = accentColor)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Add Button", color = accentColor)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
+
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(6.dp))
@@ -1852,6 +1929,7 @@ private fun FolderPopupModal(
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     text = app.displayName,
+                                    color = Color.White,
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,

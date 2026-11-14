@@ -331,6 +331,14 @@ object BackupManager {
             put("blackIconOutlineColorHex", s.blackIconOutlineColorHex)
             put("blackIconOutlineWidthDp", s.blackIconOutlineWidthDp.toDouble())
             put("blackIconDarknessThreshold", s.blackIconDarknessThreshold.toDouble())
+            put("lineIconProfilesJson", s.lineIconProfilesJson)
+            put("lineIconsEnabled", s.lineIconsEnabled)
+            put("lineIconDefaultColorHex", s.lineIconDefaultColorHex)
+            put("lineIconDefaultLineWidthPx", s.lineIconDefaultLineWidthPx.toDouble())
+            put("lineIconDefaultOutlineEnabled", s.lineIconDefaultOutlineEnabled)
+            put("lineIconDefaultOutlineColorHex", s.lineIconDefaultOutlineColorHex)
+            put("lineIconDefaultOutlineWidthPx", s.lineIconDefaultOutlineWidthPx.toDouble())
+            put("lockedAppsCsv", s.lockedAppsCsv)
         })
 
         return root.toString(2)
@@ -659,6 +667,14 @@ object BackupManager {
             blackIconOutlineColorHex = so.optLong("blackIconOutlineColorHex", IconStyleConfig.DEFAULT_OUTLINE_COLOR_HEX),
             blackIconOutlineWidthDp = so.optDouble("blackIconOutlineWidthDp", IconStyleConfig.DEFAULT_OUTLINE_WIDTH_DP.toDouble()).toFloat(),
             blackIconDarknessThreshold = so.optDouble("blackIconDarknessThreshold", IconStyleConfig.DEFAULT_DARKNESS_THRESHOLD.toDouble()).toFloat(),
+            lineIconProfilesJson = so.optString("lineIconProfilesJson", ""),
+            lineIconsEnabled = so.optBoolean("lineIconsEnabled", false),
+            lineIconDefaultColorHex = so.optLong("lineIconDefaultColorHex", 0xFFFFFFFFL),
+            lineIconDefaultLineWidthPx = so.optDouble("lineIconDefaultLineWidthPx", 1.8).toFloat(),
+            lineIconDefaultOutlineEnabled = so.optBoolean("lineIconDefaultOutlineEnabled", false),
+            lineIconDefaultOutlineColorHex = so.optLong("lineIconDefaultOutlineColorHex", 0xFF000000L),
+            lineIconDefaultOutlineWidthPx = so.optDouble("lineIconDefaultOutlineWidthPx", 1.2).toFloat(),
+            lockedAppsCsv = so.optString("lockedAppsCsv", ""),
             seededDefaults = true,
         )
 

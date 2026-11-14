@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -16,6 +17,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.os.UserHandle
+import android.os.UserManager
 import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -46,31 +48,46 @@ class AppDiscoveryManager(val context: Context) {
         val ownPackage = context.packageName
         val results = LinkedHashMap<String, DiscoveredApp>()
 
-        val activities = try {
-            launcherApps?.getActivityList(null, Process.myUserHandle()).orEmpty()
+        val profiles = try {
+            launcherApps?.getProfiles().orEmpty().sortedBy { it != Process.myUserHandle() }
         } catch (_: Exception) {
-            emptyList()
+            listOf(Process.myUserHandle())
         }
-
-        if (activities.isNotEmpty()) {
+        var discoveredAnyProfileApps = false
+        for (profile in profiles) {
+            val activities = try {
+                launcherApps?.getActivityList(null, profile).orEmpty()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            if (activities.isNotEmpty()) discoveredAnyProfileApps = true
+            val isWorkProfile = profile != Process.myUserHandle()
+            val serial = try {
+                (context.getSystemService(Context.USER_SERVICE) as UserManager).getSerialNumberForUser(profile)
+            } catch (_: Exception) {
+                -1L
+            }
             for (info in activities) {
                 val pkg = info.applicationInfo.packageName
                 if (pkg == ownPackage) continue
+                // A package installed in both profiles currently has one shared launcher record;
+                // personal-profile launch takes precedence, while work-only apps remain available.
                 if (!results.containsKey(pkg)) {
-                    val label = info.label?.toString()?.takeIf { it.isNotBlank() } ?: pkg
-                    val comp = info.componentName.flattenToString()
-                    val installTime = getInstallTime(pkg)
-                    results[pkg] = DiscoveredApp(pkg, comp, label, installTime)
+                    val baseLabel = info.label?.toString()?.takeIf { it.isNotBlank() } ?: pkg
+                    val label = if (isWorkProfile) "$baseLabel • Work" else baseLabel
+                    val flattened = info.componentName.flattenToString()
+                    val comp = if (isWorkProfile && serial >= 0L) "tdprofile:$serial|$flattened" else flattened
+                    results[pkg] = DiscoveredApp(pkg, comp, label, getInstallTime(pkg))
                     try {
                         val drawable = info.getIcon(0)
-                        drawableToBitmap(drawable)?.asImageBitmap()?.let {
-                            iconCache[pkg] = it
-                        }
+                        drawableToBitmap(drawable)?.asImageBitmap()?.let { iconCache[pkg] = it }
                     } catch (_: Exception) {
                     }
                 }
             }
-        } else {
+        }
+
+        if (!discoveredAnyProfileApps) {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
             }
@@ -140,12 +157,23 @@ class AppDiscoveryManager(val context: Context) {
         }
     }
 
+    private fun userForComponentName(componentName: String?): UserHandle? {
+        if (componentName.isNullOrBlank() || !componentName.startsWith("tdprofile:")) {
+            return Process.myUserHandle()
+        }
+        val serial = componentName.substringAfter("tdprofile:").substringBefore("|").toLongOrNull() ?: return null
+        val userManager = context.getSystemService(Context.USER_SERVICE) as? UserManager ?: return null
+        return userManager.getUserForSerialNumber(serial)
+    }
+
     fun launchApp(packageName: String, componentName: String? = null): Boolean {
         return try {
             if (componentName != null && componentName.isNotBlank() && launcherApps != null) {
-                val comp = ComponentName.unflattenFromString(componentName)
-                if (comp != null) {
-                    launcherApps.startMainActivity(comp, Process.myUserHandle(), null, null)
+                val targetUser = userForComponentName(componentName)
+                val flattened = if (componentName.startsWith("tdprofile:")) componentName.substringAfter("|") else componentName
+                val comp = ComponentName.unflattenFromString(flattened)
+                if (comp != null && targetUser != null) {
+                    launcherApps.startMainActivity(comp, targetUser, null, null)
                     return true
                 }
             }
@@ -168,6 +196,44 @@ class AppDiscoveryManager(val context: Context) {
             } catch (_: Exception) {
                 false
             }
+        }
+    }
+
+    fun getAppShortcuts(packageName: String, componentName: String? = null): List<ShortcutInfo> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
+        return try {
+            val query = LauncherApps.ShortcutQuery()
+                .setPackage(packageName)
+                .setQueryFlags(
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED or
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+                )
+            val user = userForComponentName(componentName) ?: return emptyList()
+            launcherApps?.getShortcuts(query, user)
+                .orEmpty()
+                .filter { it.isEnabled && it.shortLabel?.isNotBlank() == true }
+                .sortedBy { it.shortLabel.toString().lowercase() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun launchAppShortcut(packageName: String, shortcutId: String, componentName: String? = null): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return false
+        return try {
+            val manager = launcherApps ?: return false
+            val user = userForComponentName(componentName) ?: return false
+            manager.startShortcut(
+                packageName,
+                shortcutId,
+                null,
+                android.os.Bundle(),
+                user,
+            )
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 

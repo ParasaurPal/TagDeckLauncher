@@ -258,7 +258,7 @@ class GlobalAndSettingsSearchTest {
                     onTriggerGesture = { _, _ -> },
                     onRequestSetDefaultHome = {},
                     onDismissDefaultBanner = {},
-                    onStartSystemWidgetBind = { _, _ -> },
+                    onStartSystemWidgetBind = { _, _, _ -> },
                 )
             }
         }

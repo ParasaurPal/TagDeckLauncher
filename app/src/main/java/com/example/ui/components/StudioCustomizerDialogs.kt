@@ -539,7 +539,7 @@ fun StudioQuickCustomizerDialog(
 
                             Text("Icon Shape", style = MaterialTheme.typography.labelLarge)
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("SQUIRCLE", "CIRCLE", "ROUNDED_SQUARE").forEach { shp ->
+                                listOf("NONE", "CIRCLE", "SQUIRCLE", "ROUNDED_SQUARE", "DIAMOND", "HEXAGON").forEach { shp ->
                                     FilterChip(
                                         selected = settings.globalIconShape == shp,
                                         onClick = { onUpdateSettings { it.copy(globalIconShape = shp) } },

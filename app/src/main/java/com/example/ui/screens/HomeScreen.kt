@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -162,31 +164,39 @@ fun HomeScreen(
     onTriggerGesture: (String, (Int) -> Unit) -> Unit,
     onRequestSetDefaultHome: () -> Unit,
     onDismissDefaultBanner: () -> Unit,
-    onStartSystemWidgetBind: (InstalledWidgetProvider, Long) -> Unit,
+    onStartSystemWidgetBind: (InstalledWidgetProvider, Long, String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val visiblePages = remember(state.homePages, state.isEditMode) {
         val list = if (state.isEditMode) state.homePages else state.homePages.filter { !it.isHidden }
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
     }
-    val pagerState = rememberPagerState(initialPage = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)) {
-        visiblePages.size
+    val feedEnabled = state.settings.widgetFeedEnabled
+    val pagerState = rememberPagerState(
+        initialPage = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
+    ) {
+        visiblePages.size + if (feedEnabled) 1 else 0
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        onPageChanged(pagerState.currentPage)
+    LaunchedEffect(pagerState.currentPage, visiblePages.size) {
+        if (pagerState.currentPage < visiblePages.size) {
+            onPageChanged(pagerState.currentPage)
+        }
     }
 
-    LaunchedEffect(state.currentPageIndex, visiblePages.size) {
+    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled) {
         val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
-        if (pagerState.currentPage != target) {
-            pagerState.animateScrollToPage(target)
+        if (!feedEnabled || pagerState.currentPage < visiblePages.size) {
+            if (pagerState.currentPage != target) {
+                pagerState.animateScrollToPage(target)
+            }
         }
     }
 
     var showAddElementDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showFeedWidgetPicker by remember { mutableStateOf(false) }
     var showStyleDialog by remember { mutableStateOf(false) }
     var inspectingElement by remember { mutableStateOf<HomeElementEntity?>(null) }
     var multiSelectActive by remember { mutableStateOf(false) }
@@ -196,7 +206,7 @@ fun HomeScreen(
         onToggleEditMode(false)
     }
 
-    val currentPage = visiblePages.getOrElse(pagerState.currentPage) { visiblePages.first() }
+    val currentPage = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
     val rightEdgeSidebar = state.sidebars.firstOrNull { it.side == "RIGHT" && it.edgeZoneEnabled }
     val topEdgeSidebar = state.sidebars.firstOrNull { it.side == "TOP" && it.edgeZoneEnabled }
@@ -291,12 +301,6 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp),
                         shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.surfaceOpacity.coerceIn(0.35f, 0.95f)),
-                        border = if (state.settings.globalBorderWidthDp > 0.05f) {
-                            BorderStroke(
-                                state.settings.globalBorderWidthDp.coerceIn(0.5f, 4f).dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                            )
-                        } else null,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -307,6 +311,7 @@ fun HomeScreen(
                             Text(
                                 text = "Set TagDeck as your default Home launcher",
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
                             )
                             AssistChip(onClick = onRequestSetDefaultHome, label = { Text("Enable") })
@@ -320,11 +325,102 @@ fun HomeScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
-                        key = { idx -> visiblePages[idx].pageId },
+                        key = { idx -> if (idx == visiblePages.size) "WIDGET_FEED" else visiblePages[idx].pageId },
                         userScrollEnabled = !state.isEditMode,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIdx ->
-                        val page = visiblePages[pageIdx]
+                                                    if (feedEnabled && pageIdx == visiblePages.size) {
+                                val feedElements = state.homeElements
+                                    .filter { it.ownerType == "FEED" && it.visible }
+                                    .sortedBy { it.zIndex }
+
+                                val feedScrollState = rememberScrollState()
+            Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(feedScrollState) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(
+                                requireUnconsumed = false,
+                                pass = PointerEventPass.Initial,
+                            )
+                            var last = down.position
+                            var total = Offset.Zero
+                            var verticalDrag = false
+
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) break
+
+                                val delta = change.position - last
+                                total += delta
+
+                                if (!verticalDrag && total.getDistance() > viewConfiguration.touchSlop) {
+                                    if (kotlin.math.abs(total.y) > kotlin.math.abs(total.x)) {
+                                        verticalDrag = true
+                                    } else {
+                                        break
+                                    }
+                                }
+
+                                if (verticalDrag) {
+                                    change.consume()
+                                    feedScrollState.dispatchRawDelta(-delta.y)
+                                }
+                                last = change.position
+                            }
+                        }
+                    }
+                    .verticalScroll(feedScrollState)
+                                        .padding(16.dp),
+                                ) {
+                                    Text(
+                                        text = "Widget Feed",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = if (state.settings.widgetFeedTitleColor == "BLACK") Color.Black else Color.White,
+                                    )
+                                    Button(
+                                        onClick = { showFeedWidgetPicker = true },
+                                        modifier = Modifier.padding(vertical = 12.dp),
+                                    ) {
+                                        Text("Add widget")
+                                    }
+
+                                    feedElements.forEach { element ->
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(element.widthDp.coerceIn(120f, 600f).dp)
+                                                    .height(element.heightDp.coerceIn(80f, 600f).dp),
+                                            ) {
+                                                HomeElementBody(
+                                                    element = element,
+                                                    state = state.copy(isEditMode = false),
+                                                    appDiscovery = appDiscovery,
+                                                    widgetHost = widgetHost,
+                                                    onLaunchApp = onLaunchApp,
+                                                    onOpenTagSidebar = onOpenTagSidebar,
+                                                    onOpenCategorySidebar = onOpenCategorySidebar,
+                                                    onOpenRuleSidebar = onOpenRuleSidebar,
+                                                    onOpenSidebar = onOpenConfiguredSidebar,
+                                                    onOpenWindow = onOpenWindow,
+                                                    onOpenFolder = onOpenFolder,
+                                                    onElementTrigger = { elem, trigger ->
+                                                        onExecuteElementAction(elem, trigger) { target ->
+                                                            scope.launch { pagerState.animateScrollToPage(target) }
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+val page = visiblePages[pageIdx]
                         val pageOffset = ((pagerState.currentPage - pageIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
                         val pageTransitionMod = when (state.settings.pageTransitionStyle) {
                             "FADE" -> Modifier.graphicsLayer {
@@ -404,10 +500,11 @@ fun HomeScreen(
                             onSaveElement = onSaveElement,
                         )
                         }
-                    }
+                                            }
+}
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
-                    if (!state.isEditMode && leftEdgeSidebar != null) {
+                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && leftEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterStart)
@@ -437,7 +534,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (!state.isEditMode && rightEdgeSidebar != null) {
+                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && rightEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -609,12 +706,6 @@ fun HomeScreen(
                             onClick = onOpenSearch,
                             shape = RoundedCornerShape(dockRadius),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
-                            border = if (dockBorderWidth > 0.05f) {
-                                BorderStroke(
-                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                )
-                            } else null,
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .weight(1f)
@@ -647,12 +738,6 @@ fun HomeScreen(
                             onClick = onOpenDrawer,
                             shape = RoundedCornerShape(dockRadius),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
-                            border = if (dockBorderWidth > 0.05f) {
-                                BorderStroke(
-                                    dockBorderWidth.coerceIn(0.5f, 4f).dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                                )
-                            } else null,
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .size(48.dp)
@@ -685,6 +770,102 @@ fun HomeScreen(
         )
     }
 
+    if (showFeedWidgetPicker) {
+        val providers = remember { widgetHost.getInstalledProviders() }
+        WidgetPickerDialog(
+            providers = providers,
+            tags = state.allTags,
+            onPickSystemWidget = { provider ->
+                showFeedWidgetPicker = false
+                onStartSystemWidgetBind(provider, 0L, "FEED")
+            },
+            onPickBuiltinType = { type, label, wDp, hDp ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = 0L,
+                        ownerType = "FEED",
+                        type = type,
+                        xFraction = 0.08f,
+                        yFraction = 0.08f,
+                        widthDp = wDp,
+                        heightDp = hDp,
+                        label = label,
+                    ),
+                    false,
+                )
+                showFeedWidgetPicker = false
+            },
+            onPickBuiltinTagWidget = { tag ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = 0L,
+                        ownerType = "FEED",
+                        type = "TAG_COLLECTION_WIDGET",
+                        xFraction = 0.06f,
+                        yFraction = 0.08f,
+                        widthDp = 310f,
+                        heightDp = 240f,
+                        label = tag.name,
+                        targetTagId = tag.tagId,
+                        backgroundColorHex = 0x660F172AL,
+                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
+                    ),
+                    false,
+                )
+                showFeedWidgetPicker = false
+            },
+            onDismiss = { showFeedWidgetPicker = false },
+        )
+    }
+
+    if (showFeedWidgetPicker) {
+        val providers = remember { widgetHost.getInstalledProviders() }
+        WidgetPickerDialog(
+            providers = providers,
+            tags = state.allTags,
+            onPickSystemWidget = { provider ->
+                showFeedWidgetPicker = false
+                onStartSystemWidgetBind(provider, 0L, "FEED")
+            },
+            onPickBuiltinType = { type, label, wDp, hDp ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = 0L,
+                        ownerType = "FEED",
+                        type = type,
+                        xFraction = 0.08f,
+                        yFraction = 0.08f,
+                        widthDp = wDp,
+                        heightDp = hDp,
+                        label = label,
+                    ),
+                    false,
+                )
+                showFeedWidgetPicker = false
+            },
+            onPickBuiltinTagWidget = { tag ->
+                onSaveElement(
+                    HomeElementEntity(
+                        pageId = 0L,
+                        ownerType = "FEED",
+                        type = "TAG_COLLECTION_WIDGET",
+                        xFraction = 0.06f,
+                        yFraction = 0.08f,
+                        widthDp = 310f,
+                        heightDp = 240f,
+                        label = tag.name,
+                        targetTagId = tag.tagId,
+                        backgroundColorHex = 0x660F172AL,
+                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
+                    ),
+                    false,
+                )
+                showFeedWidgetPicker = false
+            },
+            onDismiss = { showFeedWidgetPicker = false },
+        )
+    }
+
     if (showWidgetPicker) {
         val providers = remember { widgetHost.getInstalledProviders() }
         WidgetPickerDialog(
@@ -692,7 +873,7 @@ fun HomeScreen(
             tags = state.allTags,
             onPickSystemWidget = { provider ->
                 showWidgetPicker = false
-                onStartSystemWidgetBind(provider, currentPage.pageId)
+                onStartSystemWidgetBind(provider, currentPage.pageId, "PAGE")
             },
             onPickBuiltinType = { type, label, wDp, hDp ->
                 onSaveElement(
@@ -1039,7 +1220,7 @@ private fun EditToolbarOutlinedIcon(
                 if (isActive) {
                     Modifier
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
-                        .border(1.2.dp, Color.White.copy(alpha = 0.85f), CircleShape)
+                        
                 } else {
                     Modifier
                 }

@@ -1,9 +1,19 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Process
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.content.Intent
 import android.net.Uri
-import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -98,11 +108,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
+import com.example.data.system.NotificationAccess
+import com.example.data.system.CloudBackupScheduler
 import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.IconOutlineProcessor
@@ -173,6 +184,25 @@ fun SettingsScreen(
     BackHandler { onBack() }
 
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var permissionRefresh by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) permissionRefresh++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val hasCalendarAccess = remember(permissionRefresh) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+    }
+    val hasUsageAccess = remember(permissionRefresh) {
+        runCatching {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+        }.getOrDefault(false)
+    }
+    val hasNotificationAccess = remember(permissionRefresh) { NotificationAccess.isEnabled(context) }
     val scope = rememberCoroutineScope()
     val s = state.settings
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
@@ -190,13 +220,6 @@ fun SettingsScreen(
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        onUpdateSettings { it.copy(notificationsBadgeHint = granted) }
-        onShowMessage(if (granted) "Notification badges enabled" else "Notification permission denied")
-    }
-
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
@@ -205,6 +228,26 @@ fun SettingsScreen(
                     onUpdateSettings { it.copy(wallpaperType = "CUSTOM_IMAGE", wallpaperCustomPath = path) }
                     onShowMessage("Wallpaper updated")
                 }
+            }
+        }
+    }
+
+    val calendarAccessLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        onShowMessage(if (granted) "Calendar access enabled for upcoming events" else "Calendar access was not granted")
+    }
+
+    val cloudBackupFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+                onUpdateSettings { it.copy(cloudBackupTreeUri = uri.toString(), cloudBackupEnabled = true) }
+                CloudBackupScheduler.schedule(context)
+                onShowMessage("Automatic cloud backup enabled")
+            }.onFailure {
+                onShowMessage("Could not access that cloud folder")
             }
         }
     }
@@ -571,6 +614,7 @@ fun SettingsScreen(
                             text = "Active Pack Order (${activePackOrder.size})",
                             style = MaterialTheme.typography.labelLarge,
                         )
+
                         OutlinedButton(
                             onClick = onRefreshIconPacks,
                             modifier = Modifier.testTag("refresh_icon_packs_button"),
@@ -578,6 +622,47 @@ fun SettingsScreen(
                             Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Rescan")
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Sidebar Text Color", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("AUTO" to "Auto", "LIGHT" to "Light", "DARK" to "Dark", "CUSTOM" to "Custom").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = s.sidebarTextColorMode == key,
+                                    onClick = { onUpdateSettings { it.copy(sidebarTextColorMode = key) } },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                        Text(
+                            "Auto follows the app theme. Light and Dark force a text color. Custom uses Home Element Default Text Color above.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text("Right Sidebar Category Icon Style", style = MaterialTheme.typography.labelLarge)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            listOf("BLACK_WHITE" to "Black + white outline", "WHITE_BLACK" to "White + black outline").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = s.sidebarCategoryIconStyle == key,
+                                    onClick = { onUpdateSettings { it.copy(sidebarCategoryIconStyle = key) } },
+                                    label = { Text(label) },
+                                )
+                            }
                         }
                     }
 
@@ -720,6 +805,74 @@ fun SettingsScreen(
                             }
                         }
                     }
+                    }
+                }
+            }
+
+            // Global Arcticons-style Line Icon Generation
+            if (LauncherSettingsCatalog.SECTION_LINE_ICONS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_LINE_ICONS) {
+                    SettingsCard(
+                        title = "Arcticons-Style Line Icons",
+                        icon = Icons.Rounded.Contrast,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_LINE_ICONS].orEmpty() else emptyList(),
+                    ) {
+                        Text(
+                            "Automatically turn every installed app icon into transparent black or white line art. Individual icons can be refined by drawing over detected edges in App Icons.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        ToggleRow("Generate line icons for all apps", s.lineIconsEnabled) { enabled ->
+                            onUpdateSettings { it.copy(lineIconsEnabled = enabled) }
+                        }
+                        Text("Line color", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = s.lineIconDefaultColorHex == 0xFFFFFFFFL,
+                                onClick = { onUpdateSettings { it.copy(lineIconDefaultColorHex = 0xFFFFFFFFL, lineIconDefaultOutlineColorHex = 0xFF000000L) } },
+                                label = { Text("White") },
+                            )
+                            FilterChip(
+                                selected = s.lineIconDefaultColorHex == 0xFF000000L,
+                                onClick = { onUpdateSettings { it.copy(lineIconDefaultColorHex = 0xFF000000L, lineIconDefaultOutlineColorHex = 0xFFFFFFFFL) } },
+                                label = { Text("Black") },
+                            )
+                        }
+                        ToggleRow("Add a thin contrast outline", s.lineIconDefaultOutlineEnabled) { enabled ->
+                            onUpdateSettings { it.copy(lineIconDefaultOutlineEnabled = enabled) }
+                        }
+                        if (s.lineIconDefaultOutlineEnabled) {
+                            Text("Outline color", style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = s.lineIconDefaultOutlineColorHex == 0xFF000000L,
+                                    onClick = { onUpdateSettings { it.copy(lineIconDefaultOutlineColorHex = 0xFF000000L) } },
+                                    label = { Text("Black") },
+                                )
+                                FilterChip(
+                                    selected = s.lineIconDefaultOutlineColorHex == 0xFFFFFFFFL,
+                                    onClick = { onUpdateSettings { it.copy(lineIconDefaultOutlineColorHex = 0xFFFFFFFFL) } },
+                                    label = { Text("White") },
+                                )
+                            }
+                            Text("Outline thickness: ${"%.1f".format(s.lineIconDefaultOutlineWidthPx)} px")
+                            Slider(
+                                value = s.lineIconDefaultOutlineWidthPx,
+                                onValueChange = { value -> onUpdateSettings { it.copy(lineIconDefaultOutlineWidthPx = value) } },
+                                valueRange = 0.5f..3f,
+                            )
+                        }
+                        Text("Line thickness: ${"%.1f".format(s.lineIconDefaultLineWidthPx)} px")
+                        Slider(
+                            value = s.lineIconDefaultLineWidthPx,
+                            onValueChange = { value -> onUpdateSettings { it.copy(lineIconDefaultLineWidthPx = value) } },
+                            valueRange = 0.7f..4f,
+                        )
+                        Text(
+                            "Per-app drawings and settings override these global defaults. Turn this off to return uncustomized apps to their normal icon sources.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -976,6 +1129,7 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         listOf(
+                            "SYSTEM_LIVE" to "System / Live",
                             "BUILTIN_PRISM" to "Prism",
                             "BUILTIN_TOPO" to "Topo",
                             "GRADIENT" to "Gradient",
@@ -1286,6 +1440,9 @@ fun SettingsScreen(
                     ToggleRow("Show Labels on Home Shortcuts", s.showHomeAppLabels) { v ->
                         onUpdateSettings { it.copy(showHomeAppLabels = v) }
                     }
+                    ToggleRow("Outline App Labels (0.5 px)", s.appLabelOutlineEnabled) { v ->
+                        onUpdateSettings { it.copy(appLabelOutlineEnabled = v) }
+                    }
                     ToggleRow("Show Default Home Prompt Banner", s.showDefaultHomeBanner) { v ->
                         onUpdateSettings { it.copy(showDefaultHomeBanner = v) }
                     }
@@ -1356,6 +1513,25 @@ fun SettingsScreen(
                             )
                         }
                     }
+
+                    ToggleRow("Enable Widget Feed", s.widgetFeedEnabled) { v ->
+                        onUpdateSettings { it.copy(widgetFeedEnabled = v) }
+                    }
+                    Text("Widget Feed Title Color", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("WHITE", "BLACK").forEach { color ->
+                            FilterChip(
+                                selected = s.widgetFeedTitleColor == color,
+                                onClick = { onUpdateSettings { it.copy(widgetFeedTitleColor = color) } },
+                                label = { Text(color.lowercase().replaceFirstChar { it.uppercase() }) },
+                            )
+                        }
+                    }
+                    Text(
+                        "Swipe left past your last home page to open the separate widget feed. Disabling it keeps your feed widgets saved.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
                     Text("Page Indicator Style", style = MaterialTheme.typography.labelLarge)
                     @OptIn(ExperimentalLayoutApi::class)
@@ -1429,31 +1605,111 @@ fun SettingsScreen(
                         onUpdateSettings { it.copy(hapticFeedbackEnabled = v) }
                     }
 
+                    Text(
+                        "Optional access is requested only for the feature that uses it. You can change these choices later in Android Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            if (!hasCalendarAccess) {
+                                calendarAccessLauncher.launch(Manifest.permission.READ_CALENDAR)
+                            } else {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                    )
+                                }.onFailure { onShowMessage("Could not open TagDeck app settings") }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (hasCalendarAccess) "Calendar Access: Granted · Manage" else "Allow Calendar Events in At-a-Glance")
+                    }
+                    Text(
+                        if (hasCalendarAccess) "At-a-Glance can show upcoming calendar events."
+                        else "Calendar access is optional and is used only to display upcoming events in At-a-Glance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (!hasCalendarAccess) {
+                        OutlinedButton(
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                    )
+                                }.onFailure { onShowMessage("Could not open TagDeck app settings") }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Open TagDeck App Permissions")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                    }
+                                )
+                            }.onFailure {
+                                runCatching {
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }.onFailure { onShowMessage("Could not open Usage Access settings") }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (hasUsageAccess) "Usage Access: Granted · Manage" else "Grant App Usage Access")
+                    }
+                    Text(
+                        if (hasUsageAccess) "The App Usage widget can display the most-used apps from the last 24 hours."
+                        else "Usage Access is optional and is used only by the App Usage widget. Android requires you to enable it in Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Notification Hints", style = MaterialTheme.typography.bodyLarge)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Notification Badges", style = MaterialTheme.typography.bodyLarge)
+                            }
+                            Text(
+                                "Shows active counts only; TagDeck does not read or store notification text. Android requires separate Notification Access approval. Turning this off hides badges; revoke access in Android Settings to remove permission.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                if (hasNotificationAccess) "Notification Access: Granted"
+                                else "Notification Access: Not granted",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (hasNotificationAccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         Switch(
                             checked = s.notificationsBadgeHint,
                             onCheckedChange = { enabled ->
-                                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    val granted = ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.POST_NOTIFICATIONS,
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                    if (granted) {
-                                        onUpdateSettings { it.copy(notificationsBadgeHint = true) }
-                                    } else {
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                onUpdateSettings { it.copy(notificationsBadgeHint = enabled) }
+                                if (enabled && !NotificationAccess.isEnabled(context)) {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                    } catch (_: Exception) {
+                                        onShowMessage("Could not open Notification Access settings. Open Android Settings and search for Notification access.")
                                     }
-                                } else {
-                                    onUpdateSettings { it.copy(notificationsBadgeHint = enabled) }
+                                } else if (enabled) {
+                                    onShowMessage("Notification badges enabled")
                                 }
                             },
                         )
@@ -1507,6 +1763,33 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    HorizontalDivider()
+                    Text("Automatic Cloud Backup", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Choose a folder from any Android document provider (such as Drive, Dropbox, OneDrive, or local storage). TagDeck keeps its local data as the primary copy and writes a full JSON backup every 12 hours while the device is online.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ToggleRow("Enable automatic cloud backup", s.cloudBackupEnabled) { enabled ->
+                        if (!enabled) {
+                            onUpdateSettings { it.copy(cloudBackupEnabled = false) }
+                            CloudBackupScheduler.cancel(context)
+                        } else if (s.cloudBackupTreeUri.isNullOrBlank()) {
+                            cloudBackupFolderPicker.launch(null)
+                        } else {
+                            onUpdateSettings { it.copy(cloudBackupEnabled = true) }
+                            CloudBackupScheduler.schedule(context)
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { cloudBackupFolderPicker.launch(null) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (s.cloudBackupTreeUri.isNullOrBlank()) "Choose Cloud Backup Folder" else "Change Cloud Backup Folder")
+                    }
+                    if (!s.cloudBackupTreeUri.isNullOrBlank()) {
+                        Text("Backup destination selected. The latest file is TagDeck-AutoBackup.json.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { exportBackupLauncher.launch("tagdeck_backup.json") },

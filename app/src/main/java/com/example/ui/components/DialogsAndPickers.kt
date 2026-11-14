@@ -683,6 +683,11 @@ fun AppActionAndCustomizeDialog(
     onToggleHidden: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onUninstall: () -> Unit,
+    onEditLineIcon: () -> Unit,
+    onLaunchApp: () -> Unit = {},
+    onAddShortcutToHome: (String, String) -> Unit = { _, _ -> },
+    appLocked: Boolean = false,
+    onToggleAppLock: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -747,6 +752,7 @@ fun AppActionAndCustomizeDialog(
         iconAlpha = alpha,
     )
     val primaryCategoryName = allCategories.find { it.categoryId == app.primaryCategoryId }?.name ?: "Tools"
+    val appShortcuts = remember(app.packageName) { appDiscovery.getAppShortcuts(app.packageName, app.componentName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -825,6 +831,49 @@ fun AppActionAndCustomizeDialog(
                     Icon(Icons.Rounded.LocalOffer, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Tags (${appWithTags.tags.size}): ${appWithTags.tags.joinToString { it.name }.ifBlank { "None" }}")
+                }
+
+                OutlinedButton(
+                    onClick = onToggleAppLock,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (appLocked) "Disable App Lock" else "Require Device Authentication to Open")
+                }
+
+                if (appShortcuts.isNotEmpty()) {
+                    Text("App Shortcuts", style = MaterialTheme.typography.labelLarge)
+                    appShortcuts.forEach { shortcut ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    if (appLocked) {
+                                        onLaunchApp()
+                                    } else if (!appDiscovery.launchAppShortcut(app.packageName, shortcut.id, app.componentName)) {
+                                        onLaunchApp()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(shortcut.shortLabel?.toString() ?: shortcut.id, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            TextButton(onClick = {
+                                onAddShortcutToHome(shortcut.id, shortcut.shortLabel?.toString() ?: shortcut.id)
+                            }) {
+                                Text("Add to Home")
+                            }
+                        }
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onEditLineIcon,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Edit Line Icon")
                 }
 
                 OutlinedTextField(
@@ -910,6 +959,7 @@ fun WidgetPickerDialog(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var weatherCity by remember { mutableStateOf("") }
     val filtered = remember(providers, query) {
         val q = query.trim().lowercase()
         if (q.isEmpty()) providers else providers.filter {
@@ -925,6 +975,8 @@ fun WidgetPickerDialog(
         Triple("STORAGE_RAM_WIDGET", "Storage & RAM Monitor", 180f to 132f),
         Triple("COMPASS_WIDGET", "Hardware Compass", 136f to 136f),
         Triple("MEDIA_WIDGET", "Media Playback Controls", 260f to 96f),
+        Triple("APP_USAGE_WIDGET", "Top App Usage (24 Hours)", 230f to 150f),
+        Triple("RECENT_APPS_WIDGET", "Recently Used Apps", 200f to 190f),
         Triple("PHOTO_SLIDESHOW", "Photo Slideshow Frame", 220f to 148f),
     )
 
@@ -940,6 +992,29 @@ fun WidgetPickerDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
                 Text("TagDeck Built-in Live Widgets", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = weatherCity,
+                    onValueChange = { weatherCity = it },
+                    label = { Text("Weather widget city") },
+                    placeholder = { Text("e.g. Euless, Texas") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedButton(
+                    onClick = { onPickBuiltinType("WEATHER_WIDGET", weatherCity.trim(), 240f, 160f) },
+                    enabled = weatherCity.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add Live Weather Widget")
+                }
+                OutlinedButton(
+                    onClick = { onPickBuiltinType("AT_A_GLANCE_WIDGET", weatherCity.trim(), 250f, 180f) },
+                    enabled = weatherCity.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add At-a-Glance (Clock + Weather)")
+                }
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
