@@ -78,6 +78,7 @@ fun TagDeckTheme(
     tertiaryColorHex: Long = 0xFFFB7185L,
     fontStyle: String = "DEFAULT",
     fontScale: Float = 1.0f,
+    customFontPath: String? = null,
     cornerRadiusDp: Float = 20f,
     content: @Composable () -> Unit,
 ) {
@@ -109,7 +110,7 @@ fun TagDeckTheme(
         extraLarge = RoundedCornerShape((radius * 1.5f).dp)
     )
 
-    val typography = buildTagDeckTypography(fontStyle = fontStyle, fontScale = fontScale)
+    val typography = buildTagDeckTypography(fontStyle = fontStyle, fontScale = fontScale, customFontPath = customFontPath)
 
     MaterialTheme(
         colorScheme = colorScheme,
