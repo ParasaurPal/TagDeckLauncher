@@ -400,7 +400,14 @@ fun HomeScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
-                        key = { idx -> if (feedEnabled && idx == feedPagerIndex) "WIDGET_FEED" else visiblePages[logicalPageIndex(idx)].pageId },
+                        key = { idx ->
+                            when {
+                                feedEnabled && idx == feedPagerIndex -> "WIDGET_FEED"
+                                loopPagerEnabled && idx == 0 -> "LOOP_PREV_${visiblePages.last().pageId}"
+                                loopPagerEnabled && idx == visiblePages.size + 1 -> "LOOP_NEXT_${visiblePages.first().pageId}"
+                                else -> "PAGE_${visiblePages[logicalPageIndex(idx)].pageId}"
+                            }
+                        },
                         userScrollEnabled = !state.isEditMode,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIdx ->
