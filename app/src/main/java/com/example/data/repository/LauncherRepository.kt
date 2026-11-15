@@ -756,7 +756,20 @@ class LauncherRepository(
             }
         }
         if (payload.gestures.isNotEmpty()) dao.upsertGestures(payload.gestures)
-        payload.customFonts.forEach { font -> dao.upsertCustomFont(font) }
+        payload.customFonts.forEach { font ->
+            val currentFile = java.io.File(font.localPath)
+            val finalPath = if (currentFile.isFile) currentFile.absolutePath else {
+                val encoded = payload.embeddedFontsBase64[font.localPath]
+                if (encoded != null) runCatching {
+                    val folder = java.io.File(appDiscovery.context.filesDir, "custom_fonts").apply { mkdirs() }
+                    val safeName = font.displayName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                    val destination = java.io.File(folder, font.fontId.toString() + "_" + safeName + ".ttf")
+                    destination.writeBytes(Base64.decode(encoded, Base64.DEFAULT))
+                    destination.absolutePath
+                }.getOrNull() ?: font.localPath else font.localPath
+            }
+            dao.upsertCustomFont(font.copy(localPath = finalPath))
+        }
         payload.themeProfiles.forEach { profile -> dao.upsertThemeProfile(profile) }
         payload.backgroundPresets.forEach { preset ->
             dao.upsertBackgroundPreset(
