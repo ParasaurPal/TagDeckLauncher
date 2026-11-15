@@ -2351,7 +2351,7 @@ fun ElementInspectorDialog(
                                     }
                                 }
                         }
-                        if (edited.type in setOf("TEXT_LABEL", "SHAPE", "CUSTOM_BUTTON", "GAUGE_WIDGET", "APP_SHORTCUT")) {
+                        if (edited.type in setOf("TEXT_LABEL", "SHAPE", "CUSTOM_BUTTON", "GAUGE_WIDGET", "APP_SHORTCUT", "TAG_SHORTCUT", "CATEGORY_SHORTCUT", "SAVED_RULE_SHORTCUT", "SIDEBAR_SHORTCUT", "WINDOW_SHORTCUT", "FOLDER", "TAG_COLLECTION_WIDGET", "APP_GROUP_WIDGET", "QUICK_NOTE_WIDGET", "FOCUS_TIMER_WIDGET", "DIGITAL_CLOCK", "CLOCK_WIDGET", "CALENDAR_WIDGET", "TAB_SWITCHER_WIDGET", "WIDGET_STACK")) {
                             HorizontalDivider()
                             Text("Typography & Readability", style = MaterialTheme.typography.titleSmall)
                             Text("Font family", style = MaterialTheme.typography.labelMedium)
