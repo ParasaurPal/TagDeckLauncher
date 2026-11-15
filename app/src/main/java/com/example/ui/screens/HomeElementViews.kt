@@ -1422,13 +1422,13 @@ fun ElementInspectorDialog(
                             valueRange = 48f..440f,
                             modifier = Modifier.testTag("inspector_height_slider"),
                         )
-                        Text("X Position: ${(edited.xFraction * 100).roundToInt()}%")
+                        Text((if (edited.parentContainerId != null) "Container X Position: " else "X Position: ") + "${(edited.xFraction * 100).roundToInt()}%")
                         Slider(
                             value = edited.xFraction,
                             onValueChange = { edited = edited.copy(xFraction = it) },
                             valueRange = 0f..0.95f,
                         )
-                        Text("Y Position: ${(edited.yFraction * 100).roundToInt()}%")
+                        Text((if (edited.parentContainerId != null) "Container Y Position: " else "Y Position: ") + "${(edited.yFraction * 100).roundToInt()}%")
                         Slider(
                             value = edited.yFraction,
                             onValueChange = { edited = edited.copy(yFraction = it) },
