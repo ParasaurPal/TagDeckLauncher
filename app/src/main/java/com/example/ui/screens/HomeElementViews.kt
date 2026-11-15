@@ -761,7 +761,7 @@ fun HomeElementBody(
                 }
 
                 "CONTAINER" -> {
-                    val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }.sortedBy { it.zIndex }
+                    val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.pageId == element.pageId && it.ownerType == element.ownerType && it.ownerWindowId == element.ownerWindowId && it.visible }.sortedBy { it.zIndex }
                     val containerLayout = styleExtras.optString("containerLayoutMode", "FREEFORM")
                     if (containerLayout == "GRID") {
                         LazyVerticalGrid(
@@ -844,7 +844,7 @@ fun HomeElementBody(
                 }
                 "WIDGET_STACK" -> {
                     val stackIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    val stackItemsUnsorted = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" } }
+                    val stackItemsUnsorted = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.pageId == element.pageId && it.ownerType == element.ownerType && it.ownerWindowId == element.ownerWindowId && it.visible && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" } }
                     val stackPriorityMode = styleExtras.optString("stackPriorityMode", "MANUAL")
                     val stackItems = when (stackPriorityMode) {
                         "MOST_USED" -> stackItemsUnsorted.sortedByDescending { item -> state.appsWithTags.firstOrNull { it.app.packageName == item.targetPackageName }?.app?.launchCount ?: 0 }
