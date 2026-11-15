@@ -621,7 +621,7 @@ class LauncherRepository(
         val newPageId = dao.upsertHomePage(
             page.copy(pageId = 0L, title = "${page.title} Copy", pageOrder = nextOrder, isDefaultHome = false)
         )
-        val elems = dao.getHomeElementsOnce().filter { it.ownerType == "PAGE" && it.pageId == page.pageId }
+        val elems = dao.getHomeElementsOnce().filter { it.ownerType == "PAGE" && it.pageId == page.pageId && !it.pinnedToAllPages }
         dao.insertHomeElements(elems.map { it.copy(elementId = 0L, pageId = newPageId, appWidgetId = null) })
     }
 
