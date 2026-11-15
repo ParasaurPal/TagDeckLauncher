@@ -1170,6 +1170,8 @@ fun ElementInspectorDialog(
     onSendBackward: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
+    styleToPaste: HomeElementEntity? = null,
+    onCopyStyle: (HomeElementEntity) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var edited by remember(element.elementId) { mutableStateOf(element) }
@@ -1423,6 +1425,32 @@ fun ElementInspectorDialog(
                     }
 
                     "STYLE" -> {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { onCopyStyle(edited) }) { Text("Copy Style") }
+                            OutlinedButton(
+                                enabled = styleToPaste != null,
+                                onClick = {
+                                    styleToPaste?.let { source ->
+                                        edited = edited.copy(
+                                            backgroundColorHex = source.backgroundColorHex,
+                                            backgroundGradientEndHex = source.backgroundGradientEndHex,
+                                            textColorHex = source.textColorHex,
+                                            borderColorHex = source.borderColorHex,
+                                            borderWidthDp = source.borderWidthDp,
+                                            cornerRadiusDp = source.cornerRadiusDp,
+                                            paddingDp = source.paddingDp,
+                                            shadowElevationDp = source.shadowElevationDp,
+                                            fontSizeSp = source.fontSizeSp,
+                                            showLabel = source.showLabel,
+                                            iconSizeDp = source.iconSizeDp,
+                                            imageMaskShape = source.imageMaskShape,
+                                            styleExtrasJson = source.styleExtrasJson,
+                                        )
+                                        onUpdate(edited)
+                                    }
+                                },
+                            ) { Text("Paste Style") }
+                        }
                         Text("Shape Mask", style = MaterialTheme.typography.labelLarge)
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
