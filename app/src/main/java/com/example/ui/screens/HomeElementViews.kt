@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.example.ui.screens
 
 import com.example.ui.components.OutlinedLabelText
@@ -41,6 +43,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,6 +72,7 @@ import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentCut
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FlipToBack
 import androidx.compose.material.icons.rounded.FlipToFront
@@ -2364,7 +2369,7 @@ fun ElementInspectorDialog(
                                         edited = edited.copy(
                                             backgroundColorHex = source.backgroundColorHex,
                                             backgroundGradientEndHex = source.backgroundGradientEndHex,
-                                            backgroundImagePath = source.backgroundImagePath,
+                                            imagePath = source.imagePath,
                                             rotationDeg = source.rotationDeg,
                                             scaleX = source.scaleX,
                                             scaleY = source.scaleY,
@@ -2385,6 +2390,7 @@ fun ElementInspectorDialog(
                                             fontSizeSp = source.fontSizeSp,
                                             showLabel = source.showLabel,
                                             iconSizeDp = source.iconSizeDp,
+                                            imagePath = source.imagePath,
                                             imageMaskShape = source.imageMaskShape,
                                             imageScaleType = source.imageScaleType,
                                             imageBrightness = source.imageBrightness,
@@ -2549,7 +2555,7 @@ fun ElementInspectorDialog(
                                 Text("Bold weight boost")
                                 Switch(checked = styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textBoldBoost", it) })
                             }
-                            Text("Letter spacing: ${"%.1f".format(styleExtras.optDouble("textLetterSpacingSp", state.settings.letterSpacingEm * edited.fontSizeSp))}sp", style = MaterialTheme.typography.labelMedium)
+                            Text("Letter spacing: ${"%.1f".format(styleExtras.optDouble("textLetterSpacingSp", (state.settings.letterSpacingEm * edited.fontSizeSp).toDouble()))}sp", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("textLetterSpacingSp", 0.0).toFloat().coerceIn(-1f, 4f), onValueChange = { updateStyleExtra("textLetterSpacingSp", it.toDouble()) }, valueRange = -1f..4f)
                             Text("Line height: ${"%.2f".format(styleExtras.optDouble("textLineHeightMultiplier", state.settings.lineHeightMultiplier.toDouble()))}x", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("textLineHeightMultiplier", 1.25).toFloat().coerceIn(0.8f, 2f), onValueChange = { updateStyleExtra("textLineHeightMultiplier", it.toDouble()) }, valueRange = 0.8f..2f)
@@ -2704,22 +2710,22 @@ fun ElementInspectorDialog(
                             Text("Swipe direction", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("HORIZONTAL", "VERTICAL").forEach { axis ->
-                                    FilterChip(selected = styleExtras.optString("stackAxis", "HORIZONTAL") == axis, onClick = { updateStyleExtra("stackAxis", axis) }, label = { Text(axis.lowercase().replaceFirstChar { it.uppercase() }) })
+                                    FilterChip(selected = styleExtras.optString("stackAxis", "HORIZONTAL") == axis, onClick = { updateStyleExtraString("stackAxis", axis) }, label = { Text(axis.lowercase().replaceFirstChar { it.uppercase() }) })
                                 }
                             }
                             Text("Automatic rotation: ${styleExtras.optInt("autoRotateSeconds", 0)} seconds")
-                            Slider(value = styleExtras.optInt("autoRotateSeconds", 0).toFloat(), onValueChange = { updateStyleExtra("autoRotateSeconds", it.roundToInt()) }, valueRange = 0f..120f, steps = 23)
+                            Slider(value = styleExtras.optInt("autoRotateSeconds", 0).toFloat(), onValueChange = { updateStyleExtra("autoRotateSeconds", it.roundToInt().toDouble()) }, valueRange = 0f..120f, steps = 23)
                             Text("0 disables automatic rotation", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("Smart priority", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("MANUAL", "MOST_USED", "RECENT", "FAVORITES_FIRST").forEach { mode ->
-                                    FilterChip(selected = styleExtras.optString("stackPriorityMode", "MANUAL") == mode, onClick = { updateStyleExtra("stackPriorityMode", mode) }, label = { Text(mode.replace('_', ' ')) })
+                                    FilterChip(selected = styleExtras.optString("stackPriorityMode", "MANUAL") == mode, onClick = { updateStyleExtraString("stackPriorityMode", mode) }, label = { Text(mode.replace('_', ' ')) })
                                 }
                             }
                             Text("Stack indicator", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("PILL", "DOTS", "NUMBER", "NONE").forEach { style ->
-                                    FilterChip(selected = styleExtras.optString("stackIndicatorStyle", "PILL") == style, onClick = { updateStyleExtra("stackIndicatorStyle", style) }, label = { Text(style) })
+                                    FilterChip(selected = styleExtras.optString("stackIndicatorStyle", "PILL") == style, onClick = { updateStyleExtraString("stackIndicatorStyle", style) }, label = { Text(style) })
                                 }
                             }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -2797,19 +2803,19 @@ fun ElementInspectorDialog(
                         Text("Idle animation", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("NONE", "PULSE", "FLOAT", "BREATH").forEach { mode ->
-                                FilterChip(selected = styleExtras.optString("idleAnimation", "NONE") == mode, onClick = { updateStyleExtra("idleAnimation", mode) }, label = { Text(mode) })
+                                FilterChip(selected = styleExtras.optString("idleAnimation", "NONE") == mode, onClick = { updateStyleExtraString("idleAnimation", mode) }, label = { Text(mode) })
                             }
                         }
                         Text("Idle cycle: ${styleExtras.optInt("idleDurationMs", 1800)}ms", style = MaterialTheme.typography.labelMedium)
-                        Slider(value = styleExtras.optInt("idleDurationMs", 1800).toFloat().coerceIn(700f, 5000f), onValueChange = { updateStyleExtra("idleDurationMs", it.roundToInt()) }, valueRange = 700f..5000f)
+                        Slider(value = styleExtras.optInt("idleDurationMs", 1800).toFloat().coerceIn(700f, 5000f), onValueChange = { updateStyleExtra("idleDurationMs", it.roundToInt().toDouble()) }, valueRange = 700f..5000f)
                         Text("Entrance animation", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("NONE", "FADE", "ZOOM", "SLIDE_UP").forEach { mode ->
-                                FilterChip(selected = styleExtras.optString("entranceAnimation", "NONE") == mode, onClick = { updateStyleExtra("entranceAnimation", mode) }, label = { Text(mode.replace('_', ' ')) })
+                                FilterChip(selected = styleExtras.optString("entranceAnimation", "NONE") == mode, onClick = { updateStyleExtraString("entranceAnimation", mode) }, label = { Text(mode.replace('_', ' ')) })
                             }
                         }
                         Text("Entrance duration: ${styleExtras.optInt("entranceDurationMs", 260)}ms", style = MaterialTheme.typography.labelMedium)
-                        Slider(value = styleExtras.optInt("entranceDurationMs", 260).toFloat().coerceIn(100f, 900f), onValueChange = { updateStyleExtra("entranceDurationMs", it.roundToInt()) }, valueRange = 100f..900f)
+                        Slider(value = styleExtras.optInt("entranceDurationMs", 260).toFloat().coerceIn(100f, 900f), onValueChange = { updateStyleExtra("entranceDurationMs", it.roundToInt().toDouble()) }, valueRange = 100f..900f)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Pressed-state feedback")
                             Switch(checked = styleExtras.optBoolean("pressedStateEnabled", false), onCheckedChange = { updateStyleExtraBoolean("pressedStateEnabled", it) })
@@ -2818,12 +2824,12 @@ fun ElementInspectorDialog(
                             Text("Pressed scale: ${"%.2f".format(styleExtras.optDouble("pressedScale", 0.94))}x", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("pressedScale", 0.94).toFloat().coerceIn(0.82f, 1f), onValueChange = { updateStyleExtra("pressedScale", it.toDouble()) }, valueRange = 0.82f..1f)
                             Text("Animation speed: ${styleExtras.optInt("pressedDurationMs", 110)}ms", style = MaterialTheme.typography.labelMedium)
-                            Slider(value = styleExtras.optInt("pressedDurationMs", 110).toFloat().coerceIn(50f, 300f), onValueChange = { updateStyleExtra("pressedDurationMs", it.roundToInt()) }, valueRange = 50f..300f)
+                            Slider(value = styleExtras.optInt("pressedDurationMs", 110).toFloat().coerceIn(50f, 300f), onValueChange = { updateStyleExtra("pressedDurationMs", it.roundToInt().toDouble()) }, valueRange = 50f..300f)
                         }
                         Text("Border Style", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("SOLID", "DASHED", "GRADIENT").forEach { mode ->
-                                FilterChip(selected = styleExtras.optString("borderStyle", "SOLID") == mode, onClick = { updateStyleExtra("borderStyle", mode) }, label = { Text(mode) })
+                                FilterChip(selected = styleExtras.optString("borderStyle", "SOLID") == mode, onClick = { updateStyleExtraString("borderStyle", mode) }, label = { Text(mode) })
                             }
                         }
                         if (styleExtras.optString("borderStyle", "SOLID") == "GRADIENT") {
@@ -2831,7 +2837,7 @@ fun ElementInspectorDialog(
                             ColorSwatchRow(
                                 selectedColorHex = styleExtras.optLong("borderGradientEndHex", edited.borderColorHex),
                                 colors = StudioNeutralAndAccentSwatches,
-                                onSelect = { updateStyleExtra("borderGradientEndHex", it) },
+                                onSelect = { updateStyleExtraLong("borderGradientEndHex", it) },
                                 tagPrefix = "inspector_border_gradient",
                             )
                         }
