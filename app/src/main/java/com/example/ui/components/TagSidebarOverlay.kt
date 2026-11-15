@@ -1942,7 +1942,7 @@ private fun FolderPopupModal(
                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onLaunchApp(app) }.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                AppIconView(app, appDiscovery, popupIconSizeDp, iconShapeKey)
+                                AppIconView(app, appDiscovery, popupIconSizeDp.dp, iconShapeKey)
                                 Spacer(Modifier.width(12.dp))
                                 Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
