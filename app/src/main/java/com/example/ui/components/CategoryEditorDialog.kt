@@ -370,6 +370,37 @@ fun CategoryEditorDialog(
                 }
 
                 HorizontalDivider()
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Open-State Category Icon", style = MaterialTheme.typography.labelLarge)
+                        Text("Use a different badge while this category is open.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = openIconStateEnabled, onCheckedChange = { openIconStateEnabled = it })
+                }
+                if (openIconStateEnabled) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { openIconFilePicker.launch(arrayOf("image/*", "image/svg+xml")) }) { Text("Choose open icon") }
+                        if (openCustomIconPath != null) TextButton(onClick = { openCustomIconPath = null }) { Text("Clear image") }
+                    }
+                    OutlinedTextField(value = openCustomEmoji, onValueChange = { openCustomEmoji = it.take(4); if (it.isNotBlank()) openCustomIconPath = null }, label = { Text("Open-state emoji (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Text("Open-state icon", style = MaterialTheme.typography.labelMedium)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(TagIconCatalog) { opt ->
+                            val selected = openCustomIconPath == null && openCustomEmoji.isBlank() && openIconKey == opt.key
+                            Surface(shape = RoundedCornerShape(10.dp), color = if (selected) Color(openColorHex).copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, if (selected) Color(openColorHex) else Color.Transparent), modifier = Modifier.clickable { openIconKey = opt.key; openCustomIconPath = null; openCustomEmoji = "" }) {
+                                Icon(opt.icon, contentDescription = opt.label, modifier = Modifier.padding(8.dp).size(20.dp))
+                            }
+                        }
+                    }
+                    Text("Open-state accent", style = MaterialTheme.typography.labelMedium)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(TagPresetColors) { color -> ColorSwatchCircle(colorHex = color, selected = color == openColorHex, onClick = { openColorHex = color }) } }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        CategoryBadgeIcon(preview, size = 36.dp, isOpen = true)
+                        Text("Preview while category is open", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
+                HorizontalDivider()
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
