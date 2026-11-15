@@ -4,6 +4,8 @@ import com.example.data.db.AppCategoryCrossRef
 import com.example.data.db.AppWithTags
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
@@ -51,6 +53,8 @@ data class LauncherUiState(
     val gestures: Map<String, GestureBindingEntity> = emptyMap(),
     val imageResources: List<ImageResourceEntity> = emptyList(),
     val backgroundPresets: List<BackgroundPresetEntity> = emptyList(),
+    val customFonts: List<CustomFontEntity> = emptyList(),
+    val themeProfiles: List<ThemeProfileEntity> = emptyList(),
     val settings: LauncherSettings = LauncherSettings(),
     val installedIconPacks: List<InstalledIconPack> = emptyList(),
     val isDefaultLauncher: Boolean = false,
