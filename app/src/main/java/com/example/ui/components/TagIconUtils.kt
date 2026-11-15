@@ -205,7 +205,7 @@ fun CategoryBadgeIcon(
     ) else category
     val context = LocalContext.current
     val iconStyle = LocalIconStyleConfig.current
-    val accent = Color(displayCategory.colorHex)
+    val accent by animateColorAsState(Color(displayCategory.colorHex), label = "category badge accent")
     val storedBg = Color(displayCategory.backgroundColorHex)
     val bg = if (displayCategory.backgroundType != "INHERIT" || storedBg.alpha > 0.45f) {
         accent.copy(alpha = 0.22f)
