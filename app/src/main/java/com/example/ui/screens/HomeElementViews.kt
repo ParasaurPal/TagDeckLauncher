@@ -719,8 +719,12 @@ fun HomeElementBody(
                                     }
                                 }
                             }
-                            "STACK" -> Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                previewApps.take(4).forEach { app -> AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape) }
+                            "STACK" -> Box(modifier = Modifier.fillMaxWidth().height(38.dp)) {
+                                previewApps.take(4).forEachIndexed { index, app ->
+                                    Box(modifier = Modifier.offset(x = (index * 18).dp)) {
+                                        AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape)
+                                    }
+                                }
                             }
                             else -> {
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
