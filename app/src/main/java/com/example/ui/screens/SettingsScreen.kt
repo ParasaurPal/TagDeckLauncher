@@ -270,11 +270,6 @@ fun SettingsScreen(
     val hasNotificationAccess = remember(permissionRefresh) { NotificationAccess.isEnabled(context) }
     val scope = rememberCoroutineScope()
     val settingsDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var selectedSectionId by remember { mutableStateOf<String?>(null) }
-    val visibleSections = remember(matchingSections, selectedSectionId) {
-        if (selectedSectionId == null) matchingSections
-        else matchingSections.filterKeys { it == selectedSectionId }
-    }
     val s = state.settings
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
     LaunchedEffect(initialSearchQuery) {
@@ -285,6 +280,11 @@ fun SettingsScreen(
     }
     val matchingSections = remember(searchQuery) {
         LauncherSettingsCatalog.filterSections(searchQuery)
+    }
+    var selectedSectionId by remember { mutableStateOf<String?>(null) }
+    val visibleSections = remember(matchingSections, selectedSectionId) {
+        if (selectedSectionId == null) matchingSections
+        else matchingSections.filterKeys { it == selectedSectionId }
     }
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
