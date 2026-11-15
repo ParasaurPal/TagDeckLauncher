@@ -2522,7 +2522,7 @@ fun ElementInspectorDialog(
                             Slider(value = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat().coerceIn(0.1f, 3f), onValueChange = { updateStyleExtra("textOutlineWidth", it.toDouble()) }, valueRange = 0.1f..3f)
                             Text("Outline Color")
                             ColorSwatchRow(
-                                selectedColorHex = styleExtras.optLong("textOutlineColorHex", 0xFF000000L),
+                                selectedColorHex = styleExtras.optLong("textOutlineColorHex", state.settings.textOutlineColorHex),
                                 colors = StudioNeutralAndAccentSwatches,
                                 onSelect = { color -> updateStyleExtraLong("textOutlineColorHex", color) },
                                 tagPrefix = "inspector_text_outline",
