@@ -111,6 +111,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
+import org.json.JSONObject
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
@@ -175,6 +177,8 @@ fun SettingsScreen(
     onDeleteBackgroundPreset: (Long) -> Unit,
     onSaveCustomFont: (CustomFontEntity) -> Unit = {},
     onDeleteCustomFont: (Long) -> Unit = {},
+    onSaveThemeProfile: (ThemeProfileEntity) -> Unit = {},
+    onDeleteThemeProfile: (Long) -> Unit = {},
     onExportBackupJson: suspend () -> String,
     onImportBackupJson: (String) -> Unit,
     onShowMessage: (String) -> Unit,
@@ -223,6 +227,7 @@ fun SettingsScreen(
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
+    var newThemeProfileName by remember { mutableStateOf("") }
 
     val customFontPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
