@@ -164,6 +164,9 @@ object LauncherSettingsCatalog {
                 entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Labels & Home Banner", "Show bottom dock search bar, quick tag strip, shortcut labels, banner", listOf("dock", "search bar", "tag strip", "labels", "banner")),
                 entry("layout_lock", SECTION_HOME_CANVAS, "Lock Entire Home Layout", "Prevent accidental moves or edits across all home pages", listOf("lock", "freeze", "protect")),
                 entry("grid_snap", SECTION_HOME_CANVAS, "Grid Snap, Edit Grid Lines & Alignment Guides", "Toggle grid snap, snap step (dp), edit grid overlay, magnetic guides", listOf("grid", "snap", "step", "guidelines", "magnetic", "alignment")),
+                entry("object_layers", SECTION_HOME_CANVAS, "Layer Manager & Format Painter", "Reorder, hide, lock, and inspect objects; copy visual styling between objects", listOf("layers", "z index", "visibility", "format painter", "copy style", "paste style")),
+                entry("object_transforms", SECTION_HOME_CANVAS, "3D Object Transforms & Pinning", "Control X/Y/Z rotation, perspective, independent corner radii, glow, and viewport pinning", listOf("3d", "perspective", "rotation", "glow", "corner radius", "pin", "sticky")),
+                entry("nested_objects", SECTION_HOME_CANVAS, "Widget Stacks & Nested Containers", "Combine existing objects into swipeable stacks and place objects inside nested containers", listOf("widget stack", "stack", "container", "nested", "group", "scrollable container")),
             ),
         ),
         section(
@@ -171,7 +174,7 @@ object LauncherSettingsCatalog {
             title = "Page Indicators & Edge Handles",
             keywords = listOf("pages", "transitions", "dots", "handles"),
             entries = listOf(
-                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition & Indicator Style", "Slide, Depth, or Fade transitions; Dots, Pill, Numbers, or Hidden", listOf("transition", "depth", "fade", "slide", "indicator", "dots", "pill", "numbers")),
+                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition & Indicator Style", "Slide, Depth, Fade, Zoom, Cube, Flip, Rotate, and Parallax transitions; per-page timing and loop options", listOf("transition", "depth", "fade", "slide", "zoom", "cube", "flip", "rotate", "parallax", "loop", "indicator", "dots", "pill", "numbers")),
                 entry("edge_handles", SECTION_INDICATORS_HANDLES, "Edge Sidebar Handles", "Toggle edge handles and customize opacity, thickness, and length", listOf("edge handle", "sidebar handle", "thickness", "length")),
             ),
         ),
