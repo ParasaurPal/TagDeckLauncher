@@ -301,6 +301,14 @@ fun HomeScreen(
                         onToggleMultiSelectMode = { multiSelectActive = !multiSelectActive },
                         onDeleteMulti = onDeleteMultiSelected,
                         onLockMulti = onLockMultiSelected,
+                        onGroupMulti = {
+                            val groupId = "group_" + System.currentTimeMillis()
+                            state.homeElements.filter { it.elementId in state.multiSelectedIds }.forEach { onSaveElement(it.copy(groupId = groupId), true) }
+                        },
+                        onUngroupMulti = {
+                            val groupIds = state.homeElements.filter { it.elementId in state.multiSelectedIds }.mapNotNull { it.groupId }.toSet()
+                            state.homeElements.filter { it.groupId in groupIds }.forEach { onSaveElement(it.copy(groupId = null), true) }
+                        },
                         onPaste = { onPasteElement(currentPage.pageId) },
                         onAddElement = { showAddElementDialog = true },
                         onOpenWidgets = { showWidgetPicker = true },
@@ -1067,6 +1075,8 @@ private fun StudioEditToolbar(
     onToggleMultiSelectMode: () -> Unit,
     onDeleteMulti: () -> Unit,
     onLockMulti: () -> Unit,
+    onGroupMulti: () -> Unit = {},
+    onUngroupMulti: () -> Unit = {},
     onPaste: () -> Unit,
     onAddElement: () -> Unit,
     onOpenWidgets: () -> Unit,
@@ -1276,6 +1286,10 @@ private fun StudioEditToolbar(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("$multiSelectCount selected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                    if (multiSelectCount > 1) {
+                        AssistChip(onClick = onGroupMulti, label = { Text("Group") })
+                        AssistChip(onClick = onUngroupMulti, label = { Text("Ungroup") })
+                    }
                     AssistChip(onClick = onLockMulti, leadingIcon = { Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp)) }, label = { Text("Lock") })
                     AssistChip(onClick = onDeleteMulti, leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(16.dp)) }, label = { Text("Delete") })
                 }
