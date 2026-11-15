@@ -2284,6 +2284,34 @@ private fun GestureBindingDialog(
                         }
                     }
                 }
+                if (actionType == "MACRO") {
+                    HorizontalDivider()
+                    Text("Macro Steps", style = MaterialTheme.typography.labelLarge)
+                    Text("Actions run in order. Each step can wait up to five seconds before the next action.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        macroSteps.forEachIndexed { index, step ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box {
+                                    TextButton(onClick = { expandedMacroStep = index }) { Text(step.actionType.replace('_', ' '), maxLines = 1) }
+                                    DropdownMenu(expanded = expandedMacroStep == index, onDismissRequest = { expandedMacroStep = -1 }) {
+                                        MacroStepActionOptions.forEach { action ->
+                                            DropdownMenuItem(
+                                                text = { Text(action.replace('_', ' ')) },
+                                                onClick = { macroSteps[index] = step.copy(actionType = action); expandedMacroStep = -1 },
+                                            )
+                                        }
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Wait: ${step.delayMs}ms", style = MaterialTheme.typography.labelSmall)
+                                    Slider(value = step.delayMs.toFloat(), onValueChange = { macroSteps[index] = step.copy(delayMs = it.toLong()) }, valueRange = 0f..5000f, steps = 9)
+                                }
+                                TextButton(onClick = { macroSteps.removeAt(index) }) { Text("Remove") }
+                            }
+                        }
+                    }
+                    OutlinedButton(onClick = { macroSteps.add(MacroStepDraft()) }, modifier = Modifier.fillMaxWidth()) { Text("Add Macro Step") }
+                }
             }
         },
         confirmButton = {
@@ -2297,6 +2325,11 @@ private fun GestureBindingDialog(
                         targetSidebarId = targetSidebarId,
                         targetWindowId = targetWindowId,
                         targetRuleId = targetRuleId,
+                        macroStepsJson = if (actionType == "MACRO") JSONArray().apply {
+                            macroSteps.forEach { step ->
+                                put(JSONObject().put("actionType", step.actionType).put("delayMs", step.delayMs))
+                            }
+                        }.toString() else null,
                     )
                 )
             }) { Text("Save") }
