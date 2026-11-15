@@ -203,6 +203,7 @@ fun HomeScreen(
     var showFeedWidgetPicker by remember { mutableStateOf(false) }
     var showStyleDialog by remember { mutableStateOf(false) }
     var inspectingElement by remember { mutableStateOf<HomeElementEntity?>(null) }
+    var styleClipboard by remember { mutableStateOf<HomeElementEntity?>(null) }
     var multiSelectActive by remember { mutableStateOf(false) }
 
     BackHandler(enabled = state.isEditMode) {
@@ -1005,6 +1006,8 @@ val page = visiblePages[pageIdx]
                 inspectingElement = null
             },
             onDismiss = { inspectingElement = null },
+            styleToPaste = styleClipboard,
+            onCopyStyle = { styleClipboard = it },
         )
     }
 
