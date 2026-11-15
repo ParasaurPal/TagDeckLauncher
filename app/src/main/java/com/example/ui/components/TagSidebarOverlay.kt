@@ -104,7 +104,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONObject
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.db.AppEntity
 import com.example.data.db.CategoryEntity
