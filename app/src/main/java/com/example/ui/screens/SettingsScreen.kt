@@ -689,8 +689,6 @@ fun SettingsScreen(
                             .put("statusStripAccentColorHex", s.statusStripAccentColorHex)
                             .put("widgetFeedEnabled", s.widgetFeedEnabled)
                             .put("widgetFeedTitleColor", s.widgetFeedTitleColor)
-                            .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
-                            .put("surfaceOpacity", s.surfaceOpacity.toDouble())
                             .put("allAppsBgBlurDp", s.allAppsBgBlurDp.toDouble())
                             .put("allAppsBgImagePath", s.allAppsBgImagePath ?: "")
                             .put("niagaraWaveEnabled", s.niagaraWaveEnabled)
