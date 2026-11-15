@@ -109,6 +109,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -304,7 +305,23 @@ fun HomeElementBody(
     val gradBrush = bgGradEnd?.let { endHex ->
         Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
     }
-    val border: BorderStroke? = if (element.borderWidthDp > 0.05f) BorderStroke(element.borderWidthDp.coerceIn(0f, 8f).dp, Color(element.borderColorHex)) else null
+    val customBorderStyle = styleExtras.optString("borderStyle", "SOLID")
+    val customBorderGradientEnd = Color(styleExtras.optLong("borderGradientEndHex", element.backgroundGradientEndHex ?: element.borderColorHex))
+    val border: BorderStroke? = if (element.borderWidthDp > 0.05f && customBorderStyle == "SOLID") BorderStroke(element.borderWidthDp.coerceIn(0f, 8f).dp, Color(element.borderColorHex)) else null
+    val customBorderModifier = if (element.borderWidthDp > 0.05f && customBorderStyle in setOf("DASHED", "GRADIENT")) {
+        Modifier.drawBehind {
+            val width = element.borderWidthDp.coerceIn(0f, 8f).dp.toPx()
+            val brush = if (customBorderStyle == "GRADIENT") Brush.linearGradient(listOf(Color(element.borderColorHex), customBorderGradientEnd)) else Brush.linearGradient(listOf(Color(element.borderColorHex), Color(element.borderColorHex)))
+            val pathEffect = if (customBorderStyle == "DASHED") PathEffect.dashPathEffect(floatArrayOf(12.dp.toPx(), 7.dp.toPx())) else null
+            drawRoundRect(
+                brush = brush,
+                topLeft = androidx.compose.ui.geometry.Offset(width / 2f, width / 2f),
+                size = androidx.compose.ui.geometry.Size(size.width - width, size.height - width),
+                cornerRadius = CornerRadius((element.cornerRadiusDp.dp.toPx() - width / 2f).coerceAtLeast(0f)),
+                style = Stroke(width = width, pathEffect = pathEffect),
+            )
+        }
+    } else Modifier
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
@@ -342,6 +359,7 @@ fun HomeElementBody(
         modifier = Modifier
             .fillMaxSize()
             .then(if (glowRadiusDp > 0.1f) Modifier.shadow(glowRadiusDp.dp, shape, ambientColor = glowColor, spotColor = glowColor) else Modifier)
+            .then(customBorderModifier)
             .then(gestureMod),
         shape = shape,
         color = bg,
@@ -2694,6 +2712,21 @@ fun ElementInspectorDialog(
                             modifier = Modifier.testTag("inspector_border_width_slider"),
                         )
 
+                        Text("Border Style", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("SOLID", "DASHED", "GRADIENT").forEach { mode ->
+                                FilterChip(selected = styleExtras.optString("borderStyle", "SOLID") == mode, onClick = { updateStyleExtra("borderStyle", mode) }, label = { Text(mode) })
+                            }
+                        }
+                        if (styleExtras.optString("borderStyle", "SOLID") == "GRADIENT") {
+                            Text("Border Gradient End Color", style = MaterialTheme.typography.labelMedium)
+                            ColorSwatchRow(
+                                selectedColorHex = styleExtras.optLong("borderGradientEndHex", edited.borderColorHex),
+                                colors = StudioNeutralAndAccentSwatches,
+                                onSelect = { updateStyleExtra("borderGradientEndHex", it) },
+                                tagPrefix = "inspector_border_gradient",
+                            )
+                        }
                         Text("Border Color", style = MaterialTheme.typography.labelLarge)
                         ColorSwatchRow(
                             selectedColorHex = edited.borderColorHex,
