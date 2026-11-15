@@ -198,9 +198,9 @@ fun CategoryBadgeIcon(
     isOpen: Boolean = false,
 ) {
     val displayCategory = if (isOpen && category.iconOpenStateEnabled) category.copy(
-        iconKey = category.openIconKey ?: displayCategory.iconKey,
-        customIconPath = category.openCustomIconPath ?: displayCategory.customIconPath,
-        customEmoji = category.openCustomEmoji ?: displayCategory.customEmoji,
+        iconKey = category.openIconKey ?: category.iconKey,
+        customIconPath = category.openCustomIconPath ?: category.customIconPath,
+        customEmoji = category.openCustomEmoji ?: category.customEmoji,
         colorHex = category.openColorHex ?: category.colorHex,
     ) else category
     val context = LocalContext.current
