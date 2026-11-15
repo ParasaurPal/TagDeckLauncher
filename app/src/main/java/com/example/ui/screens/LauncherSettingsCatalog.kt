@@ -19,6 +19,7 @@ data class SettingsSectionSpec(
 object LauncherSettingsCatalog {
 
     const val SECTION_MANAGE = "manage"
+    const val SECTION_CATEGORY_ICONS = "category_icons"
     const val SECTION_DEFAULT_HOME = "default_home"
     const val SECTION_MEDIA = "media"
     const val SECTION_THEME_TYPOGRAPHY = "theme_typography"
@@ -46,6 +47,14 @@ object LauncherSettingsCatalog {
                 entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, smart rules, and open-state category icons", listOf("tag", "category", "rules", "collections", "open icon", "active icon", "category icon")),
                 entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename, hide, lock apps behind device authentication, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "lock", "app lock", "device authentication", "custom icon", "manager", "work profile", "managed apps", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
+            ),
+        ),
+        section(
+            id = SECTION_CATEGORY_ICONS,
+            title = "Category Icons & Open States",
+            keywords = listOf("category icons", "open state", "active badge", "emoji", "custom icon"),
+            entries = listOf(
+                entry("category_icon_studio", SECTION_CATEGORY_ICONS, "Category Icon Studio", "Choose custom icons, emoji, accent colors, and alternate badges for open categories", listOf("category icon", "active icon", "open icon", "emoji", "custom image")),
             ),
         ),
         section(
