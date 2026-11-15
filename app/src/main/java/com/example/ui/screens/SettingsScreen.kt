@@ -1554,6 +1554,18 @@ fun SettingsScreen(
                     ToggleRow("Show Search Bar in Drawer", s.drawerSearchBarVisible) { v ->
                         onUpdateSettings { it.copy(drawerSearchBarVisible = v) }
                     }
+                    Text("Search Bar Position", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("TOP", "BOTTOM").forEach { position ->
+                            FilterChip(selected = s.drawerSearchBarPosition == position, onClick = { onUpdateSettings { it.copy(drawerSearchBarPosition = position) } }, label = { Text(position) })
+                        }
+                    }
+                    Text("App Card Shadow: ${s.drawerCardShadowDp.roundToInt()}dp")
+                    Slider(value = s.drawerCardShadowDp, onValueChange = { v -> onUpdateSettings { it.copy(drawerCardShadowDp = v) } }, valueRange = 0f..20f)
+                    Text("App Card Border: ${"%.1f".format(s.drawerCardBorderWidthDp)}dp")
+                    Slider(value = s.drawerCardBorderWidthDp, onValueChange = { v -> onUpdateSettings { it.copy(drawerCardBorderWidthDp = v) } }, valueRange = 0f..4f)
+                    Text("App Card Border Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(selectedColorHex = s.drawerCardBorderColorHex, colors = TagPresetColors, onSelect = { c -> onUpdateSettings { it.copy(drawerCardBorderColorHex = c) } }, tagPrefix = "settings_drawer_card_border")
 
                     Text("Background Style", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1683,6 +1695,10 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(niagaraSelectedFontSp = v) } },
                         valueRange = 16f..34f,
                     )
+                    Text("Alphabet Rail Width: ${s.niagaraIndexWidthDp.roundToInt()}dp")
+                    Slider(value = s.niagaraIndexWidthDp, onValueChange = { v -> onUpdateSettings { it.copy(niagaraIndexWidthDp = v) } }, valueRange = 18f..48f)
+                    Text("Alphabet Letter Color", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(selectedColorHex = s.niagaraIndexColorHex, colors = TagPresetColors, onSelect = { c -> onUpdateSettings { it.copy(niagaraIndexColorHex = c) } }, tagPrefix = "settings_niagara_index_color")
                     Text("Wave Accent Color", style = MaterialTheme.typography.labelLarge)
                     ColorSwatchRow(
                         selectedColorHex = s.niagaraAccentColorHex,
@@ -1827,6 +1843,24 @@ fun SettingsScreen(
                             onSelect = { c -> onUpdateSettings { it.copy(pageIndicatorColorHex = c) } },
                             tagPrefix = "settings_indicator_color",
                         )
+                    }
+
+                    if (s.pageIndicatorStyle != "HIDDEN") {
+                        Text("Inactive Dot Size: ${s.pageIndicatorSizeDp.roundToInt()}dp")
+                        Slider(value = s.pageIndicatorSizeDp, onValueChange = { v -> onUpdateSettings { it.copy(pageIndicatorSizeDp = v) } }, valueRange = 3f..16f)
+                        Text("Active Pill Width: ${s.pageIndicatorActiveWidthDp.roundToInt()}dp")
+                        Slider(value = s.pageIndicatorActiveWidthDp, onValueChange = { v -> onUpdateSettings { it.copy(pageIndicatorActiveWidthDp = v) } }, valueRange = 10f..48f)
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    ToggleRow("Show Custom Status Strip", s.statusStripEnabled) { v ->
+                        onUpdateSettings { it.copy(statusStripEnabled = v) }
+                    }
+                    if (s.statusStripEnabled) {
+                        ToggleRow("Show Date in Status Strip", s.statusStripShowDate) { v -> onUpdateSettings { it.copy(statusStripShowDate = v) } }
+                        ToggleRow("Show Battery in Status Strip", s.statusStripShowBattery) { v -> onUpdateSettings { it.copy(statusStripShowBattery = v) } }
+                        Text("Status Strip Accent", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(selectedColorHex = s.statusStripAccentColorHex, colors = TagPresetColors, onSelect = { c -> onUpdateSettings { it.copy(statusStripAccentColorHex = c) } }, tagPrefix = "settings_status_strip")
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
