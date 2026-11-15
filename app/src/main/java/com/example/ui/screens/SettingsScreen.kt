@@ -660,8 +660,19 @@ fun SettingsScreen(
                             .put("drawerCardOpacity", s.drawerCardOpacity.toDouble())
                             .put("drawerCornerRadiusDp", s.drawerCornerRadiusDp.toDouble())
                             .put("drawerSearchBarVisible", s.drawerSearchBarVisible)
+                            .put("drawerSearchBarPosition", s.drawerSearchBarPosition)
+                            .put("drawerCardShadowDp", s.drawerCardShadowDp.toDouble())
+                            .put("drawerCardBorderWidthDp", s.drawerCardBorderWidthDp.toDouble())
+                            .put("drawerCardBorderColorHex", s.drawerCardBorderColorHex)
                             .put("pageTransitionStyle", s.pageTransitionStyle)
                             .put("pageIndicatorStyle", s.pageIndicatorStyle)
+                            .put("pageIndicatorColorHex", s.pageIndicatorColorHex)
+                            .put("pageIndicatorSizeDp", s.pageIndicatorSizeDp.toDouble())
+                            .put("pageIndicatorActiveWidthDp", s.pageIndicatorActiveWidthDp.toDouble())
+                            .put("statusStripEnabled", s.statusStripEnabled)
+                            .put("statusStripShowDate", s.statusStripShowDate)
+                            .put("statusStripShowBattery", s.statusStripShowBattery)
+                            .put("statusStripAccentColorHex", s.statusStripAccentColorHex)
                             .put("widgetFeedEnabled", s.widgetFeedEnabled)
                             .put("widgetFeedTitleColor", s.widgetFeedTitleColor)
                             .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
@@ -675,6 +686,8 @@ fun SettingsScreen(
                             .put("niagaraBaseFontSp", s.niagaraBaseFontSp.toDouble())
                             .put("niagaraSelectedFontSp", s.niagaraSelectedFontSp.toDouble())
                             .put("niagaraAccentColorHex", s.niagaraAccentColorHex)
+                            .put("niagaraIndexWidthDp", s.niagaraIndexWidthDp.toDouble())
+                            .put("niagaraIndexColorHex", s.niagaraIndexColorHex)
                             .put("niagaraHapticFeedback", s.niagaraHapticFeedback)
                         onSaveThemeProfile(ThemeProfileEntity(name = newThemeProfileName.trim(), settingsJson = json.toString()))
                         newThemeProfileName = ""
@@ -728,8 +741,19 @@ fun SettingsScreen(
                                     drawerCardOpacity = json.optDouble("drawerCardOpacity", current.drawerCardOpacity.toDouble()).toFloat(),
                                     drawerCornerRadiusDp = json.optDouble("drawerCornerRadiusDp", current.drawerCornerRadiusDp.toDouble()).toFloat(),
                                     drawerSearchBarVisible = json.optBoolean("drawerSearchBarVisible", current.drawerSearchBarVisible),
+                                    drawerSearchBarPosition = json.optString("drawerSearchBarPosition", current.drawerSearchBarPosition),
+                                    drawerCardShadowDp = json.optDouble("drawerCardShadowDp", current.drawerCardShadowDp.toDouble()).toFloat(),
+                                    drawerCardBorderWidthDp = json.optDouble("drawerCardBorderWidthDp", current.drawerCardBorderWidthDp.toDouble()).toFloat(),
+                                    drawerCardBorderColorHex = json.optLong("drawerCardBorderColorHex", current.drawerCardBorderColorHex),
                                     pageTransitionStyle = json.optString("pageTransitionStyle", current.pageTransitionStyle),
                                     pageIndicatorStyle = json.optString("pageIndicatorStyle", current.pageIndicatorStyle),
+                                    pageIndicatorColorHex = json.optLong("pageIndicatorColorHex", current.pageIndicatorColorHex),
+                                    pageIndicatorSizeDp = json.optDouble("pageIndicatorSizeDp", current.pageIndicatorSizeDp.toDouble()).toFloat(),
+                                    pageIndicatorActiveWidthDp = json.optDouble("pageIndicatorActiveWidthDp", current.pageIndicatorActiveWidthDp.toDouble()).toFloat(),
+                                    statusStripEnabled = json.optBoolean("statusStripEnabled", current.statusStripEnabled),
+                                    statusStripShowDate = json.optBoolean("statusStripShowDate", current.statusStripShowDate),
+                                    statusStripShowBattery = json.optBoolean("statusStripShowBattery", current.statusStripShowBattery),
+                                    statusStripAccentColorHex = json.optLong("statusStripAccentColorHex", current.statusStripAccentColorHex),
                                     widgetFeedEnabled = json.optBoolean("widgetFeedEnabled", current.widgetFeedEnabled),
                                     widgetFeedTitleColor = json.optString("widgetFeedTitleColor", current.widgetFeedTitleColor),
                                     globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
@@ -746,6 +770,8 @@ fun SettingsScreen(
                                     niagaraBaseFontSp = json.optDouble("niagaraBaseFontSp", current.niagaraBaseFontSp.toDouble()).toFloat(),
                                     niagaraSelectedFontSp = json.optDouble("niagaraSelectedFontSp", current.niagaraSelectedFontSp.toDouble()).toFloat(),
                                     niagaraAccentColorHex = json.optLong("niagaraAccentColorHex", current.niagaraAccentColorHex),
+                                    niagaraIndexWidthDp = json.optDouble("niagaraIndexWidthDp", current.niagaraIndexWidthDp.toDouble()).toFloat(),
+                                    niagaraIndexColorHex = json.optLong("niagaraIndexColorHex", current.niagaraIndexColorHex),
                                     niagaraHapticFeedback = json.optBoolean("niagaraHapticFeedback", current.niagaraHapticFeedback),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
