@@ -111,6 +111,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -316,7 +317,8 @@ fun HomeElementBody(
     val customBorderGradientEnd = Color(styleExtras.optLong("borderGradientEndHex", element.backgroundGradientEndHex ?: element.borderColorHex))
     val border: BorderStroke? = if (element.borderWidthDp > 0.05f && customBorderStyle == "SOLID") BorderStroke(element.borderWidthDp.coerceIn(0f, 8f).dp, Color(element.borderColorHex)) else null
     val customBorderModifier = if (element.borderWidthDp > 0.05f && customBorderStyle in setOf("DASHED", "GRADIENT")) {
-        Modifier.drawBehind {
+        Modifier.drawWithContent {
+            drawContent()
             val width = element.borderWidthDp.coerceIn(0f, 8f).dp.toPx()
             val brush = if (customBorderStyle == "GRADIENT") Brush.linearGradient(listOf(Color(element.borderColorHex), customBorderGradientEnd)) else Brush.linearGradient(listOf(Color(element.borderColorHex), Color(element.borderColorHex)))
             val pathEffect = if (customBorderStyle == "DASHED") PathEffect.dashPathEffect(floatArrayOf(12.dp.toPx(), 7.dp.toPx())) else null
