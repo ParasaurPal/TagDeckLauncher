@@ -259,7 +259,7 @@ fun HomeElementBody(
         fontFamily = elementFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
         fontSize = elementFontSize.sp,
         fontWeight = elementFontWeight,
-        letterSpacing = styleExtras.optDouble("textLetterSpacingSp", state.settings.letterSpacingEm.toDouble()).toFloat().coerceIn(-1f, 4f).sp,
+        letterSpacing = styleExtras.optDouble("textLetterSpacingSp", (state.settings.letterSpacingEm * elementFontSize).toDouble()).toFloat().coerceIn(-1f, 4f).sp,
         lineHeight = (elementFontSize * styleExtras.optDouble("textLineHeightMultiplier", state.settings.lineHeightMultiplier.toDouble()).toFloat().coerceIn(0.8f, 2f)).sp,
     )
     val labelReadabilityModifier = Modifier
