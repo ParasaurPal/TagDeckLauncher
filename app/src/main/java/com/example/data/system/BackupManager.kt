@@ -751,6 +751,12 @@ object BackupManager {
         put("landscapeBackgroundImagePath", p.landscapeBackgroundImagePath ?: JSONObject.NULL)
         put("backgroundBlurDp", p.backgroundBlurDp.toDouble())
         put("backgroundAlpha", p.backgroundAlpha.toDouble())
+        put("pageTapActionJson", p.pageTapActionJson ?: JSONObject.NULL)
+        put("pageGesturesJson", p.pageGesturesJson ?: JSONObject.NULL)
+        put("transitionOverride", p.transitionOverride ?: JSONObject.NULL)
+        put("transitionDurationMs", p.transitionDurationMs)
+        put("loopNavigation", p.loopNavigation)
+        put("parallaxEnabled", p.parallaxEnabled)
     }
 
     private fun decodePage(o: JSONObject, idx: Int): HomePageEntity = HomePageEntity(
@@ -769,6 +775,12 @@ object BackupManager {
         landscapeBackgroundImagePath = o.optNullableString("landscapeBackgroundImagePath"),
         backgroundBlurDp = o.optDouble("backgroundBlurDp", 0.0).toFloat(),
         backgroundAlpha = o.optDouble("backgroundAlpha", 0.85).toFloat(),
+        pageTapActionJson = o.optNullableString("pageTapActionJson"),
+        pageGesturesJson = o.optNullableString("pageGesturesJson"),
+        transitionOverride = o.optNullableString("transitionOverride"),
+        transitionDurationMs = o.optInt("transitionDurationMs", 320),
+        loopNavigation = o.optBoolean("loopNavigation", false),
+        parallaxEnabled = o.optBoolean("parallaxEnabled", false),
     )
 
     private fun encodeElement(e: HomeElementEntity): JSONObject = JSONObject().apply {
@@ -795,6 +807,7 @@ object BackupManager {
         put("locked", e.locked)
         put("visible", e.visible)
         put("groupId", e.groupId ?: JSONObject.NULL)
+        put("parentContainerId", e.parentContainerId ?: JSONObject.NULL)
         put("label", e.label)
         put("targetPackageName", e.targetPackageName ?: JSONObject.NULL)
         put("targetTagId", e.targetTagId ?: JSONObject.NULL)
@@ -829,6 +842,16 @@ object BackupManager {
         put("fontSizeSp", e.fontSizeSp.toDouble())
         put("showLabel", e.showLabel)
         put("iconSizeDp", e.iconSizeDp.toDouble())
+        put("styleExtrasJson", e.styleExtrasJson)
+        put("rotationXDeg", e.rotationXDeg.toDouble())
+        put("rotationYDeg", e.rotationYDeg.toDouble())
+        put("perspective", e.perspective.toDouble())
+        put("widgetStackItemsJson", e.widgetStackItemsJson)
+        put("widgetStackIndex", e.widgetStackIndex)
+        put("widgetStackSwipeEnabled", e.widgetStackSwipeEnabled)
+        put("pinnedToViewport", e.pinnedToViewport)
+        put("pinEdge", e.pinEdge)
+        put("pinOffsetDp", e.pinOffsetDp.toDouble())
     }
 
     private fun decodeElement(o: JSONObject): HomeElementEntity = HomeElementEntity(
@@ -855,6 +878,7 @@ object BackupManager {
         locked = o.optBoolean("locked", false),
         visible = o.optBoolean("visible", true),
         groupId = o.optNullableString("groupId"),
+        parentContainerId = o.optNullableLong("parentContainerId"),
         label = o.optString("label", ""),
         targetPackageName = o.optNullableString("targetPackageName"),
         targetTagId = o.optNullableLong("targetTagId"),
@@ -889,6 +913,16 @@ object BackupManager {
         fontSizeSp = o.optDouble("fontSizeSp", 13.0).toFloat(),
         showLabel = o.optBoolean("showLabel", true),
         iconSizeDp = o.optDouble("iconSizeDp", 48.0).toFloat(),
+        styleExtrasJson = o.optString("styleExtrasJson", ""),
+        rotationXDeg = o.optDouble("rotationXDeg", 0.0).toFloat(),
+        rotationYDeg = o.optDouble("rotationYDeg", 0.0).toFloat(),
+        perspective = o.optDouble("perspective", 0.0).toFloat(),
+        widgetStackItemsJson = o.optString("widgetStackItemsJson", ""),
+        widgetStackIndex = o.optInt("widgetStackIndex", 0),
+        widgetStackSwipeEnabled = o.optBoolean("widgetStackSwipeEnabled", true),
+        pinnedToViewport = o.optBoolean("pinnedToViewport", false),
+        pinEdge = o.optString("pinEdge", "NONE"),
+        pinOffsetDp = o.optDouble("pinOffsetDp", 0.0).toFloat(),
     )
 
     private fun JSONObject.optNullableString(key: String): String? =
