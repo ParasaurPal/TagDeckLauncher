@@ -21,13 +21,15 @@ fun OutlinedLabelText(
     textAlign: androidx.compose.ui.text.style.TextAlign? = null,
     lineHeight: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     outlineEnabled: Boolean = false,
+    outlineColor: Color = Color.Black,
+    outlineWidth: Float = 0.5f,
 ) {
     val baseStyle = style.merge(TextStyle(color = color))
     androidx.compose.foundation.layout.Box(modifier = modifier) {
         if (outlineEnabled) {
             Text(
                 text = text,
-                style = baseStyle.copy(color = Color.Black, drawStyle = Stroke(width = 0.5f)),
+                style = baseStyle.copy(color = outlineColor, drawStyle = Stroke(width = outlineWidth.coerceIn(0.1f, 3f)),)
                 maxLines = maxLines,
                 overflow = overflow,
                 textAlign = textAlign,
