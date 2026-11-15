@@ -337,6 +337,10 @@ object BackupManager {
             put("drawerCardOpacity", s.drawerCardOpacity.toDouble())
             put("drawerCornerRadiusDp", s.drawerCornerRadiusDp.toDouble())
             put("drawerSearchBarVisible", s.drawerSearchBarVisible)
+            put("drawerSearchBarPosition", s.drawerSearchBarPosition)
+            put("drawerCardShadowDp", s.drawerCardShadowDp.toDouble())
+            put("drawerCardBorderWidthDp", s.drawerCardBorderWidthDp.toDouble())
+            put("drawerCardBorderColorHex", s.drawerCardBorderColorHex)
             put("niagaraWaveEnabled", s.niagaraWaveEnabled)
             put("niagaraIndexVisible", s.niagaraIndexVisible)
             put("niagaraEdge", s.niagaraEdge)
@@ -344,6 +348,8 @@ object BackupManager {
             put("niagaraBaseFontSp", s.niagaraBaseFontSp.toDouble())
             put("niagaraSelectedFontSp", s.niagaraSelectedFontSp.toDouble())
             put("niagaraAccentColorHex", s.niagaraAccentColorHex)
+            put("niagaraIndexWidthDp", s.niagaraIndexWidthDp.toDouble())
+            put("niagaraIndexColorHex", s.niagaraIndexColorHex)
             put("niagaraHapticFeedback", s.niagaraHapticFeedback)
             put("gridSnapEnabled", s.gridSnapEnabled)
             put("alignmentGuidesEnabled", s.alignmentGuidesEnabled)
@@ -356,6 +362,12 @@ object BackupManager {
             put("pageTransitionStyle", s.pageTransitionStyle)
             put("pageIndicatorStyle", s.pageIndicatorStyle)
             put("pageIndicatorColorHex", s.pageIndicatorColorHex)
+            put("pageIndicatorSizeDp", s.pageIndicatorSizeDp.toDouble())
+            put("pageIndicatorActiveWidthDp", s.pageIndicatorActiveWidthDp.toDouble())
+            put("statusStripEnabled", s.statusStripEnabled)
+            put("statusStripShowDate", s.statusStripShowDate)
+            put("statusStripShowBattery", s.statusStripShowBattery)
+            put("statusStripAccentColorHex", s.statusStripAccentColorHex)
             put("edgeHandlesVisible", s.edgeHandlesVisible)
             put("edgeHandleOpacity", s.edgeHandleOpacity.toDouble())
             put("edgeHandleWidthDp", s.edgeHandleWidthDp.toDouble())
@@ -717,6 +729,10 @@ object BackupManager {
             drawerCardOpacity = so.optDouble("drawerCardOpacity", 0.88).toFloat(),
             drawerCornerRadiusDp = so.optDouble("drawerCornerRadiusDp", 26.0).toFloat(),
             drawerSearchBarVisible = so.optBoolean("drawerSearchBarVisible", true),
+            drawerSearchBarPosition = so.optString("drawerSearchBarPosition", "TOP"),
+            drawerCardShadowDp = so.optDouble("drawerCardShadowDp", 4.0).toFloat(),
+            drawerCardBorderWidthDp = so.optDouble("drawerCardBorderWidthDp", 0.0).toFloat(),
+            drawerCardBorderColorHex = so.optLong("drawerCardBorderColorHex", 0x55FFFFFFL),
             niagaraWaveEnabled = so.optBoolean("niagaraWaveEnabled", true),
             niagaraIndexVisible = so.optBoolean("niagaraIndexVisible", true),
             niagaraEdge = so.optString("niagaraEdge", "RIGHT"),
@@ -724,6 +740,8 @@ object BackupManager {
             niagaraBaseFontSp = so.optDouble("niagaraBaseFontSp", 11.0).toFloat(),
             niagaraSelectedFontSp = so.optDouble("niagaraSelectedFontSp", 24.0).toFloat(),
             niagaraAccentColorHex = so.optLong("niagaraAccentColorHex", 0xFF38BDF8L),
+            niagaraIndexWidthDp = so.optDouble("niagaraIndexWidthDp", 28.0).toFloat(),
+            niagaraIndexColorHex = so.optLong("niagaraIndexColorHex", 0xFF38BDF8L),
             niagaraHapticFeedback = so.optBoolean("niagaraHapticFeedback", true),
             gridSnapEnabled = so.optBoolean("gridSnapEnabled", false),
             alignmentGuidesEnabled = so.optBoolean("alignmentGuidesEnabled", true),
@@ -736,6 +754,12 @@ object BackupManager {
             pageTransitionStyle = so.optString("pageTransitionStyle", "SLIDE"),
             pageIndicatorStyle = so.optString("pageIndicatorStyle", "DOTS"),
             pageIndicatorColorHex = so.optLong("pageIndicatorColorHex", 0xFF38BDF8L),
+            pageIndicatorSizeDp = so.optDouble("pageIndicatorSizeDp", 7.0).toFloat(),
+            pageIndicatorActiveWidthDp = so.optDouble("pageIndicatorActiveWidthDp", 22.0).toFloat(),
+            statusStripEnabled = so.optBoolean("statusStripEnabled", false),
+            statusStripShowDate = so.optBoolean("statusStripShowDate", true),
+            statusStripShowBattery = so.optBoolean("statusStripShowBattery", true),
+            statusStripAccentColorHex = so.optLong("statusStripAccentColorHex", 0xFF38BDF8L),
             edgeHandlesVisible = so.optBoolean("edgeHandlesVisible", true),
             edgeHandleOpacity = so.optDouble("edgeHandleOpacity", 0.45).toFloat(),
             edgeHandleWidthDp = so.optDouble("edgeHandleWidthDp", 4.0).toFloat(),
