@@ -286,6 +286,37 @@ fun SettingsScreen(
         if (selectedSectionId == null) matchingSections
         else matchingSections.filterKeys { it == selectedSectionId }
     }
+    val settingsSectionGroups = listOf(
+        "General & Management" to listOf(
+            LauncherSettingsCatalog.SECTION_MANAGE,
+            LauncherSettingsCatalog.SECTION_CATEGORY_ICONS,
+            LauncherSettingsCatalog.SECTION_DEFAULT_HOME,
+            LauncherSettingsCatalog.SECTION_MEDIA,
+        ),
+        "Appearance & Icons" to listOf(
+            LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY,
+            LauncherSettingsCatalog.SECTION_PALETTE_SURFACES,
+            LauncherSettingsCatalog.SECTION_WALLPAPER,
+            LauncherSettingsCatalog.SECTION_ICON_PACKS,
+            LauncherSettingsCatalog.SECTION_LINE_ICONS,
+            LauncherSettingsCatalog.SECTION_BLACK_ICONS,
+            LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS,
+        ),
+        "Home Screen & Navigation" to listOf(
+            LauncherSettingsCatalog.SECTION_HOME_CANVAS,
+            LauncherSettingsCatalog.SECTION_DRAWER,
+            LauncherSettingsCatalog.SECTION_NIAGARA,
+            LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES,
+        ),
+        "System & Interactions" to listOf(
+            LauncherSettingsCatalog.SECTION_SYSTEM_UI,
+            LauncherSettingsCatalog.SECTION_GESTURES,
+        ),
+        "Backup & Maintenance" to listOf(
+            LauncherSettingsCatalog.SECTION_BACKUP,
+            LauncherSettingsCatalog.SECTION_RESET,
+        ),
+    )
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showImageLibrary by remember { mutableStateOf(false) }
@@ -415,19 +446,30 @@ fun SettingsScreen(
                 }
                 HorizontalDivider()
                 LazyColumn(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 8.dp)) {
-                    items(LauncherSettingsCatalog.sections, key = { it.id }) { section ->
-                        val available = section.id in matchingSections &&
-                            (section.id != LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS || s.blackIconStyleEnabled)
-                        if (available) {
-                            NavigationDrawerItem(
-                                label = { Text(section.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                                selected = selectedSectionId == section.id,
-                                onClick = {
-                                    selectedSectionId = section.id
-                                    scope.launch { settingsDrawerState.close() }
-                                },
-                                modifier = Modifier.padding(horizontal = 10.dp).testTag("settings_nav_${section.id}"),
+                    items(settingsSectionGroups, key = { it.first }) { (groupTitle, sectionIds) ->
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                groupTitle,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 26.dp, top = 14.dp, bottom = 4.dp),
                             )
+                            sectionIds.forEach { sectionId ->
+                                val section = LauncherSettingsCatalog.sections.firstOrNull { it.id == sectionId }
+                                val available = section != null && section.id in matchingSections &&
+                                    (section.id != LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS || s.blackIconStyleEnabled)
+                                if (available && section != null) {
+                                    NavigationDrawerItem(
+                                        label = { Text(section.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                                        selected = selectedSectionId == section.id,
+                                        onClick = {
+                                            selectedSectionId = section.id
+                                            scope.launch { settingsDrawerState.close() }
+                                        },
+                                        modifier = Modifier.padding(horizontal = 10.dp).testTag("settings_nav_${section.id}"),
+                                    )
+                                }
+                            }
                         }
                     }
                     item {
