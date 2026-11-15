@@ -726,6 +726,23 @@ fun SettingsScreen(
                             .put("globalTextColorHex", s.globalTextColorHex)
                             .put("globalCornerRadiusDp", s.globalCornerRadiusDp.toDouble())
                             .put("globalIconShape", s.globalIconShape)
+                            .put("blackIconStyleEnabled", s.blackIconStyleEnabled)
+                            .put("blackIconMode", s.blackIconMode)
+                            .put("blackIconFillColorHex", s.blackIconFillColorHex)
+                            .put("blackIconOutlineColorHex", s.blackIconOutlineColorHex)
+                            .put("blackIconOutlineWidthDp", s.blackIconOutlineWidthDp.toDouble())
+                            .put("blackIconDarknessThreshold", s.blackIconDarknessThreshold.toDouble())
+                            .put("lineIconsEnabled", s.lineIconsEnabled)
+                            .put("lineIconDefaultColorHex", s.lineIconDefaultColorHex)
+                            .put("lineIconDefaultLineWidthPx", s.lineIconDefaultLineWidthPx.toDouble())
+                            .put("lineIconDefaultOutlineEnabled", s.lineIconDefaultOutlineEnabled)
+                            .put("lineIconDefaultOutlineColorHex", s.lineIconDefaultOutlineColorHex)
+                            .put("lineIconDefaultOutlineWidthPx", s.lineIconDefaultOutlineWidthPx.toDouble())
+                            .put("lineIconProfilesJson", s.lineIconProfilesJson)
+                            .put("showDockBar", s.showDockBar)
+                            .put("showTagStripOnHome", s.showTagStripOnHome)
+                            .put("showStatusBar", s.showStatusBar)
+                            .put("showNavBar", s.showNavBar)
                             .put("wallpaperType", s.wallpaperType)
                             .put("wallpaperCustomPath", s.wallpaperCustomPath ?: "")
                             .put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
@@ -825,6 +842,23 @@ fun SettingsScreen(
                                     globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
                                     globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
                                     globalIconShape = json.optString("globalIconShape", current.globalIconShape),
+                                    blackIconStyleEnabled = json.optBoolean("blackIconStyleEnabled", current.blackIconStyleEnabled),
+                                    blackIconMode = json.optString("blackIconMode", current.blackIconMode),
+                                    blackIconFillColorHex = json.optLong("blackIconFillColorHex", current.blackIconFillColorHex),
+                                    blackIconOutlineColorHex = json.optLong("blackIconOutlineColorHex", current.blackIconOutlineColorHex),
+                                    blackIconOutlineWidthDp = json.optDouble("blackIconOutlineWidthDp", current.blackIconOutlineWidthDp.toDouble()).toFloat(),
+                                    blackIconDarknessThreshold = json.optDouble("blackIconDarknessThreshold", current.blackIconDarknessThreshold.toDouble()).toFloat(),
+                                    lineIconsEnabled = json.optBoolean("lineIconsEnabled", current.lineIconsEnabled),
+                                    lineIconDefaultColorHex = json.optLong("lineIconDefaultColorHex", current.lineIconDefaultColorHex),
+                                    lineIconDefaultLineWidthPx = json.optDouble("lineIconDefaultLineWidthPx", current.lineIconDefaultLineWidthPx.toDouble()).toFloat(),
+                                    lineIconDefaultOutlineEnabled = json.optBoolean("lineIconDefaultOutlineEnabled", current.lineIconDefaultOutlineEnabled),
+                                    lineIconDefaultOutlineColorHex = json.optLong("lineIconDefaultOutlineColorHex", current.lineIconDefaultOutlineColorHex),
+                                    lineIconDefaultOutlineWidthPx = json.optDouble("lineIconDefaultOutlineWidthPx", current.lineIconDefaultOutlineWidthPx.toDouble()).toFloat(),
+                                    lineIconProfilesJson = json.optString("lineIconProfilesJson", current.lineIconProfilesJson),
+                                    showDockBar = json.optBoolean("showDockBar", current.showDockBar),
+                                    showTagStripOnHome = json.optBoolean("showTagStripOnHome", current.showTagStripOnHome),
+                                    showStatusBar = json.optBoolean("showStatusBar", current.showStatusBar),
+                                    showNavBar = json.optBoolean("showNavBar", current.showNavBar),
                                     wallpaperType = json.optString("wallpaperType", current.wallpaperType),
                                     wallpaperCustomPath = if (json.has("wallpaperCustomPath")) json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } else current.wallpaperCustomPath,
                                     wallpaperGradientStartHex = json.optLong("wallpaperGradientStartHex", current.wallpaperGradientStartHex),
