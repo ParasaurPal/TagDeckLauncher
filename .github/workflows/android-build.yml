@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: tagdeck-android-${{ github.ref }}
@@ -32,7 +32,10 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: platform-tools
+          packages: |
+            platform-tools
+            platforms;android-36.1
+            build-tools;36.1.0
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -40,70 +43,20 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Generate CI debug keystore for feature branches
-        if: github.ref != 'refs/heads/main'
+      - name: Generate CI debug keystore
         run: keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=TagDeck Debug,O=TagDeck,C=US"
 
       - name: Run unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
-      - name: Build debug APK on feature branches
-        if: github.ref != 'refs/heads/main'
+      - name: Build debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
 
-      - name: Restore permanent APK signing keystore
-        if: github.ref == 'refs/heads/main'
-        env:
-          TAGDECK_DEBUG_KEYSTORE_BASE64: ${{ secrets.TAGDECK_DEBUG_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$TAGDECK_DEBUG_KEYSTORE_BASE64" ]; then
-            echo "::error::Add the TAGDECK_DEBUG_KEYSTORE_BASE64 repository secret before building."
-            exit 1
-          fi
-          printf '%s' "$TAGDECK_DEBUG_KEYSTORE_BASE64" | base64 --decode > debug.keystore
-          test -s debug.keystore
-
-      - name: Verify permanent signing keystore
-        if: github.ref == 'refs/heads/main'
-        run: keytool -list -keystore debug.keystore -storepass android -alias androiddebugkey
-
-      - name: Build signed release APK
-        if: github.ref == 'refs/heads/main'
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore
-          STORE_PASSWORD: android
-          KEY_PASSWORD: android
-        run: ./gradlew --no-daemon :app:assembleRelease
-
-      - name: Rename APK to application name
-        if: github.ref == 'refs/heads/main'
-        run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/TagDeck.apk
-
-      - name: Package source code ZIP
-        if: github.ref == 'refs/heads/main'
-        run: git archive --format=zip --output=TagDeckLauncher-source.zip HEAD
-
-      - name: Upload build artifact
+      - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: TagDeckLauncher-${{ github.ref_name }}
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/TagDeck.apk
-            TagDeckLauncher-source.zip
-          if-no-files-found: ignore
+          name: TagDeckLauncher-${{ github.ref_name }}-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 14
-
-      - name: Publish latest APK and source ZIP downloads
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: Latest TagDeckLauncher APK
-          body: "Automatically updated signed release APK and complete tracked source-code ZIP from the latest successful push to main."
-          files: |
-            app/build/outputs/apk/release/TagDeck.apk
-            TagDeckLauncher-source.zip
-          overwrite_files: true
-          make_latest: true
