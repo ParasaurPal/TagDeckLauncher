@@ -230,8 +230,20 @@ fun UniversalSearchOverlay(
             }
         }
 
-        val matchingQuickActions = remember(quickActions, tokens, q, activeScope) {
-            if (activeScope !in listOf("ALL", "SETTINGS") || q.isEmpty()) return@remember emptyList()
+        val hasMatchingLayoutResults = remember(state.windows, state.sidebars, state.homeElements, state.homePages, tokens, q, activeScope) {
+            if (q.isEmpty() || activeScope !in listOf("ALL", "LAYOUT")) return@remember false
+            state.windows.any { win -> tokens.all { it in "${win.title} window floating".lowercase() } } ||
+                state.sidebars.any { sidebar -> tokens.all { it in "${sidebar.title} ${sidebar.side} sidebar".lowercase() } } ||
+                state.homeElements.any { element ->
+                    element.type != "FOLDER" && tokens.all {
+                        it in "${element.label} ${element.type.lowercase().replace('_', ' ')} ${element.targetPackageName.orEmpty()}".lowercase()
+                    }
+                } ||
+                state.homePages.any { page -> tokens.all { it in "${page.title} page".lowercase() } }
+        }
+
+        val matchingQuickActions = remember(quickActions, tokens, q, activeScope, hasMatchingLayoutResults) {
+            if (activeScope !in listOf("ALL", "SETTINGS") || q.isEmpty() || hasMatchingLayoutResults) return@remember emptyList()
             quickActions.filter { act ->
                 val hay = (act.title + " " + act.subtitle + " " + act.keywords.joinToString(" ")).lowercase()
                 tokens.all { hay.contains(it) }
