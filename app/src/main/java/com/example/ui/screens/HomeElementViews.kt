@@ -2515,6 +2515,8 @@ fun LayerManagerDialog(
     onUpdate: (HomeElementEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var renamingElementId by remember { mutableStateOf<Long?>(null) }
+    var renameValue by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Layer Manager") },
@@ -2523,22 +2525,36 @@ fun LayerManagerDialog(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Select a layer to inspect it. Adjust stacking order, visibility, and locks without hunting for objects on the canvas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Select a layer to inspect it. Rename, reorder, hide, or lock tiny and overlapping objects from one list.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 elements.sortedByDescending { it.zIndex }.forEach { element ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelect(element.elementId) }.padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(element.label.ifBlank { element.type.replace('_', ' ') }, maxLines = 1, style = MaterialTheme.typography.bodyMedium)
-                            Text("Layer ${element.zIndex}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { onSelect(element.elementId) }.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(element.label.ifBlank { element.type.replace('_', ' ') }, maxLines = 1, style = MaterialTheme.typography.bodyMedium)
+                                Text("Layer ${element.zIndex}${if (element.pinnedToViewport) " • Pinned" else ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            TextButton(onClick = { renamingElementId = element.elementId; renameValue = element.label.ifBlank { element.type.replace('_', ' ') } }) { Text("Name") }
+                            TextButton(onClick = { onUpdate(element.copy(zIndex = element.zIndex + 1)) }) { Text("↑") }
+                            TextButton(onClick = { onUpdate(element.copy(zIndex = (element.zIndex - 1).coerceAtLeast(0))) }) { Text("↓") }
+                            TextButton(onClick = { onUpdate(element.copy(locked = !element.locked)) }) { Text(if (element.locked) "Unlock" else "Lock") }
+                            Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
                         }
-                        TextButton(onClick = { onUpdate(element.copy(zIndex = element.zIndex + 1)) }) { Text("↑") }
-                        TextButton(onClick = { onUpdate(element.copy(zIndex = (element.zIndex - 1).coerceAtLeast(0))) }) { Text("↓") }
-                        Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
+                        if (renamingElementId == element.elementId) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedTextField(value = renameValue, onValueChange = { renameValue = it.take(48) }, singleLine = true, label = { Text("Layer name") }, modifier = Modifier.weight(1f))
+                                TextButton(onClick = {
+                                    onUpdate(element.copy(label = renameValue.trim()))
+                                    renamingElementId = null
+                                }, enabled = renameValue.isNotBlank()) { Text("Save") }
+                                TextButton(onClick = { renamingElementId = null }) { Text("Cancel") }
+                            }
+                        }
+                        HorizontalDivider()
                     }
-                    HorizontalDivider()
                 }
             }
         },
