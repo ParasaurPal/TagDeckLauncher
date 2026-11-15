@@ -826,7 +826,7 @@ class LauncherViewModel(
                 else it.pageId == element.pageId
         }
         val minZ = siblings.minOfOrNull { it.zIndex } ?: 0
-        saveHomeElement(element.copy(zIndex = (minZ - 1).coerceAtLeast(0)))
+        saveHomeElement(element.copy(zIndex = minZ - 1))
     }
 
     // --- SNAPSHOTS ---
