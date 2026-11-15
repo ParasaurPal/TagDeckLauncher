@@ -1315,6 +1315,24 @@ fun TagTriggeredSidebarContent(
 
             Spacer(Modifier.height(10.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            val switchableTags = allTags.filter { it.tagId != tag.tagId }
+            if (switchableTags.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().testTag("sidebar_tag_switcher"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 6.dp),
+                ) {
+                    items(switchableTags, key = { it.tagId }) { otherTag ->
+                        OutlinedButton(
+                            onClick = { onSwitchToTag(otherTag.tagId) },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.testTag("sidebar_switch_tag_${otherTag.tagId}"),
+                        ) {
+                            Text(otherTag.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(10.dp))
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
