@@ -109,6 +109,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -208,6 +210,28 @@ fun HomeElementBody(
     val textOutlineEnabled = styleExtras.optBoolean("textOutlineEnabled", false)
     val textOutlineColor = Color(styleExtras.optLong("textOutlineColorHex", 0xFF000000L))
     val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat()
+    val customFontId = styleExtras.optLong("customFontId", -1L)
+    val elementFontFamily = remember(customFontId, state.customFonts) {
+        state.customFonts.firstOrNull { it.fontId == customFontId }?.localPath
+            ?.let { path -> runCatching { File(path).takeIf { it.isFile }?.let { FontFamily(Font(file = it)) } }.getOrNull() }
+    }
+    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f))
+    val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", false)) FontWeight.Bold else FontWeight.SemiBold
+    val elementTextColor = if (styleExtras.optBoolean("textAutoContrast", false) && Color(element.backgroundColorHex).alpha > 0.05f) {
+        val bgColor = Color(element.backgroundColorHex)
+        val luminance = bgColor.red * 0.299f + bgColor.green * 0.587f + bgColor.blue * 0.114f
+        if (luminance > 0.55f) Color(0xFF111111) else Color.White
+    } else Color(element.textColorHex)
+    val elementTextStyle = MaterialTheme.typography.bodyMedium.copy(
+        fontFamily = elementFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
+        fontSize = elementFontSize.sp,
+        fontWeight = elementFontWeight,
+        letterSpacing = styleExtras.optDouble("textLetterSpacingSp", 0.0).toFloat().coerceIn(-1f, 4f).sp,
+        lineHeight = (elementFontSize * styleExtras.optDouble("textLineHeightMultiplier", 1.25).toFloat().coerceIn(0.8f, 2f)).sp,
+    )
+    val labelReadabilityModifier = Modifier
+        .then(if (styleExtras.optBoolean("textShadowEnabled", false)) Modifier.shadow(styleExtras.optDouble("textShadowIntensity", 4.0).toFloat().coerceIn(0f, 18f).dp, RoundedCornerShape(8.dp)) else Modifier)
+        .then(if (styleExtras.optBoolean("labelBackdropEnabled", false)) Modifier.clip(RoundedCornerShape(8.dp)).background(Color(styleExtras.optLong("labelBackdropColorHex", 0x99000000L))) else Modifier)
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
     val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
@@ -310,7 +334,7 @@ fun HomeElementBody(
                             )
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text("${(gaugeValue * 100).roundToInt()}%", color = Color(element.textColorHex), fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.Bold)
+                            Text("${(gaugeValue * 100).roundToInt()}%", color = elementTextColor, style = elementTextStyle.copy(fontWeight = FontWeight.Bold))
                             Text(gaugeLabel, color = Color(element.textColorHex), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
@@ -456,9 +480,9 @@ fun HomeElementBody(
                         OutlinedLabelText(
                             text = resolvedText,
                             color = Color(element.textColorHex),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
+                            style = elementTextStyle,
                             textAlign = TextAlign.Center,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
+                            modifier = labelReadabilityModifier,
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
                             outlineEnabled = textOutlineEnabled,
@@ -474,8 +498,8 @@ fun HomeElementBody(
                             Text(
                                 text = resolveDynamicTokens(element.label, context),
                                 color = Color(element.textColorHex),
-                                fontSize = element.fontSizeSp.sp,
-                                modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                style = elementTextStyle,
+                                modifier = labelReadabilityModifier,
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -498,7 +522,7 @@ fun HomeElementBody(
                         OutlinedLabelText(
                             text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
                             color = Color(element.textColorHex),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.Bold),
+                            style = elementTextStyle.copy(fontWeight = FontWeight.Bold),
                             modifier = contrastLabelModifier(Color(element.textColorHex)),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -568,7 +592,7 @@ fun HomeElementBody(
                                 OutlinedLabelText(
                                     text = element.label.ifBlank { app.displayName },
                                     color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp),
+                                    style = elementTextStyle,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
