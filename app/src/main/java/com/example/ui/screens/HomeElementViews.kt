@@ -93,6 +93,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -135,7 +136,13 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private fun contrastLabelModifier(@Suppress("UNUSED_PARAMETER") textColor: Color): Modifier = Modifier
+private fun contrastLabelModifier(textColor: Color): Modifier {
+    val luminance = textColor.red * 0.299f + textColor.green * 0.587f + textColor.blue * 0.114f
+    val scrim = if (luminance > 0.55f) Color.Black.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.14f)
+    return Modifier.drawBehind {
+        drawRoundRect(color = scrim, cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()))
+    }
+}
 
 private fun resolveMaskShape(element: HomeElementEntity): Shape {
     val extras = runCatching { JSONObject(element.styleExtrasJson) }.getOrNull()
@@ -198,7 +205,7 @@ fun HomeElementBody(
     val gradBrush = bgGradEnd?.let { endHex ->
         Brush.verticalGradient(listOf(Color(element.backgroundColorHex), Color(endHex)))
     }
-    val border: BorderStroke? = null
+    val border: BorderStroke? = if (element.borderWidthDp > 0.05f) BorderStroke(element.borderWidthDp.coerceIn(0f, 8f).dp, Color(element.borderColorHex)) else null
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
