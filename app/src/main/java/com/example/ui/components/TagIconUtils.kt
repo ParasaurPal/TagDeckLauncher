@@ -230,6 +230,19 @@ fun CategoryBadgeIcon(
         else -> category.iconKey
     }
 
+    // If no custom open-state icon is configured, show the default open badge
+    // using the RGB inverse of the category accent for a clear open/closed distinction.
+    val hasCustomOpenIcon = !category.openIconKey.isNullOrBlank() ||
+        !category.openCustomIconPath.isNullOrBlank() || !category.openCustomEmoji.isNullOrBlank()
+    val iconAccent = if (isOpen && !hasCustomOpenIcon) {
+        Color(
+            red = 1f - accent.red,
+            green = 1f - accent.green,
+            blue = 1f - accent.blue,
+            alpha = accent.alpha,
+        )
+    } else iconAccent
+
     Box(
         modifier = Modifier
             .size(size)
@@ -272,7 +285,7 @@ fun CategoryBadgeIcon(
                     modifier = Modifier.size(size * vectorIconScale),
                 )
             }
-            iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
+            iconStyle.enabled && (isColorDark(iconAccent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
                 val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
                 OutlinedVectorIcon(
                     imageVector = tagIconVector(resolvedIconKey),
@@ -287,7 +300,7 @@ fun CategoryBadgeIcon(
                 Icon(
                     imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
-                    tint = accent,
+                    tint = iconAccent,
                     modifier = Modifier.size(size * vectorIconScale),
                 )
             }
