@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import android.content.Intent
 import android.net.Uri
+import java.io.File
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -109,6 +110,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
+import com.example.data.db.CustomFontEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.ImageResourceEntity
 import com.example.data.prefs.LauncherSettings
@@ -171,6 +173,8 @@ fun SettingsScreen(
     onDeleteImageResource: (ImageResourceEntity) -> Unit,
     onSaveBackgroundPreset: (BackgroundPresetEntity) -> Unit,
     onDeleteBackgroundPreset: (Long) -> Unit,
+    onSaveCustomFont: (CustomFontEntity) -> Unit = {},
+    onDeleteCustomFont: (Long) -> Unit = {},
     onExportBackupJson: suspend () -> String,
     onImportBackupJson: (String) -> Unit,
     onShowMessage: (String) -> Unit,
