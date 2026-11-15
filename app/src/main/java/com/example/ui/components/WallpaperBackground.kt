@@ -116,6 +116,7 @@ fun WallpaperBackground(
                 )
             }
         }
+        }
 
         // Global wallpaper dim overlay
         if (settings.wallpaperDimAlpha > 0.01f) {
