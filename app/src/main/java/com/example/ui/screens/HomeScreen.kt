@@ -191,7 +191,8 @@ fun HomeScreen(
 
     val activeTransitionDurationMs = visiblePages[logicalPageIndex(pagerState.currentPage)].transitionDurationMs
 
-    LaunchedEffect(pagerState.currentPage, visiblePages.size, loopPagerEnabled) {
+    LaunchedEffect(pagerState.currentPage, visiblePages.size, loopPagerEnabled, pagerState.isScrollInProgress) {
+        if (pagerState.isScrollInProgress) return@LaunchedEffect
         if (loopPagerEnabled && pagerState.currentPage == 0) {
             pagerState.scrollToPage(if (visiblePages.first().loopNavigation) visiblePages.size else 1)
         } else if (loopPagerEnabled && pagerState.currentPage == visiblePages.size + 1) {
