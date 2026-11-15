@@ -220,7 +220,7 @@ fun CategoryBadgeIcon(
             .background(bg),
         contentAlignment = Alignment.Center,
     ) {
-        Crossfade(targetState = animatedCategory, label = "category badge state") { animatedCategory ->
+        Crossfade(targetState = displayCategory, label = "category badge state") { animatedCategory ->
             when {
             !animatedCategory.customIconPath.isNullOrBlank() && File(animatedCategory.customIconPath).exists() -> {
                 val request = remember(animatedCategory.customIconPath, iconStyle) {
