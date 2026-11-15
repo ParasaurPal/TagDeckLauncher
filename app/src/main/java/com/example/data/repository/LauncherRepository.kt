@@ -643,6 +643,8 @@ class LauncherRepository(
             imageResources = imgs,
             embeddedImagesBase64 = embedded,
             backgroundPresets = dao.getBackgroundPresetsOnce(),
+            customFonts = dao.getCustomFontsOnce(),
+            themeProfiles = dao.getThemeProfilesOnce(),
             settings = prefsRepo.getSettingsOnce(),
         )
         return BackupManager.encodeFullBackup(payload)
@@ -673,6 +675,7 @@ class LauncherRepository(
                 payload.categories.map { cat ->
                     cat.copy(
                         customIconPath = cat.customIconPath?.let { remappedPaths[it] ?: it },
+                        openCustomIconPath = cat.openCustomIconPath?.let { remappedPaths[it] ?: it },
                         backgroundImagePath = cat.backgroundImagePath?.let { remappedPaths[it] ?: it },
                     )
                 }
@@ -740,6 +743,8 @@ class LauncherRepository(
             }
         }
         if (payload.gestures.isNotEmpty()) dao.upsertGestures(payload.gestures)
+        payload.customFonts.forEach { font -> dao.upsertCustomFont(font) }
+        payload.themeProfiles.forEach { profile -> dao.upsertThemeProfile(profile) }
         payload.backgroundPresets.forEach { preset ->
             dao.upsertBackgroundPreset(
                 preset.copy(
