@@ -682,7 +682,14 @@ fun HomeElementBody(
                 }
                 "WIDGET_STACK" -> {
                     val stackIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    val stackItems = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" } }
+                    val stackItemsUnsorted = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" } }
+                    val stackPriorityMode = styleExtras.optString("stackPriorityMode", "MANUAL")
+                    val stackItems = when (stackPriorityMode) {
+                        "MOST_USED" -> stackItemsUnsorted.sortedByDescending { item -> state.appsWithTags.firstOrNull { it.app.packageName == item.targetPackageName }?.app?.launchCount ?: 0 }
+                        "RECENT" -> stackItemsUnsorted.sortedByDescending { item -> state.appsWithTags.firstOrNull { it.app.packageName == item.targetPackageName }?.app?.lastLaunchedAt ?: 0L }
+                        "FAVORITES_FIRST" -> stackItemsUnsorted.sortedByDescending { item -> state.appsWithTags.firstOrNull { it.app.packageName == item.targetPackageName }?.app?.favorite == true }
+                        else -> stackItemsUnsorted
+                    }
                     val activeIndex = element.widgetStackIndex.coerceIn(0, (stackItems.size - 1).coerceAtLeast(0))
                     val activeItem = stackItems.getOrNull(activeIndex)
                     val stackAxis = styleExtras.optString("stackAxis", "HORIZONTAL")
@@ -2206,6 +2213,12 @@ fun ElementInspectorDialog(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("HORIZONTAL" to "Horizontal", "VERTICAL" to "Vertical").forEach { (key, label) ->
                                     FilterChip(selected = styleExtras.optString("stackAxis", "HORIZONTAL") == key, onClick = { updateStyleExtraString("stackAxis", key) }, label = { Text(label) })
+                                }
+                            }
+                            Text("Smart priority", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("MANUAL", "MOST_USED", "RECENT", "FAVORITES_FIRST").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("stackPriorityMode", "MANUAL") == mode, onClick = { updateStyleExtraString("stackPriorityMode", mode) }, label = { Text(mode.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }) })
                                 }
                             }
                             Text("Indicator style", style = MaterialTheme.typography.labelMedium)
