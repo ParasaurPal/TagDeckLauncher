@@ -172,6 +172,7 @@ fun HomeElementBody(
     onOpenWindow: (Long) -> Unit,
     onOpenFolder: (Long) -> Unit,
     onElementTrigger: (HomeElementEntity, String) -> Boolean,
+    onUpdateElement: (HomeElementEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val shape = resolveMaskShape(element)
@@ -254,6 +255,40 @@ fun HomeElementBody(
                 "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
                 "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
+                "WIDGET_STACK" -> {
+                    val stackIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
+                    val stackItems = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.type != "WIDGET_STACK" } }
+                    val activeIndex = element.widgetStackIndex.coerceIn(0, (stackItems.size - 1).coerceAtLeast(0))
+                    val activeItem = stackItems.getOrNull(activeIndex)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (activeItem != null) {
+                            HomeElementBody(
+                                element = activeItem.copy(widthDp = element.widthDp, heightDp = element.heightDp),
+                                state = state,
+                                appDiscovery = appDiscovery,
+                                widgetHost = widgetHost,
+                                onLaunchApp = onLaunchApp,
+                                onOpenTagSidebar = onOpenTagSidebar,
+                                onOpenCategorySidebar = onOpenCategorySidebar,
+                                onOpenRuleSidebar = onOpenRuleSidebar,
+                                onOpenSidebar = onOpenSidebar,
+                                onOpenWindow = onOpenWindow,
+                                onOpenFolder = onOpenFolder,
+                                onElementTrigger = onElementTrigger,
+                                onUpdateElement = onUpdateElement,
+                            )
+                        } else {
+                            Text("Add items to this widget stack", color = Color(element.textColorHex), modifier = Modifier.align(Alignment.Center))
+                        }
+                        if (stackItems.size > 1 && element.widgetStackSwipeEnabled) {
+                            Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.58f)), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { onUpdateElement(element.copy(widgetStackIndex = (activeIndex - 1 + stackItems.size) % stackItems.size)) }) { Text("‹") }
+                                Text("${activeIndex + 1} / ${stackItems.size}", color = Color.White)
+                                TextButton(onClick = { onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size)) }) { Text("›") }
+                            }
+                        }
+                    }
+                }
 
                 "TEXT_LABEL" -> {
                     val resolvedText = resolveDynamicTokens(element.label.ifBlank { "Label" }, context)
