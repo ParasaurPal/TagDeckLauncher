@@ -248,7 +248,7 @@ fun HomeElementBody(
         state.customFonts.firstOrNull { it.fontId == customFontId }?.localPath
             ?.let { path -> runCatching { File(path).takeIf { it.isFile }?.let { FontFamily(Font(file = it)) } }.getOrNull() }
     }
-    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).toFloat().coerceIn(8f, 24f))
+    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).toFloat().coerceIn(11f, 20f))
     val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || highReadability)) FontWeight.Bold else FontWeight.SemiBold
     val elementTextColor = if (styleExtras.optBoolean("textAutoContrast", state.settings.autoContrastText || highReadability) && Color(element.backgroundColorHex).alpha > 0.05f) {
         val bgColor = Color(element.backgroundColorHex)
@@ -2395,7 +2395,7 @@ fun ElementInspectorDialog(
                                 }
                             }
                             Text("Minimum label size: ${styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).roundToInt()}sp", style = MaterialTheme.typography.labelMedium)
-                            Slider(value = styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f), onValueChange = { updateStyleExtra("minimumFontSizeSp", it.toDouble()) }, valueRange = 8f..24f)
+                            Slider(value = styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f), onValueChange = { updateStyleExtra("minimumFontSizeSp", it.toDouble()) }, valueRange = 11f..20f)
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Bold weight boost")
                                 Switch(checked = styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textBoldBoost", it) })
