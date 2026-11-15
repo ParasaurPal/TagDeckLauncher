@@ -1191,6 +1191,27 @@ fun AddHomeElementDialog(
 
     val ownerType = if (ownerWindowId != null) "WINDOW" else "PAGE"
 
+    fun addWidgetElement(type: String, label: String, extras: JSONObject, width: Float = 200f, height: Float = 130f) {
+        onAddElement(
+            HomeElementEntity(
+                pageId = pageId,
+                ownerType = ownerType,
+                ownerWindowId = ownerWindowId,
+                type = type,
+                xFraction = 0.16f,
+                yFraction = 0.2f,
+                widthDp = width,
+                heightDp = height,
+                label = label,
+                styleExtrasJson = extras.toString(),
+                backgroundColorHex = 0x33202A3AL,
+                borderColorHex = 0x667C9BC0L,
+                cornerRadiusDp = 16f,
+            )
+        )
+        onDismiss()
+    }
+
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
@@ -1272,6 +1293,27 @@ fun AddHomeElementDialog(
                                 )
                             )
                             onDismiss()
+                        }
+                        AddTypeRow(Icons.Rounded.Apps, "App Group Widget", "Show Favorites, Recent, Most Used, Category, Tag, or all apps") {
+                            addWidgetElement("APP_GROUP_WIDGET", "App Group", JSONObject().put("appGroupMode", "FAVORITES").put("appGroupColumns", 4), 220f, 180f)
+                        }
+                        AddTypeRow(Icons.Rounded.TextFields, "Quick Notes / Checklist", "Editable notes stored with your launcher layout") {
+                            addWidgetElement("QUICK_NOTE_WIDGET", "Quick Note", JSONObject().put("noteText", ""), 220f, 150f)
+                        }
+                        AddTypeRow(Icons.Rounded.SmartButton, "Focus / Pomodoro Timer", "Persistent countdown with start, pause, and reset") {
+                            addWidgetElement("FOCUS_TIMER_WIDGET", "Focus Timer", JSONObject().put("focusDurationMinutes", 25).put("timerRunning", false).put("timerRemainingSeconds", 1500).put("timerEndAtMillis", 0L), 220f, 150f)
+                        }
+                        AddTypeRow(Icons.Rounded.Bolt, "Quick Calculator", "A compact four-operation calculator pad") {
+                            addWidgetElement("CALCULATOR_WIDGET", "Calculator", JSONObject().put("calculatorExpression", "0"), 220f, 210f)
+                        }
+                        AddTypeRow(Icons.Rounded.TextFields, "Embedded App Search", "Search installed apps and launch a result from the canvas") {
+                            addWidgetElement("SEARCH_BAR_WIDGET", "App Search", JSONObject(), 260f, 190f)
+                        }
+                        AddTypeRow(Icons.Rounded.Tune, "Device Controls", "Open Android Wi-Fi, Internet, Volume, and Bluetooth panels") {
+                            addWidgetElement("DEVICE_CONTROLS_WIDGET", "Device Controls", JSONObject(), 240f, 130f)
+                        }
+                        AddTypeRow(Icons.Rounded.Widgets, "Tabbed Object Switcher", "Place existing objects behind labeled tabs") {
+                            addWidgetElement("TAB_SWITCHER_WIDGET", "Tabs", JSONObject(), 240f, 170f)
                         }
                         AddTypeRow(Icons.Rounded.Layers, "Nested Container", "Create a parent panel that can hold positioned objects") {
                             onAddElement(
