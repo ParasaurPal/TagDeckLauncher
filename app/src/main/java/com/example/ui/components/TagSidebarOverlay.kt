@@ -346,7 +346,15 @@ fun ActiveOverlayHost(
                                     .sortedBy { it.displayName.lowercase() }
 
                                 val subCategories = if (cat.categoryId == PlayCategoryCatalog.GAMES_PARENT_ID || cat.categoryType == "GAME_SUB") {
-                                    state.categories.filter { it.categoryType == "GAME_SUB" }
+                                    state.categories
+                                        .filter { it.categoryType == "GAME_SUB" }
+                                        .filter { subCategory ->
+                                            state.appsWithTags.any { item ->
+                                                !item.app.hidden && item.app.isInstalled &&
+                                                    (item.app.primaryCategoryId == subCategory.categoryId ||
+                                                        item.categories.any { it.categoryId == subCategory.categoryId })
+                                            }
+                                        }
                                 } else emptyList()
 
                                 val useCustomBg = cat.backgroundType != "INHERIT"
