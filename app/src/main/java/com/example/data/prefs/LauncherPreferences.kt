@@ -107,6 +107,7 @@ data class LauncherSettings(
     val widgetFeedEnabled: Boolean = true,
     val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
     val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, PROGRESS, TABS, HIDDEN
+    val pageIndicatorPlacement: String = "BOTTOM", // TOP, BOTTOM
     val pageIndicatorColorHex: Long = 0xFF38BDF8L,
     val pageIndicatorSizeDp: Float = 7f,
     val pageIndicatorActiveWidthDp: Float = 22f,
@@ -266,6 +267,7 @@ class LauncherPreferencesRepository(private val context: Context) {
     val WIDGET_FEED_ENABLED = booleanPreferencesKey("widget_feed_enabled")
         val WIDGET_FEED_TITLE_COLOR = stringPreferencesKey("widget_feed_title_color")
         val PAGE_INDICATOR_STYLE = stringPreferencesKey("page_indicator_style")
+        val PAGE_INDICATOR_PLACEMENT = stringPreferencesKey("page_indicator_placement")
         val PAGE_INDICATOR_COLOR = longPreferencesKey("page_indicator_color")
         val PAGE_INDICATOR_SIZE = floatPreferencesKey("page_indicator_size")
         val PAGE_INDICATOR_ACTIVE_WIDTH = floatPreferencesKey("page_indicator_active_width")
@@ -395,6 +397,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         widgetFeedEnabled = prefs[Keys.WIDGET_FEED_ENABLED] ?: true,
         widgetFeedTitleColor = prefs[Keys.WIDGET_FEED_TITLE_COLOR] ?: "WHITE",
         pageIndicatorStyle = prefs[Keys.PAGE_INDICATOR_STYLE] ?: "DOTS",
+        pageIndicatorPlacement = prefs[Keys.PAGE_INDICATOR_PLACEMENT] ?: "BOTTOM",
         pageIndicatorColorHex = prefs[Keys.PAGE_INDICATOR_COLOR] ?: 0xFF38BDF8L,
         pageIndicatorSizeDp = prefs[Keys.PAGE_INDICATOR_SIZE] ?: 7f,
         pageIndicatorActiveWidthDp = prefs[Keys.PAGE_INDICATOR_ACTIVE_WIDTH] ?: 22f,
@@ -535,6 +538,7 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WIDGET_FEED_ENABLED] = updated.widgetFeedEnabled
             prefs[Keys.WIDGET_FEED_TITLE_COLOR] = updated.widgetFeedTitleColor
             prefs[Keys.PAGE_INDICATOR_STYLE] = updated.pageIndicatorStyle
+            prefs[Keys.PAGE_INDICATOR_PLACEMENT] = updated.pageIndicatorPlacement
             prefs[Keys.PAGE_INDICATOR_COLOR] = updated.pageIndicatorColorHex
             prefs[Keys.PAGE_INDICATOR_SIZE] = updated.pageIndicatorSizeDp
             prefs[Keys.PAGE_INDICATOR_ACTIVE_WIDTH] = updated.pageIndicatorActiveWidthDp
