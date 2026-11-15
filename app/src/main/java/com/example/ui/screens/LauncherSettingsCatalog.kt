@@ -43,7 +43,7 @@ object LauncherSettingsCatalog {
             title = "Manage Your Launcher",
             keywords = listOf("hub", "editors", "managers"),
             entries = listOf(
-                entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, and smart rules", listOf("tag", "category", "rules", "collections")),
+                entry("manage_tags", SECTION_MANAGE, "Tags & Categories", "Manage tags, Play categories, smart rules, and open-state category icons", listOf("tag", "category", "rules", "collections", "open icon", "active icon", "category icon")),
                 entry("manage_apps", SECTION_MANAGE, "App Icons & Visibility", "Rename, hide, lock apps behind device authentication, set custom icons, or create black-and-white line icons", listOf("app", "rename", "hide", "lock", "app lock", "device authentication", "custom icon", "manager", "work profile", "managed apps", "line icon", "line art", "arcticons", "draw", "edge snapping")),
                 entry("manage_sidebars", SECTION_MANAGE, "Sidebars & Floating Windows", "Configure 4-edge sidebars and floating widget windows", listOf("sidebar", "window", "floating", "edge", "panel")),
             ),
@@ -72,6 +72,8 @@ object LauncherSettingsCatalog {
             entries = listOf(
                 entry("theme_mode", SECTION_THEME_TYPOGRAPHY, "Theme Mode", "Switch between Dark, Light, System, or Dynamic color", listOf("dark", "light", "system", "dynamic", "material you")),
                 entry("font_family", SECTION_THEME_TYPOGRAPHY, "Font Family", "Choose Space Grotesk, Plus Jakarta, JetBrains Mono, or System", listOf("font", "typography", "monospace", "grotesk", "jakarta")),
+                entry("font_library", SECTION_THEME_TYPOGRAPHY, "Custom Font Library", "Import TTF, OTF, and TTC font files and use them throughout the launcher", listOf("custom font", "upload font", "import font", "typeface")),
+                entry("theme_profiles", SECTION_THEME_TYPOGRAPHY, "Theme Profiles", "Save, apply, and remove reusable appearance profiles", listOf("theme preset", "save theme", "appearance profile")),
                 entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.40x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
             ),
