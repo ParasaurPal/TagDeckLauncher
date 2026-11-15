@@ -1985,6 +1985,38 @@ fun ElementInspectorDialog(
                             valueRange = 48f..440f,
                             modifier = Modifier.testTag("inspector_height_slider"),
                         )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = edited.widthDp.roundToInt().toString(),
+                                onValueChange = { it.toFloatOrNull()?.let { value -> edited = edited.copy(widthDp = value.coerceIn(48f, 380f)) } },
+                                modifier = Modifier.weight(1f),
+                                label = { Text("Width dp") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = edited.heightDp.roundToInt().toString(),
+                                onValueChange = { it.toFloatOrNull()?.let { value -> edited = edited.copy(heightDp = value.coerceIn(48f, 440f)) } },
+                                modifier = Modifier.weight(1f),
+                                label = { Text("Height dp") },
+                                singleLine = true,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = (edited.xFraction * 100).roundToInt().toString(),
+                                onValueChange = { it.toFloatOrNull()?.let { value -> edited = edited.copy(xFraction = (value / 100f).coerceIn(0f, 0.95f)) } },
+                                modifier = Modifier.weight(1f),
+                                label = { Text("X %") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = (edited.yFraction * 100).roundToInt().toString(),
+                                onValueChange = { it.toFloatOrNull()?.let { value -> edited = edited.copy(yFraction = (value / 100f).coerceIn(0f, 0.95f)) } },
+                                modifier = Modifier.weight(1f),
+                                label = { Text("Y %") },
+                                singleLine = true,
+                            )
+                        }
                         Text((if (edited.parentContainerId != null) "Container X Position: " else "X Position: ") + "${(edited.xFraction * 100).roundToInt()}%")
                         Slider(
                             value = edited.xFraction,
