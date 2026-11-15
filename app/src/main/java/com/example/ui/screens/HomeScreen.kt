@@ -315,6 +315,8 @@ fun HomeScreen(
                             if (selected.size > 1) {
                                 val screenWidth = deviceConfiguration.screenWidthDp.coerceAtLeast(1).toFloat()
                                 val screenHeight = deviceConfiguration.screenHeightDp.coerceAtLeast(1).toFloat()
+                                val horizontal = mode == "LEFT" || mode == "RIGHT" || mode == "CENTER_X"
+                                val vertical = mode == "TOP" || mode == "BOTTOM" || mode == "CENTER_Y"
                                 val targetX = when (mode) {
                                     "LEFT" -> selected.minOf { it.xFraction }
                                     "RIGHT" -> selected.maxOf { it.xFraction + it.widthDp / screenWidth }
@@ -326,12 +328,12 @@ fun HomeScreen(
                                     else -> selected.map { it.yFraction + it.heightDp / screenHeight / 2f }.average().toFloat()
                                 }
                                 selected.forEach { element ->
-                                    val x = when (mode) {
+                                    val x = if (!horizontal) element.xFraction else when (mode) {
                                         "LEFT" -> targetX
                                         "RIGHT" -> targetX - element.widthDp / screenWidth
                                         else -> targetX - element.widthDp / screenWidth / 2f
                                     }.coerceIn(0f, 0.92f)
-                                    val y = when (mode) {
+                                    val y = if (!vertical) element.yFraction else when (mode) {
                                         "TOP" -> targetY
                                         "BOTTOM" -> targetY - element.heightDp / screenHeight
                                         else -> targetY - element.heightDp / screenHeight / 2f
