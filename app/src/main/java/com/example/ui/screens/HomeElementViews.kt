@@ -1473,6 +1473,26 @@ fun ElementInspectorDialog(
                                 },
                             ) { Text("Paste Style") }
                         }
+                        Text("Independent Corner Radii", style = MaterialTheme.typography.labelLarge)
+                        listOf(
+                            "topStartDp" to "Top Start",
+                            "topEndDp" to "Top End",
+                            "bottomEndDp" to "Bottom End",
+                            "bottomStartDp" to "Bottom Start",
+                        ).forEach { (key, label) ->
+                            val value = styleExtras.optDouble(key, edited.cornerRadiusDp.toDouble()).toFloat().coerceIn(0f, 120f)
+                            Text("$label: ${value.roundToInt()}dp", style = MaterialTheme.typography.labelSmall)
+                            Slider(value = value, onValueChange = { updateStyleExtra(key, it.toDouble()) }, valueRange = 0f..120f)
+                        }
+                        Text("Glow Radius: ${styleExtras.optDouble("glowRadiusDp", 0.0).roundToInt()}dp")
+                        Slider(value = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f), onValueChange = { updateStyleExtra("glowRadiusDp", it.toDouble()) }, valueRange = 0f..40f)
+                        Text("Glow Color", style = MaterialTheme.typography.labelLarge)
+                        ColorSwatchRow(
+                            selectedColorHex = styleExtras.optLong("glowColorHex", edited.borderColorHex),
+                            colors = StudioNeutralAndAccentSwatches,
+                            onSelect = { color -> updateStyleExtra("glowColorHex", color.toDouble()) },
+                            tagPrefix = "inspector_glow_color",
+                        )
                         Text("Shape Mask", style = MaterialTheme.typography.labelLarge)
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
