@@ -1,5 +1,7 @@
 package com.example.data.repository
 
+import android.util.Base64
+
 import com.example.data.db.AppCategorizer
 import com.example.data.db.AppCategoryCrossRef
 import com.example.data.db.AppEntity
@@ -630,6 +632,8 @@ class LauncherRepository(
     // --- FULL BACKUP & THEME EXPORT/IMPORT ---
     suspend fun exportFullBackupJson(includeEmbeddedImages: Boolean = true): String {
         val imgs = dao.getImageResourcesOnce()
+        val fonts = dao.getCustomFontsOnce()
+        val embeddedFonts = if (includeEmbeddedImages) fonts.mapNotNull { font -> runCatching { java.io.File(font.localPath).takeIf { it.isFile }?.let { font.localPath to Base64.encodeToString(it.readBytes(), Base64.NO_WRAP) } }.getOrNull() }.toMap() else emptyMap()
         val embedded = if (includeEmbeddedImages && imageStorage != null) {
             imgs.mapNotNull { img ->
                 imageStorage.encodeImageBase64IfSmall(img.localPath)?.let { img.localPath to it }
@@ -651,8 +655,9 @@ class LauncherRepository(
             imageResources = imgs,
             embeddedImagesBase64 = embedded,
             backgroundPresets = dao.getBackgroundPresetsOnce(),
-            customFonts = dao.getCustomFontsOnce(),
+            customFonts = fonts,
             themeProfiles = dao.getThemeProfilesOnce(),
+            embeddedFontsBase64 = embeddedFonts,
             settings = prefsRepo.getSettingsOnce(),
         )
         return BackupManager.encodeFullBackup(payload)
