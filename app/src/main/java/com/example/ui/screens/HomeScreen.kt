@@ -1437,7 +1437,7 @@ private fun FreeformPageCanvas(
             val stackedChildIds = elements.filter { it.type == "WIDGET_STACK" }
                 .flatMap { it.widgetStackItemsJson.split(",").mapNotNull { raw -> raw.trim().toLongOrNull() } }
                 .toSet()
-            elements.filter { it.elementId !in stackedChildIds }.forEach { elem ->
+            elements.filter { it.elementId !in stackedChildIds && it.parentContainerId == null }.forEach { elem ->
                 val latestElem by rememberUpdatedState(elem)
                 val selected = state.isEditMode &&
                     (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
