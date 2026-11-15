@@ -479,11 +479,11 @@ fun HomeElementBody(
                     ) {
                         OutlinedLabelText(
                             text = resolvedText,
-                            color = Color(element.textColorHex),
+                            color = elementTextColor,
                             style = elementTextStyle,
                             textAlign = TextAlign.Center,
                             modifier = labelReadabilityModifier,
-                            maxLines = 4,
+                            maxLines = if (styleExtras.optBoolean("textWrapTwoLines", false)) 2 else 1,
                             overflow = TextOverflow.Ellipsis,
                             outlineEnabled = textOutlineEnabled,
                             outlineColor = textOutlineColor,
@@ -497,7 +497,7 @@ fun HomeElementBody(
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 text = resolveDynamicTokens(element.label, context),
-                                color = Color(element.textColorHex),
+                                color = elementTextColor,
                                 style = elementTextStyle,
                                 modifier = labelReadabilityModifier,
                                 textAlign = TextAlign.Center,
@@ -521,9 +521,9 @@ fun HomeElementBody(
                         Spacer(Modifier.width(6.dp))
                         OutlinedLabelText(
                             text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
-                            color = Color(element.textColorHex),
+                            color = elementTextColor,
                             style = elementTextStyle.copy(fontWeight = FontWeight.Bold),
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
+                            modifier = labelReadabilityModifier,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             outlineEnabled = textOutlineEnabled,
@@ -1842,6 +1842,68 @@ fun ElementInspectorDialog(
                                         Text(candidate.label.ifBlank { candidate.type.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } }, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
+                        }
+                        if (edited.type in setOf("TEXT_LABEL", "SHAPE", "CUSTOM_BUTTON", "GAUGE_WIDGET", "APP_SHORTCUT")) {
+                            HorizontalDivider()
+                            Text("Typography & Readability", style = MaterialTheme.typography.titleSmall)
+                            Text("Font family", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(
+                                    selected = styleExtras.optLong("customFontId", -1L) < 0L,
+                                    onClick = { updateStyleExtra("customFontId", -1.0) },
+                                    label = { Text("Theme Default") },
+                                )
+                                state.customFonts.forEach { font ->
+                                    FilterChip(
+                                        selected = styleExtras.optLong("customFontId", -1L) == font.fontId,
+                                        onClick = { updateStyleExtra("customFontId", font.fontId.toDouble()) },
+                                        label = { Text(font.displayName, maxLines = 1) },
+                                    )
+                                }
+                            }
+                            Text("Minimum label size: ${styleExtras.optDouble("minimumFontSizeSp", 11.0).roundToInt()}sp", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f), onValueChange = { updateStyleExtra("minimumFontSizeSp", it.toDouble()) }, valueRange = 8f..24f)
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Bold weight boost")
+                                Switch(checked = styleExtras.optBoolean("textBoldBoost", false), onCheckedChange = { updateStyleExtraBoolean("textBoldBoost", it) })
+                            }
+                            Text("Letter spacing: ${"%.1f".format(styleExtras.optDouble("textLetterSpacingSp", 0.0))}sp", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = styleExtras.optDouble("textLetterSpacingSp", 0.0).toFloat().coerceIn(-1f, 4f), onValueChange = { updateStyleExtra("textLetterSpacingSp", it.toDouble()) }, valueRange = -1f..4f)
+                            Text("Line height: ${"%.2f".format(styleExtras.optDouble("textLineHeightMultiplier", 1.25))}x", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = styleExtras.optDouble("textLineHeightMultiplier", 1.25).toFloat().coerceIn(0.8f, 2f), onValueChange = { updateStyleExtra("textLineHeightMultiplier", it.toDouble()) }, valueRange = 0.8f..2f)
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Wrap labels to two lines")
+                                Switch(checked = styleExtras.optBoolean("textWrapTwoLines", false), onCheckedChange = { updateStyleExtraBoolean("textWrapTwoLines", it) })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Auto-contrast text")
+                                Switch(checked = styleExtras.optBoolean("textAutoContrast", false), onCheckedChange = { updateStyleExtraBoolean("textAutoContrast", it) })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Text drop shadow")
+                                Switch(checked = styleExtras.optBoolean("textShadowEnabled", false), onCheckedChange = { updateStyleExtraBoolean("textShadowEnabled", it) })
+                            }
+                            if (styleExtras.optBoolean("textShadowEnabled", false)) {
+                                Text("Shadow intensity: ${styleExtras.optDouble("textShadowIntensity", 4.0).roundToInt()}dp", style = MaterialTheme.typography.labelMedium)
+                                Slider(value = styleExtras.optDouble("textShadowIntensity", 4.0).toFloat().coerceIn(0f, 18f), onValueChange = { updateStyleExtra("textShadowIntensity", it.toDouble()) }, valueRange = 0f..18f)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Label backdrop pill")
+                                Switch(checked = styleExtras.optBoolean("labelBackdropEnabled", false), onCheckedChange = { updateStyleExtraBoolean("labelBackdropEnabled", it) })
+                            }
+                            OutlinedButton(onClick = {
+                                val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
+                                updated.put("minimumFontSizeSp", 14)
+                                updated.put("textBoldBoost", true)
+                                updated.put("textLetterSpacingSp", 0.2)
+                                updated.put("textLineHeightMultiplier", 1.35)
+                                updated.put("textWrapTwoLines", true)
+                                updated.put("textAutoContrast", true)
+                                updated.put("textShadowEnabled", true)
+                                updated.put("textShadowIntensity", 5)
+                                updated.put("labelBackdropEnabled", true)
+                                edited = edited.copy(fontSizeSp = maxOf(edited.fontSizeSp, 14f), styleExtrasJson = updated.toString())
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Apply High-Readability Preset") }
                         }
                         Text("Independent Corner Radii", style = MaterialTheme.typography.labelLarge)
                         listOf(
