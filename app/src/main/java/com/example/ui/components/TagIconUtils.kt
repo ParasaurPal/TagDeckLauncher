@@ -220,11 +220,12 @@ fun CategoryBadgeIcon(
             .background(bg),
         contentAlignment = Alignment.Center,
     ) {
-        when {
-            !displayCategory.customIconPath.isNullOrBlank() && File(displayCategory.customIconPath).exists() -> {
-                val request = remember(displayCategory.customIconPath, iconStyle) {
+        Crossfade(targetState = animatedCategory, label = "category badge state") { animatedCategory ->
+            when {
+            !animatedCategory.customIconPath.isNullOrBlank() && File(animatedCategory.customIconPath).exists() -> {
+                val request = remember(animatedCategory.customIconPath, iconStyle) {
                     ImageRequest.Builder(context)
-                        .data(File(displayCategory.customIconPath))
+                        .data(File(animatedCategory.customIconPath))
                         .allowHardware(false)
                         .apply {
                             if (iconStyle.enabled) transformations(BlackIconCoilTransformation(iconStyle))
@@ -238,16 +239,16 @@ fun CategoryBadgeIcon(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            !displayCategory.customEmoji.isNullOrBlank() -> {
+            !animatedCategory.customEmoji.isNullOrBlank() -> {
                 Text(
-                    text = displayCategory.customEmoji,
+                    text = animatedCategory.customEmoji,
                     fontSize = (size.value * 0.54f).sp,
                 )
             }
             contrastStyle != null -> {
                 val whiteFill = contrastStyle == "WHITE_BLACK"
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(displayCategory.iconKey),
+                    imageVector = tagIconVector(animatedCategory.iconKey),
                     contentDescription = contentDescription,
                     fillColor = if (whiteFill) Color.White else Color.Black,
                     outlineColor = if (whiteFill) Color.Black else Color.White,
@@ -258,7 +259,7 @@ fun CategoryBadgeIcon(
             iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
                 val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(displayCategory.iconKey),
+                    imageVector = tagIconVector(animatedCategory.iconKey),
                     contentDescription = contentDescription,
                     fillColor = fill,
                     outlineColor = Color(iconStyle.outlineColorHex),
@@ -268,12 +269,13 @@ fun CategoryBadgeIcon(
             }
             else -> {
                 Icon(
-                    imageVector = tagIconVector(displayCategory.iconKey),
+                    imageVector = tagIconVector(animatedCategory.iconKey),
                     contentDescription = contentDescription,
                     tint = accent,
                     modifier = Modifier.size(size * 0.58f),
                 )
             }
+        }
         }
     }
 }
