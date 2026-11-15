@@ -15,7 +15,11 @@ import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -325,6 +329,14 @@ fun HomeElementBody(
             )
         }
     } else Modifier
+    val idleAnimation = styleExtras.optString("idleAnimation", "NONE")
+    val idleTransition = rememberInfiniteTransition(label = "element_idle")
+    val idleProgress by idleTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (idleAnimation == "NONE") 0f else 1f,
+        animationSpec = infiniteRepeatable(tween(styleExtras.optInt("idleDurationMs", 1800).coerceIn(700, 5000)), RepeatMode.Reverse),
+        label = "element_idle_progress",
+    )
     val entranceAnimation = styleExtras.optString("entranceAnimation", "NONE")
     var entranceVisible by remember(element.elementId) { mutableStateOf(false) }
     LaunchedEffect(element.elementId, entranceAnimation) {
@@ -394,7 +406,13 @@ fun HomeElementBody(
                 scaleX = pressedScale * entranceScale
                 scaleY = pressedScale * entranceScale
                 alpha = if (entranceAnimation == "FADE" || entranceAnimation == "ZOOM" || entranceAnimation == "SLIDE_UP") entranceProgress else 1f
-                translationY = if (entranceAnimation == "SLIDE_UP") (1f - entranceProgress) * 20.dp.toPx() else 0f
+                translationY = (if (entranceAnimation == "SLIDE_UP") (1f - entranceProgress) * 20.dp.toPx() else 0f) + if (idleAnimation == "FLOAT") kotlin.math.sin(idleProgress * Math.PI).toFloat() * -4.dp.toPx() else 0f
+                if (idleAnimation == "PULSE") {
+                    val pulse = 1f + kotlin.math.sin(idleProgress * Math.PI).toFloat() * 0.025f
+                    scaleX *= pulse
+                    scaleY *= pulse
+                }
+                if (idleAnimation == "BREATH") alpha *= 0.9f + idleProgress * 0.1f
             }
             .then(pressedStateModifier)
             .then(if (glowRadiusDp > 0.1f) Modifier.shadow(glowRadiusDp.dp, shape, ambientColor = glowColor, spotColor = glowColor) else Modifier)
@@ -2751,6 +2769,14 @@ fun ElementInspectorDialog(
                             modifier = Modifier.testTag("inspector_border_width_slider"),
                         )
 
+                        Text("Idle animation", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("NONE", "PULSE", "FLOAT", "BREATH").forEach { mode ->
+                                FilterChip(selected = styleExtras.optString("idleAnimation", "NONE") == mode, onClick = { updateStyleExtra("idleAnimation", mode) }, label = { Text(mode) })
+                            }
+                        }
+                        Text("Idle cycle: ${styleExtras.optInt("idleDurationMs", 1800)}ms", style = MaterialTheme.typography.labelMedium)
+                        Slider(value = styleExtras.optInt("idleDurationMs", 1800).toFloat().coerceIn(700f, 5000f), onValueChange = { updateStyleExtra("idleDurationMs", it.roundToInt()) }, valueRange = 700f..5000f)
                         Text("Entrance animation", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("NONE", "FADE", "ZOOM", "SLIDE_UP").forEach { mode ->
