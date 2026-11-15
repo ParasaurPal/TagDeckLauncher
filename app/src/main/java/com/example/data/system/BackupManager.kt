@@ -33,6 +33,8 @@ data class FullBackupPayload(
     val imageResources: List<ImageResourceEntity> = emptyList(),
     val embeddedImagesBase64: Map<String, String> = emptyMap(),
     val backgroundPresets: List<BackgroundPresetEntity> = emptyList(),
+    val customFonts: List<CustomFontEntity> = emptyList(),
+    val themeProfiles: List<ThemeProfileEntity> = emptyList(),
     val settings: LauncherSettings,
 )
 
@@ -82,6 +84,11 @@ object BackupManager {
                 put("backgroundImagePath", c.backgroundImagePath ?: JSONObject.NULL)
                 put("backgroundBlurDp", c.backgroundBlurDp.toDouble())
                 put("iconSizeDp", c.iconSizeDp)
+                put("iconOpenStateEnabled", c.iconOpenStateEnabled)
+                put("openIconKey", c.openIconKey ?: JSONObject.NULL)
+                put("openCustomIconPath", c.openCustomIconPath ?: JSONObject.NULL)
+                put("openCustomEmoji", c.openCustomEmoji ?: JSONObject.NULL)
+                put("openColorHex", c.openColorHex ?: JSONObject.NULL)
                 put("parentCategoryId", c.parentCategoryId ?: JSONObject.NULL)
                 put("sortOrder", c.sortOrder)
                 put("categoryType", c.categoryType)
@@ -393,6 +400,11 @@ object BackupManager {
                     backgroundImagePath = o.optNullableString("backgroundImagePath"),
                     backgroundBlurDp = o.optDouble("backgroundBlurDp", 0.0).toFloat(),
                     iconSizeDp = o.optInt("iconSizeDp", 24),
+                    iconOpenStateEnabled = o.optBoolean("iconOpenStateEnabled", false),
+                    openIconKey = o.optNullableString("openIconKey"),
+                    openCustomIconPath = o.optNullableString("openCustomIconPath"),
+                    openCustomEmoji = o.optNullableString("openCustomEmoji"),
+                    openColorHex = o.optNullableLong("openColorHex"),
                     parentCategoryId = o.optNullableLong("parentCategoryId"),
                     sortOrder = o.optInt("sortOrder", i),
                     categoryType = o.optString("categoryType", "APP"),
