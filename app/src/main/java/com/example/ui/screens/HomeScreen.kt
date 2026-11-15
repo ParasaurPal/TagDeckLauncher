@@ -422,7 +422,8 @@ fun HomeScreen(
                             } else {
 val page = visiblePages[pageIdx]
                         val pageOffset = ((pagerState.currentPage - pageIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
-                        val pageTransitionMod = when (state.settings.pageTransitionStyle) {
+                        val transitionStyle = if (page.parallaxEnabled) "PARALLAX" else (page.transitionOverride ?: state.settings.pageTransitionStyle)
+                        val pageTransitionMod = when (transitionStyle) {
                             "FADE" -> Modifier.graphicsLayer {
                                 alpha = 1f - abs(pageOffset) * 0.72f
                             }
@@ -432,6 +433,32 @@ val page = visiblePages[pageIdx]
                                 val sc = 1f - absOff * 0.10f
                                 scaleX = sc
                                 scaleY = sc
+                            }
+                            "ZOOM" -> Modifier.graphicsLayer {
+                                val absOff = abs(pageOffset)
+                                alpha = 1f - absOff * 0.35f
+                                scaleX = 1f - absOff * 0.22f
+                                scaleY = 1f - absOff * 0.22f
+                            }
+                            "CUBE" -> Modifier.graphicsLayer {
+                                cameraDistance = 12f * density
+                                rotationY = -pageOffset * 90f
+                                alpha = 1f - abs(pageOffset) * 0.25f
+                            }
+                            "FLIP" -> Modifier.graphicsLayer {
+                                cameraDistance = 12f * density
+                                rotationX = pageOffset * 80f
+                                alpha = 1f - abs(pageOffset) * 0.35f
+                            }
+                            "ROTATE" -> Modifier.graphicsLayer {
+                                rotationZ = pageOffset * 14f
+                                val sc = 1f - abs(pageOffset) * 0.12f
+                                scaleX = sc
+                                scaleY = sc
+                            }
+                            "PARALLAX" -> Modifier.graphicsLayer {
+                                translationX = -pageOffset * size.width * 0.22f
+                                alpha = 1f - abs(pageOffset) * 0.18f
                             }
                             else -> Modifier
                         }
