@@ -24,7 +24,7 @@ data class LauncherSettings(
     val secondaryColorHex: Long = 0xFF6366F1L,
     val tertiaryColorHex: Long = 0xFFFB7185L,
     val fontStyle: String = "DEFAULT", // DEFAULT, SPACE_GROTESK, PLUS_JAKARTA, JETBRAINS_MONO, SYSTEM
-    val fontScale: Float = 1.0f, // 0.8f..1.4f
+    val fontScale: Float = 1.0f, // 0.8f..1.8f
     val surfaceOpacity: Float = 0.86f, // 0.2f..1.0f
     val globalBorderWidthDp: Float = 1.0f, // 0f..4.0f
     val globalTextColorHex: Long = 0xFFF8FAFC,
