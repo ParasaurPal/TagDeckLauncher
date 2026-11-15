@@ -29,7 +29,7 @@ fun OutlinedLabelText(
         if (outlineEnabled) {
             Text(
                 text = text,
-                style = baseStyle.copy(color = outlineColor, drawStyle = Stroke(width = outlineWidth.coerceIn(0.1f, 3f)),)
+                style = baseStyle.copy(color = outlineColor, drawStyle = Stroke(width = outlineWidth.coerceIn(0.1f, 3f))),
                 maxLines = maxLines,
                 overflow = overflow,
                 textAlign = textAlign,
