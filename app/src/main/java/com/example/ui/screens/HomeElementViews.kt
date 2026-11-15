@@ -1547,6 +1547,27 @@ fun PagesAndSnapshotsDialog(
                         Text("Vertically Scrollable Canvas")
                         Switch(checked = working.verticallyScrollable, onCheckedChange = { working = working.copy(verticallyScrollable = it) })
                     }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Loop Home Page Navigation")
+                        Switch(checked = working.loopNavigation, onCheckedChange = { working = working.copy(loopNavigation = it) })
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Parallax Page Motion")
+                        Switch(checked = working.parallaxEnabled, onCheckedChange = { working = working.copy(parallaxEnabled = it) })
+                    }
+                    Text("Page Transition Override", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("DEFAULT", "SLIDE", "DEPTH", "FADE", "ZOOM", "CUBE", "FLIP", "ROTATE", "PARALLAX").forEach { mode ->
+                            FilterChip(
+                                selected = (working.transitionOverride ?: "DEFAULT") == mode,
+                                onClick = { working = working.copy(transitionOverride = mode.takeUnless { it == "DEFAULT" }) },
+                                label = { Text(mode) },
+                            )
+                        }
+                    }
+                    Text("Transition Duration: ${working.transitionDurationMs}ms")
+                    Slider(value = working.transitionDurationMs.toFloat(), onValueChange = { working = working.copy(transitionDurationMs = it.roundToInt().coerceIn(150, 1200)) }, valueRange = 150f..1200f, steps = 20)
                     Text("Page Edge Padding: ${working.paddingDp.roundToInt()}dp")
                     Slider(value = working.paddingDp, onValueChange = { working = working.copy(paddingDp = it) }, valueRange = 0f..40f)
                     Text("Page Background Mode", style = MaterialTheme.typography.labelLarge)
