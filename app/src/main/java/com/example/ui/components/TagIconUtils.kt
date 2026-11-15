@@ -195,12 +195,19 @@ fun CategoryBadgeIcon(
     size: Dp = category.iconSizeDp.dp,
     contentDescription: String? = category.name,
     contrastStyle: String? = null,
+    isOpen: Boolean = false,
 ) {
+    val displayCategory = if (isOpen && category.iconOpenStateEnabled) category.copy(
+        iconKey = category.openIconKey ?: displayCategory.iconKey,
+        customIconPath = category.openCustomIconPath ?: displayCategory.customIconPath,
+        customEmoji = category.openCustomEmoji ?: displayCategory.customEmoji,
+        colorHex = category.openColorHex ?: category.colorHex,
+    ) else category
     val context = LocalContext.current
     val iconStyle = LocalIconStyleConfig.current
-    val accent = Color(category.colorHex)
-    val storedBg = Color(category.backgroundColorHex)
-    val bg = if (category.backgroundType != "INHERIT" || storedBg.alpha > 0.45f) {
+    val accent = Color(displayCategory.colorHex)
+    val storedBg = Color(displayCategory.backgroundColorHex)
+    val bg = if (displayCategory.backgroundType != "INHERIT" || storedBg.alpha > 0.45f) {
         accent.copy(alpha = 0.22f)
     } else {
         storedBg
@@ -214,10 +221,10 @@ fun CategoryBadgeIcon(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            !category.customIconPath.isNullOrBlank() && File(category.customIconPath).exists() -> {
-                val request = remember(category.customIconPath, iconStyle) {
+            !displayCategory.customIconPath.isNullOrBlank() && File(displayCategory.customIconPath).exists() -> {
+                val request = remember(displayCategory.customIconPath, iconStyle) {
                     ImageRequest.Builder(context)
-                        .data(File(category.customIconPath))
+                        .data(File(displayCategory.customIconPath))
                         .allowHardware(false)
                         .apply {
                             if (iconStyle.enabled) transformations(BlackIconCoilTransformation(iconStyle))
@@ -231,16 +238,16 @@ fun CategoryBadgeIcon(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            !category.customEmoji.isNullOrBlank() -> {
+            !displayCategory.customEmoji.isNullOrBlank() -> {
                 Text(
-                    text = category.customEmoji,
+                    text = displayCategory.customEmoji,
                     fontSize = (size.value * 0.54f).sp,
                 )
             }
             contrastStyle != null -> {
                 val whiteFill = contrastStyle == "WHITE_BLACK"
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(displayCategory.iconKey),
                     contentDescription = contentDescription,
                     fillColor = if (whiteFill) Color.White else Color.Black,
                     outlineColor = if (whiteFill) Color.Black else Color.White,
@@ -251,7 +258,7 @@ fun CategoryBadgeIcon(
             iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
                 val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
                 OutlinedVectorIcon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(displayCategory.iconKey),
                     contentDescription = contentDescription,
                     fillColor = fill,
                     outlineColor = Color(iconStyle.outlineColorHex),
@@ -261,7 +268,7 @@ fun CategoryBadgeIcon(
             }
             else -> {
                 Icon(
-                    imageVector = tagIconVector(category.iconKey),
+                    imageVector = tagIconVector(displayCategory.iconKey),
                     contentDescription = contentDescription,
                     tint = accent,
                     modifier = Modifier.size(size * 0.58f),
