@@ -1368,95 +1368,35 @@ private fun StudioEditToolbar(
                     )
                 }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                IconButton(
-                    onClick = onAddElement,
-                    modifier = Modifier.size(48.dp).testTag("studio_add_element"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = "Add",
-                        iconSize = 22.dp,
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onAddElement, modifier = Modifier.size(48.dp).testTag("studio_add_element")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.Add, "Add", iconSize = 22.dp)
+                    }
+                    IconButton(onClick = onOpenWidgets, modifier = Modifier.size(48.dp).testTag("studio_widgets_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.Widgets, "Widgets", iconSize = 22.dp)
+                    }
+                    IconButton(onClick = onOpenPages, modifier = Modifier.size(48.dp).testTag("studio_pages_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.Layers, "Pages", iconSize = 22.dp)
+                    }
+                    IconButton(onClick = onOpenLayers, modifier = Modifier.size(48.dp).testTag("studio_layers_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.Layers, "Layer Manager", iconSize = 22.dp)
+                    }
                 }
-                IconButton(
-                    onClick = onOpenWidgets,
-                    modifier = Modifier.size(48.dp).testTag("studio_widgets_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Widgets,
-                        contentDescription = "Widgets",
-                        iconSize = 22.dp,
-                    )
-                }
-                IconButton(
-                    onClick = onOpenPages,
-                    modifier = Modifier.size(48.dp).testTag("studio_pages_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Layers,
-                        contentDescription = "Pages",
-                        iconSize = 22.dp,
-                    )
-                }
-                IconButton(
-                    onClick = onOpenLayers,
-                    modifier = Modifier.size(48.dp).testTag("studio_layers_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Layers,
-                        contentDescription = "Layer Manager",
-                        iconSize = 22.dp,
-                    )
-                }
-                IconButton(
-                    onClick = onOpenStyleStudio,
-                    modifier = Modifier.size(48.dp).testTag("studio_style_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.Palette,
-                        contentDescription = "Style Studio",
-                        iconSize = 22.dp,
-                    )
-                }
-                IconButton(
-                    onClick = onToggleGridSnap,
-                    modifier = Modifier.size(48.dp).testTag("studio_grid_snap_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.GridOn,
-                        contentDescription = "Toggle grid snap",
-                        iconSize = 22.dp,
-                        isActive = gridSnap,
-                    )
-                }
-                IconButton(
-                    onClick = onToggleMultiSelectMode,
-                    modifier = Modifier.size(48.dp).testTag("studio_multi_select_button"),
-                ) {
-                    EditToolbarOutlinedIcon(
-                        imageVector = Icons.Rounded.SelectAll,
-                        contentDescription = "Multi-select mode",
-                        iconSize = 22.dp,
-                        isActive = multiSelectMode,
-                    )
-                }
-                if (hasClipboard) {
-                    IconButton(
-                        onClick = onPaste,
-                        modifier = Modifier.size(48.dp).testTag("studio_paste_button"),
-                    ) {
-                        EditToolbarOutlinedIcon(
-                            imageVector = Icons.Rounded.ContentPaste,
-                            contentDescription = "Paste",
-                            iconSize = 22.dp,
-                        )
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onOpenStyleStudio, modifier = Modifier.size(48.dp).testTag("studio_style_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.Palette, "Style Studio", iconSize = 22.dp)
+                    }
+                    IconButton(onClick = onToggleGridSnap, modifier = Modifier.size(48.dp).testTag("studio_grid_snap_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.GridOn, "Toggle grid snap", iconSize = 22.dp, isActive = gridSnap)
+                    }
+                    IconButton(onClick = onToggleMultiSelectMode, modifier = Modifier.size(48.dp).testTag("studio_multi_select_button")) {
+                        EditToolbarOutlinedIcon(Icons.Rounded.SelectAll, "Multi-select mode", iconSize = 22.dp, isActive = multiSelectMode)
+                    }
+                    if (hasClipboard) {
+                        IconButton(onClick = onPaste, modifier = Modifier.size(48.dp).testTag("studio_paste_button")) {
+                            EditToolbarOutlinedIcon(Icons.Rounded.ContentPaste, "Paste", iconSize = 22.dp)
+                        }
                     }
                 }
             }
