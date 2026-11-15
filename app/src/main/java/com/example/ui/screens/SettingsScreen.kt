@@ -1878,7 +1878,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        listOf("DOTS", "PILL", "NUMBERS", "HIDDEN").forEach { st ->
+                        listOf("DOTS", "PILL", "NUMBERS", "PROGRESS", "TABS", "HIDDEN").forEach { st ->
                             FilterChip(
                                 selected = s.pageIndicatorStyle == st,
                                 onClick = { onUpdateSettings { it.copy(pageIndicatorStyle = st) } },
