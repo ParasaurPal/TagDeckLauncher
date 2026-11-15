@@ -2515,10 +2515,10 @@ fun ElementInspectorDialog(
                         Slider(value = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f), onValueChange = { updateStyleExtra("glowRadiusDp", it.toDouble()) }, valueRange = 0f..40f)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Text Outline")
-                            Switch(checked = styleExtras.optBoolean("textOutlineEnabled", false), onCheckedChange = { updateStyleExtraBoolean("textOutlineEnabled", it) })
+                            Switch(checked = styleExtras.optBoolean("textOutlineEnabled", state.settings.textOutlineEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textOutlineEnabled", it) })
                         }
                         if (styleExtras.optBoolean("textOutlineEnabled", false)) {
-                            Text("Outline Width: ${styleExtras.optDouble("textOutlineWidth", 0.5).roundToInt()}px")
+                            Text("Outline Width: ${styleExtras.optDouble("textOutlineWidth", state.settings.textOutlineWidthDp.toDouble()).roundToInt()}px")
                             Slider(value = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat().coerceIn(0.1f, 3f), onValueChange = { updateStyleExtra("textOutlineWidth", it.toDouble()) }, valueRange = 0.1f..3f)
                             Text("Outline Color")
                             ColorSwatchRow(
