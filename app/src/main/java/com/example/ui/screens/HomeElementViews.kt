@@ -1762,6 +1762,13 @@ fun PagesAndSnapshotsDialog(
 
     editingPage?.let { page ->
         var working by remember(page.pageId) { mutableStateOf(page) }
+        fun setPageGesture(trigger: String, action: String) {
+            val json = runCatching { JSONObject(working.pageGesturesJson ?: "{}") }.getOrElse { JSONObject() }
+            if (action == "NONE") json.remove(trigger) else json.put(trigger, JSONObject().put("actionType", action))
+            working = working.copy(pageGesturesJson = json.toString().takeIf { json.length() > 0 })
+        }
+        fun getPageGesture(trigger: String): String =
+            runCatching { JSONObject(working.pageGesturesJson ?: "{}").optJSONObject(trigger)?.optString("actionType", "NONE") ?: "NONE" }.getOrDefault("NONE")
         val portraitPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
                 scope.launch {
@@ -1823,6 +1830,22 @@ fun PagesAndSnapshotsDialog(
                     }
                     Text("Transition Duration: ${working.transitionDurationMs}ms")
                     Slider(value = working.transitionDurationMs.toFloat(), onValueChange = { working = working.copy(transitionDurationMs = it.roundToInt().coerceIn(150, 1200)) }, valueRange = 150f..1200f, steps = 20)
+                    HorizontalDivider()
+                    Text("Per-Page Gesture Overrides", style = MaterialTheme.typography.labelLarge)
+                    Text("These actions run before your global gesture bindings on this page.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf("TAP", "DOUBLE_TAP", "LONG_PRESS", "SWIPE_UP", "SWIPE_DOWN").forEach { trigger ->
+                        Text(trigger.replace('_', ' '), style = MaterialTheme.typography.labelMedium)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf("NONE", "NEXT_PAGE", "PREV_PAGE", "OPEN_DRAWER", "OPEN_SEARCH", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS").forEach { action ->
+                                FilterChip(
+                                    selected = getPageGesture(trigger) == action,
+                                    onClick = { setPageGesture(trigger, action) },
+                                    label = { Text(action.replace('_', ' ')) },
+                                )
+                            }
+                        }
+                    }
                     Text("Page Edge Padding: ${working.paddingDp.roundToInt()}dp")
                     Slider(value = working.paddingDp, onValueChange = { working = working.copy(paddingDp = it) }, valueRange = 0f..40f)
                     Text("Page Background Mode", style = MaterialTheme.typography.labelLarge)
