@@ -68,6 +68,9 @@ object BackupManager {
                 put("hidden", app.hidden)
                 put("favorite", app.favorite)
                 put("manualOrder", app.manualOrder)
+                put("installTimeMillis", app.installTimeMillis)
+                put("lastLaunchedAt", app.lastLaunchedAt)
+                put("launchCount", app.launchCount)
             })
         }
         root.put("apps", appsArr)
@@ -131,6 +134,7 @@ object BackupManager {
                 put("sidebarIconSizeDp", tag.sidebarIconSizeDp)
                 put("sidebarColumns", tag.sidebarColumns)
                 put("showCountInSidebar", tag.showCountInSidebar)
+                put("showOnHome", tag.showOnHome)
             })
         }
         root.put("tags", tagsArr)
@@ -140,6 +144,7 @@ object BackupManager {
             refsArr.put(JSONObject().apply {
                 put("packageName", ref.packageName)
                 put("tagId", ref.tagId)
+                put("assignedAt", ref.assignedAt)
             })
         }
         root.put("appTags", refsArr)
@@ -455,6 +460,9 @@ object BackupManager {
                     hidden = o.optBoolean("hidden", false),
                     favorite = o.optBoolean("favorite", false),
                     manualOrder = o.optInt("manualOrder", 0),
+                    installTimeMillis = o.optLong("installTimeMillis", 0L),
+                    lastLaunchedAt = o.optLong("lastLaunchedAt", 0L),
+                    launchCount = o.optInt("launchCount", 0),
                     isInstalled = true,
                 )
             )
@@ -528,6 +536,7 @@ object BackupManager {
                     sidebarIconSizeDp = o.optInt("sidebarIconSizeDp", 52),
                     sidebarColumns = o.optInt("sidebarColumns", 3),
                     showCountInSidebar = o.optBoolean("showCountInSidebar", true),
+                    showOnHome = o.optBoolean("showOnHome", true),
                 )
             )
         }
@@ -536,7 +545,7 @@ object BackupManager {
         val refsArr = root.optJSONArray("appTags") ?: JSONArray()
         for (i in 0 until refsArr.length()) {
             val o = refsArr.getJSONObject(i)
-            refs.add(AppTagCrossRef(o.getString("packageName"), o.getLong("tagId")))
+            refs.add(AppTagCrossRef(o.getString("packageName"), o.getLong("tagId"), o.optLong("assignedAt", System.currentTimeMillis())))
         }
 
         val rules = mutableListOf<SavedTagRuleEntity>()
