@@ -2,7 +2,12 @@ package com.example.ui.screens
 
 import com.example.ui.components.OutlinedLabelText
 
+import android.app.ActivityManager
+import android.content.Context
 import android.net.Uri
+import android.os.BatteryManager
+import android.os.Environment
+import android.os.StatFs
 import android.os.Build
 import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -141,6 +146,7 @@ import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -313,29 +319,93 @@ fun HomeElementBody(
                 "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
                 "GAUGE_WIDGET" -> {
-                    val gaugeValue = styleExtras.optDouble("gaugeValue", 0.72).toFloat().coerceIn(0f, 1f)
-                    val gaugeLabel = styleExtras.optString("gaugeLabel", element.label.ifBlank { "Progress" })
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Canvas(modifier = Modifier.size(minOf(element.widthDp, element.heightDp).dp * 0.72f)) {
-                            val stroke = size.minDimension * 0.10f
-                            drawArc(
-                                color = Color(element.borderColorHex),
-                                startAngle = -90f,
-                                sweepAngle = 360f,
-                                useCenter = false,
-                                style = Stroke(width = stroke),
-                            )
-                            drawArc(
-                                color = Color(element.textColorHex),
-                                startAngle = -90f,
-                                sweepAngle = 360f * gaugeValue,
-                                useCenter = false,
-                                style = Stroke(width = stroke),
-                            )
+                    val gaugeSource = styleExtras.optString("gaugeSource", "MANUAL")
+                    val gaugeValue = runCatching {
+                        when (gaugeSource) {
+                            "BATTERY" -> {
+                                val manager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+                                (manager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1).takeIf { it in 0..100 }?.div(100f)
+                                    ?: styleExtras.optDouble("gaugeValue", 0.72).toFloat()
+                            }
+                            "RAM" -> {
+                                val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                                val info = ActivityManager.MemoryInfo()
+                                manager.getMemoryInfo(info)
+                                if (info.totalMem > 0L) 1f - info.availMem.toFloat() / info.totalMem.toFloat() else 0.5f
+                            }
+                            "STORAGE" -> {
+                                val stat = StatFs(Environment.getDataDirectory().absolutePath)
+                                if (stat.totalBytes > 0L) 1f - stat.availableBytes.toFloat() / stat.totalBytes.toFloat() else 0.5f
+                            }
+                            "DAY_PROGRESS" -> {
+                                val now = Calendar.getInstance()
+                                (now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)) / 1440f
+                            }
+                            else -> styleExtras.optDouble("gaugeValue", 0.72).toFloat()
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text("${(gaugeValue * 100).roundToInt()}%", color = elementTextColor, style = elementTextStyle.copy(fontWeight = FontWeight.Bold))
-                            Text(gaugeLabel, color = Color(element.textColorHex), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }.getOrDefault(0.72f).coerceIn(0f, 1f)
+                    val gaugeLabel = styleExtras.optString("gaugeLabel", when (gaugeSource) {
+                        "BATTERY" -> "Battery"
+                        "RAM" -> "Memory"
+                        "STORAGE" -> "Storage"
+                        "DAY_PROGRESS" -> "Day"
+                        else -> element.label.ifBlank { "Progress" }
+                    })
+                    val gaugeStyle = styleExtras.optString("gaugeStyle", "RING")
+                    val linearStyle = gaugeStyle == "LINEAR" || gaugeStyle == "SEGMENTED"
+                    Box(modifier = Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+                        Canvas(
+                            modifier = if (linearStyle) Modifier.fillMaxWidth().height(26.dp)
+                            else if (gaugeStyle == "SPARKLINE") Modifier.fillMaxWidth().height(64.dp)
+                            else Modifier.size(minOf(element.widthDp, element.heightDp).dp * 0.72f),
+                        ) {
+                            val track = Color(element.borderColorHex)
+                            val progress = Color(element.textColorHex)
+                            when (gaugeStyle) {
+                                "LINEAR" -> {
+                                    val barHeight = size.height * 0.42f
+                                    val top = (size.height - barHeight) / 2f
+                                    drawRoundRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, top), size = androidx.compose.ui.geometry.Size(size.width, barHeight), cornerRadius = CornerRadius(barHeight / 2f))
+                                    drawRoundRect(progress, topLeft = androidx.compose.ui.geometry.Offset(0f, top), size = androidx.compose.ui.geometry.Size(size.width * gaugeValue, barHeight), cornerRadius = CornerRadius(barHeight / 2f))
+                                }
+                                "SEGMENTED" -> {
+                                    val count = 12
+                                    val gap = size.width * 0.012f
+                                    val segmentWidth = (size.width - gap * (count - 1)) / count
+                                    val activeCount = (gaugeValue * count).roundToInt()
+                                    for (index in 0 until count) {
+                                        val left = index * (segmentWidth + gap)
+                                        drawRoundRect(if (index < activeCount) progress else track, topLeft = androidx.compose.ui.geometry.Offset(left, size.height * 0.2f), size = androidx.compose.ui.geometry.Size(segmentWidth, size.height * 0.6f), cornerRadius = CornerRadius(size.height * 0.2f))
+                                    }
+                                }
+                                "SPARKLINE" -> {
+                                    val history = runCatching {
+                                        val array = JSONArray(styleExtras.optString("gaugeHistoryJson", "[]"))
+                                        (0 until array.length()).map { array.optDouble(it, 0.5).toFloat().coerceIn(0f, 1f) }
+                                    }.getOrDefault(emptyList()).ifEmpty { listOf(0.18f, 0.32f, 0.26f, 0.48f, 0.41f, 0.62f, gaugeValue) }
+                                    val step = size.width / (history.size - 1).coerceAtLeast(1)
+                                    for (index in 0 until history.lastIndex) {
+                                        drawLine(progress, androidx.compose.ui.geometry.Offset(index * step, size.height * (1f - history[index])), androidx.compose.ui.geometry.Offset((index + 1) * step, size.height * (1f - history[index + 1])), strokeWidth = (size.height * 0.075f).coerceAtLeast(2f), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                    }
+                                }
+                                else -> {
+                                    val stroke = size.minDimension * 0.10f
+                                    val start = if (gaugeStyle == "ARC") 135f else -90f
+                                    val sweep = if (gaugeStyle == "ARC") 270f else 360f
+                                    drawArc(track, startAngle = start, sweepAngle = sweep, useCenter = false, style = Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                                    drawArc(progress, startAngle = start, sweepAngle = sweep * gaugeValue, useCenter = false, style = Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                                }
+                            }
+                        }
+                        if (!linearStyle && gaugeStyle != "SPARKLINE") {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                Text("${(gaugeValue * 100).roundToInt()}%", color = elementTextColor, style = elementTextStyle.copy(fontWeight = FontWeight.Bold))
+                                Text(gaugeLabel, color = elementTextColor, style = elementTextStyle.copy(fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        } else {
+                            Column(modifier = Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${(gaugeValue * 100).roundToInt()}%  •  $gaugeLabel", color = elementTextColor, style = elementTextStyle.copy(fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
                 }
