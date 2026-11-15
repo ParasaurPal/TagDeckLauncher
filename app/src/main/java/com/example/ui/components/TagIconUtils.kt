@@ -221,6 +221,7 @@ fun CategoryBadgeIcon(
         contentAlignment = Alignment.Center,
     ) {
         Crossfade(targetState = displayCategory, label = "category badge state") { animatedCategory ->
+            val animatedAccent = Color(animatedCategory.colorHex)
             when {
             !animatedCategory.customIconPath.isNullOrBlank() && File(animatedCategory.customIconPath).exists() -> {
                 val request = remember(animatedCategory.customIconPath, iconStyle) {
@@ -256,8 +257,8 @@ fun CategoryBadgeIcon(
                     modifier = Modifier.size(size * 0.58f),
                 )
             }
-            iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
-                val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
+            iconStyle.enabled && (isColorDark(animatedAccent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
+                val fill = if (isColorDark(animatedAccent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else animatedAccent
                 OutlinedVectorIcon(
                     imageVector = tagIconVector(animatedCategory.iconKey),
                     contentDescription = contentDescription,
@@ -271,7 +272,7 @@ fun CategoryBadgeIcon(
                 Icon(
                     imageVector = tagIconVector(animatedCategory.iconKey),
                     contentDescription = contentDescription,
-                    tint = accent,
+                    tint = animatedAccent,
                     modifier = Modifier.size(size * 0.58f),
                 )
             }
