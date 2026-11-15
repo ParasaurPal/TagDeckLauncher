@@ -15,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -54,7 +55,6 @@ import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentCut
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FlipToBack
 import androidx.compose.material.icons.rounded.FlipToFront
@@ -132,6 +132,7 @@ import com.example.ui.components.TagBadgeIcon
 import com.example.ui.components.buildElementColorFilter
 import com.example.ui.state.LauncherUiState
 import com.example.ui.theme.TagPresetColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -372,20 +373,37 @@ fun HomeElementBody(
                 }
                 "WIDGET_STACK" -> {
                     val stackIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    val stackItems = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.type != "WIDGET_STACK" } }
+                    val stackItems = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" } }
                     val activeIndex = element.widgetStackIndex.coerceIn(0, (stackItems.size - 1).coerceAtLeast(0))
                     val activeItem = stackItems.getOrNull(activeIndex)
+                    val stackAxis = styleExtras.optString("stackAxis", "HORIZONTAL")
+                    val autoRotateSeconds = styleExtras.optInt("autoRotateSeconds", 0).coerceIn(0, 120)
+                    val indicatorStyle = styleExtras.optString("stackIndicatorStyle", "PILL")
+                    LaunchedEffect(element.elementId, activeIndex, autoRotateSeconds, stackItems.size) {
+                        if (autoRotateSeconds > 0 && stackItems.size > 1) {
+                            delay(autoRotateSeconds * 1000L)
+                            onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size))
+                        }
+                    }
                     Box(
                         modifier = Modifier.fillMaxSize().then(
-                            if (stackItems.size > 1 && element.widgetStackSwipeEnabled) Modifier.pointerInput(element.elementId, activeIndex, stackItems.size) {
+                            if (stackItems.size > 1 && element.widgetStackSwipeEnabled) Modifier.pointerInput(element.elementId, activeIndex, stackItems.size, stackAxis) {
                                 var dragTotal = 0f
-                                detectHorizontalDragGestures(
-                                    onHorizontalDrag = { change, amount -> dragTotal += amount; change.consume() },
-                                    onDragEnd = {
-                                        if (dragTotal < -32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size))
-                                        else if (dragTotal > 32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex - 1 + stackItems.size) % stackItems.size))
-                                    },
-                                )
+                                val onDragFinished = {
+                                    if (dragTotal < -32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size))
+                                    else if (dragTotal > 32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex - 1 + stackItems.size) % stackItems.size))
+                                }
+                                if (stackAxis == "VERTICAL") {
+                                    detectVerticalDragGestures(
+                                        onVerticalDrag = { change, amount -> dragTotal += amount; change.consume() },
+                                        onDragEnd = onDragFinished,
+                                    )
+                                } else {
+                                    detectHorizontalDragGestures(
+                                        onHorizontalDrag = { change, amount -> dragTotal += amount; change.consume() },
+                                        onDragEnd = onDragFinished,
+                                    )
+                                }
                             } else Modifier
                         ),
                     ) {
@@ -411,7 +429,18 @@ fun HomeElementBody(
                         if (stackItems.size > 1 && element.widgetStackSwipeEnabled) {
                             Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.58f)), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 TextButton(onClick = { onUpdateElement(element.copy(widgetStackIndex = (activeIndex - 1 + stackItems.size) % stackItems.size)) }) { Text("‹") }
-                                Text("${activeIndex + 1} / ${stackItems.size}", color = Color.White)
+                                when (indicatorStyle) {
+                                    "NUMBER" -> Text("${activeIndex + 1} / ${stackItems.size}", color = Color.White)
+                                    "DOTS" -> Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        stackItems.indices.forEach { index ->
+                                            Box(Modifier.size(if (index == activeIndex) 8.dp else 5.dp).clip(CircleShape).background(if (index == activeIndex) Color.White else Color.White.copy(alpha = 0.42f)))
+                                        }
+                                    }
+                                    "NONE" -> Spacer(Modifier.width(24.dp))
+                                    else -> Surface(shape = RoundedCornerShape(20.dp), color = Color.White.copy(alpha = 0.18f)) {
+                                        Text("${activeIndex + 1} / ${stackItems.size}", color = Color.White, modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp))
+                                    }
+                                }
                                 TextButton(onClick = { onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size)) }) { Text("›") }
                             }
                         }
