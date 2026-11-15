@@ -1314,8 +1314,9 @@ private fun FreeformPageCanvas(
         val canvasHeightPx = with(density) { viewportHeightDp.toPx().coerceAtLeast(1f) }
         val snapStepPx = with(density) { state.settings.gridSnapStepDp.dp.toPx().coerceAtLeast(8f) }
 
+        val pageScrollState = rememberScrollState()
         val scrollContainerMod = if (page.verticallyScrollable && !state.isEditMode) {
-            Modifier.verticalScroll(rememberScrollState())
+            Modifier.verticalScroll(pageScrollState)
         } else Modifier
         val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
             val maxElemBottomDp = elements.maxOfOrNull { el ->
@@ -1474,9 +1475,22 @@ private fun FreeformPageCanvas(
                     }
                 } else Modifier
 
+                val elementWidthPx = with(density) { widthDp.dp.toPx() }
+                val elementHeightPx = with(density) { heightDp.dp.toPx() }
+                val pinnedX = if (!elem.pinnedToViewport) dragX else when (elem.pinEdge) {
+                    "LEFT" -> with(density) { elem.pinOffsetDp.dp.toPx() }
+                    "RIGHT" -> canvasWidthPx - elementWidthPx - with(density) { elem.pinOffsetDp.dp.toPx() }
+                    else -> dragX
+                }
+                val pinnedY = if (!elem.pinnedToViewport) dragY else when (elem.pinEdge) {
+                    "TOP" -> with(density) { elem.pinOffsetDp.dp.toPx() }
+                    "BOTTOM" -> canvasHeightPx - elementHeightPx - with(density) { elem.pinOffsetDp.dp.toPx() }
+                    else -> dragY
+                }
+                val scrollCompensation = if (elem.pinnedToViewport && page.verticallyScrollable && !state.isEditMode) pageScrollState.value else 0
                 Box(
                     modifier = Modifier
-                        .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                        .offset { IntOffset(pinnedX.roundToInt(), pinnedY.roundToInt() + scrollCompensation) }
                         .size(width = widthDp.dp, height = heightDp.dp)
                         .graphicsLayer {
                             rotationX = elem.rotationXDeg
