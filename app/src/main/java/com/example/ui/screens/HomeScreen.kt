@@ -176,12 +176,13 @@ fun HomeScreen(
     val feedEnabled = state.settings.widgetFeedEnabled
     val loopPagerEnabled = visiblePages.size > 1 && visiblePages.any { it.loopNavigation }
     val pagerPageOffset = if (loopPagerEnabled) 1 else 0
-    val feedPagerIndex = visiblePages.size + pagerPageOffset + if (loopPagerEnabled) 1 else 0
+    val feedPagerIndex = visiblePages.size + pagerPageOffset
+    val loopNextPagerIndex = visiblePages.size + pagerPageOffset + if (feedEnabled) 1 else 0
     val pagerPageCount = visiblePages.size + (if (loopPagerEnabled) 2 else 0) + (if (feedEnabled) 1 else 0)
     fun logicalPageIndex(pagerIndex: Int): Int = if (loopPagerEnabled) {
         when (pagerIndex) {
             0 -> visiblePages.lastIndex
-            visiblePages.size + 1 -> 0
+            loopNextPagerIndex -> 0
             else -> (pagerIndex - 1).coerceIn(0, visiblePages.lastIndex)
         }
     } else pagerIndex.coerceIn(0, visiblePages.lastIndex)
@@ -195,7 +196,7 @@ fun HomeScreen(
         if (pagerState.isScrollInProgress) return@LaunchedEffect
         if (loopPagerEnabled && pagerState.currentPage == 0) {
             pagerState.scrollToPage(if (visiblePages.first().loopNavigation) visiblePages.size else 1)
-        } else if (loopPagerEnabled && pagerState.currentPage == visiblePages.size + 1) {
+        } else if (loopPagerEnabled && pagerState.currentPage == loopNextPagerIndex) {
             pagerState.scrollToPage(if (visiblePages.last().loopNavigation) 1 else visiblePages.size)
         } else if (pagerState.currentPage < feedPagerIndex) {
             onPageChanged(logicalPageIndex(pagerState.currentPage))
@@ -405,7 +406,7 @@ fun HomeScreen(
                             when {
                                 feedEnabled && idx == feedPagerIndex -> "WIDGET_FEED"
                                 loopPagerEnabled && idx == 0 -> "LOOP_PREV_${visiblePages.last().pageId}"
-                                loopPagerEnabled && idx == visiblePages.size + 1 -> "LOOP_NEXT_${visiblePages.first().pageId}"
+                                loopPagerEnabled && idx == loopNextPagerIndex -> "LOOP_NEXT_${visiblePages.first().pageId}"
                                 else -> "PAGE_${visiblePages[logicalPageIndex(idx)].pageId}"
                             }
                         },
