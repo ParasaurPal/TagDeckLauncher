@@ -646,19 +646,37 @@ fun HomeElementBody(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            previewApps.take(2).forEach { app ->
-                                AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
-                            }
-                        }
-                        if (previewApps.size > 2) {
-                            Spacer(Modifier.height(4.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                previewApps.drop(2).forEach { app ->
-                                    AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape)
+                        when (element.folderLayoutMode) {
+                            "LIST" -> Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                previewApps.take(3).forEach { app ->
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        AppIconView(app, appDiscovery, 18.dp, state.settings.globalIconShape)
+                                        Text(app.displayName, color = Color(element.textColorHex), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
                             }
-                        } else if (previewApps.isEmpty()) {
+                            "STACK" -> Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+                                previewApps.take(4).forEach { app -> AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape) }
+                            }
+                            else -> {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    previewApps.take(2).forEach { app -> AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape) }
+                                }
+                                if (previewApps.size > 2) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        previewApps.drop(2).forEach { app -> AppIconView(app, appDiscovery, 22.dp, state.settings.globalIconShape) }
+                                    }
+                                }
+                            }
+                        }
+                        val nestedFolders = state.homeElements.filter { it.elementId in element.nestedFolderIds() }
+                        if (nestedFolders.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                nestedFolders.take(3).forEach { Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color(element.textColorHex), modifier = Modifier.size(16.dp)) }
+                            }
+                        }
+                        if (previewApps.isEmpty() && nestedFolders.isEmpty()) {
                             Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color.White)
                         }
                         if (element.showLabel && state.settings.showHomeAppLabels) {
