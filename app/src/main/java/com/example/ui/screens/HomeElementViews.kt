@@ -2476,7 +2476,7 @@ fun ElementInspectorDialog(
                             val orderedStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
                             val selectedStackIds = orderedStackIds.toSet()
                             state.homeElements
-                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }
+                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type !in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && it.parentContainerId == null }
                                 .filter { candidate -> candidate.elementId in selectedStackIds || state.homeElements.none { owner -> owner.elementId != edited.elementId && owner.type in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && candidate.elementId in owner.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() } } }
                                 .sortedBy { it.zIndex }
                                 .forEach { candidate ->
