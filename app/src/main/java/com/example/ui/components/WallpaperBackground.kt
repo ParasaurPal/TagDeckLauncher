@@ -1,18 +1,28 @@
 package com.example.ui.components
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -31,6 +41,11 @@ fun WallpaperBackground(
     modifier: Modifier = Modifier,
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val parallaxOffsetPx = with(LocalDensity.current) { (currentPage?.pageOrder ?: 0) * settings.wallpaperParallaxIntensity.coerceIn(0f, 1f) * 28.dp.toPx() }
+    val wallpaperColorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(settings.wallpaperSaturation.coerceIn(0f, 2f)) })
+    val ambientTransition = rememberInfiniteTransition(label = "wallpaper_ambient")
+    val ambientPhase by ambientTransition.animateFloat(0f, 1f, infiniteRepeatable(tween(9000), RepeatMode.Reverse), label = "wallpaper_ambient_phase")
+    val ambientStrength = if (settings.wallpaperAmbientMotion) ambientPhase else 0f
     val blurMod = if (settings.wallpaperBlurDp > 0.5f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         Modifier.blur(settings.wallpaperBlurDp.dp)
     } else {
@@ -38,7 +53,8 @@ fun WallpaperBackground(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Base global wallpaper
+        // Base global wallpaper with subtle page-aware parallax.
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { translationX = -parallaxOffsetPx }) {
         when (settings.wallpaperType) {
             "SYSTEM_LIVE" -> Unit // Transparent home canvas reveals Android's own static or live wallpaper.
             "BUILTIN_TOPO" -> {
