@@ -34,7 +34,7 @@ fun buildTagDeckTypography(
     fontScale: Float = 1.0f,
     customFontPath: String? = null,
 ): Typography {
-    val scale = fontScale.coerceIn(0.75f, 1.5f)
+    val scale = fontScale.coerceIn(0.8f, 1.8f)
     val displayFamily: FontFamily
     val bodyFamily: FontFamily
     val monoFamily: FontFamily
