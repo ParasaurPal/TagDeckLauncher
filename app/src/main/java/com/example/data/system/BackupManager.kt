@@ -697,6 +697,7 @@ object BackupManager {
             tertiaryColorHex = so.optLong("tertiaryColorHex", 0xFFFB7185L),
             fontStyle = so.optString("fontStyle", "DEFAULT"),
             fontScale = so.optDouble("fontScale", 1.0).toFloat(),
+            highReadabilityMode = so.optBoolean("highReadabilityMode", false),
             surfaceOpacity = so.optDouble("surfaceOpacity", 0.86).toFloat(),
             globalBorderWidthDp = so.optDouble("globalBorderWidthDp", 1.0).toFloat(),
             globalTextColorHex = so.optLong("globalTextColorHex", 0xFFF8FAFC),
