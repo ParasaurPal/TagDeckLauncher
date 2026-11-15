@@ -2403,7 +2403,7 @@ fun ElementInspectorDialog(
                                 ColorSwatchRow(
                                     selectedColorHex = styleExtras.optLong("labelBackdropColorHex", state.settings.labelBackdropColorHex),
                                     colors = StudioNeutralAndAccentSwatches,
-                                    onSelect = { updateStyleExtra("labelBackdropColorHex", it.toDouble()) },
+                                    onSelect = { updateStyleExtraLong("labelBackdropColorHex", it) },
                                     tagPrefix = "object_label_backdrop",
                                 )
                                 Text("Backdrop opacity: ${(styleExtras.optDouble("labelBackdropAlpha", state.settings.labelBackdropAlpha.toDouble()) * 100).roundToInt()}%")
