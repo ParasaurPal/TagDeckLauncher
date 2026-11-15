@@ -2181,7 +2181,7 @@ fun PagesAndSnapshotsDialog(
                     Text("Page Transition Override", style = MaterialTheme.typography.labelLarge)
                     @OptIn(ExperimentalLayoutApi::class)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("DEFAULT", "SLIDE", "DEPTH", "FADE", "ZOOM", "CUBE", "FLIP", "ROTATE", "PARALLAX").forEach { mode ->
+                        listOf("DEFAULT", "SLIDE", "DEPTH", "FADE", "ZOOM", "CUBE", "FLIP", "ROTATE", "PARALLAX", "STACK", "ACCORDION", "WINDMILL").forEach { mode ->
                             FilterChip(
                                 selected = (working.transitionOverride ?: "DEFAULT") == mode,
                                 onClick = { working = working.copy(transitionOverride = mode.takeUnless { it == "DEFAULT" }) },
@@ -2194,7 +2194,7 @@ fun PagesAndSnapshotsDialog(
                     HorizontalDivider()
                     Text("Per-Page Gesture Overrides", style = MaterialTheme.typography.labelLarge)
                     Text("These actions run before your global gesture bindings on this page.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    listOf("TAP", "DOUBLE_TAP", "LONG_PRESS", "SWIPE_UP", "SWIPE_DOWN").forEach { trigger ->
+                    listOf("TAP", "DOUBLE_TAP", "LONG_PRESS", "SWIPE_UP", "SWIPE_DOWN", "TWO_FINGER_TAP", "TWO_FINGER_SWIPE_UP", "TWO_FINGER_SWIPE_DOWN", "PINCH_IN", "PINCH_OUT").forEach { trigger ->
                         Text(trigger.replace('_', ' '), style = MaterialTheme.typography.labelMedium)
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
