@@ -212,6 +212,7 @@ fun HomeScreen(
     }
 
     val currentPage = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }
+    val deviceConfiguration = LocalConfiguration.current
     fun resolvePageTarget(target: Int): Int {
         if (currentPage.loopNavigation && visiblePages.isNotEmpty()) {
             if (target < 0) return visiblePages.lastIndex
@@ -312,8 +313,8 @@ fun HomeScreen(
                         onAlignMulti = { mode ->
                             val selected = state.homeElements.filter { it.elementId in state.multiSelectedIds }
                             if (selected.size > 1) {
-                                val screenWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1).toFloat()
-                                val screenHeight = LocalConfiguration.current.screenHeightDp.coerceAtLeast(1).toFloat()
+                                val screenWidth = deviceConfiguration.screenWidthDp.coerceAtLeast(1).toFloat()
+                                val screenHeight = deviceConfiguration.screenHeightDp.coerceAtLeast(1).toFloat()
                                 val targetX = when (mode) {
                                     "LEFT" -> selected.minOf { it.xFraction }
                                     "RIGHT" -> selected.maxOf { it.xFraction + it.widthDp / screenWidth }
