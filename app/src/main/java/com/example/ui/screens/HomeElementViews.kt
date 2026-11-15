@@ -682,7 +682,7 @@ fun HomeElementBody(
                 }
                 "WIDGET_STACK" -> {
                     val stackIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    val stackItemsUnsorted = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" } }
+                    val stackItemsUnsorted = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" } }
                     val stackPriorityMode = styleExtras.optString("stackPriorityMode", "MANUAL")
                     val stackItems = when (stackPriorityMode) {
                         "MOST_USED" -> stackItemsUnsorted.sortedByDescending { item -> state.appsWithTags.firstOrNull { it.app.packageName == item.targetPackageName }?.app?.launchCount ?: 0 }
@@ -2032,7 +2032,7 @@ fun ElementInspectorDialog(
                         Text("Widget Stack", style = MaterialTheme.typography.labelLarge)
                         Text("Choose existing objects to place inside this stack. Selected objects are hidden from the page outside the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val currentStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
-                        state.homeElements.filter { it.pageId == edited.pageId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }.forEach { child ->
+                        state.homeElements.filter { it.pageId == edited.pageId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }.forEach { child ->
                             FilterChip(
                                 selected = child.elementId in currentStackIds,
                                 onClick = {
