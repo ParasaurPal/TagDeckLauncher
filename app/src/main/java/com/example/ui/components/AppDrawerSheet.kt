@@ -634,7 +634,7 @@ fun AppDrawerOverlay(
                                                 label = "All Games",
                                                 selected = selectedFilterId == FILTER_GAMES,
                                                 accent = Color(gamesCategory.colorHex),
-                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp) },
+                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp, isOpen = selectedFilterId == FILTER_GAMES) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = FILTER_GAMES
@@ -649,7 +649,7 @@ fun AppDrawerOverlay(
                                                 label = sub.name,
                                                 selected = sel,
                                                 accent = Color(sub.colorHex),
-                                                leading = { CategoryBadgeIcon(sub, size = 16.dp) },
+                                                leading = { CategoryBadgeIcon(sub, size = 16.dp, isOpen = sel) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = sub.categoryId
@@ -671,7 +671,7 @@ fun AppDrawerOverlay(
                                             label = allCategory.name,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_ALL,
                                             accent = Color(allCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_ALL) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_ALL
@@ -685,7 +685,7 @@ fun AppDrawerOverlay(
                                             label = favoritesCategory.name,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES,
                                             accent = Color(favoritesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_FAVORITES
@@ -699,7 +699,7 @@ fun AppDrawerOverlay(
                                             label = gamesCategory.name,
                                             selected = isGamesContext,
                                             accent = Color(gamesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp, isOpen = isGamesContext) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_GAMES
@@ -714,7 +714,7 @@ fun AppDrawerOverlay(
                                             label = cat.name,
                                             selected = selected,
                                             accent = Color(cat.colorHex),
-                                            leading = { CategoryBadgeIcon(cat, size = 18.dp) },
+                                            leading = { CategoryBadgeIcon(cat, size = 18.dp, isOpen = selected) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = cat.categoryId
