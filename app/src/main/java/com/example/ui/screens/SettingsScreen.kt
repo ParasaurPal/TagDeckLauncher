@@ -1617,7 +1617,7 @@ fun SettingsScreen(
                     ) {
                     Text("Page Transition Style", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("SLIDE", "DEPTH", "FADE").forEach { tr ->
+                        listOf("SLIDE", "DEPTH", "FADE", "ZOOM", "CUBE", "FLIP", "ROTATE", "PARALLAX").forEach { tr ->
                             FilterChip(
                                 selected = s.pageTransitionStyle == tr,
                                 onClick = { onUpdateSettings { it.copy(pageTransitionStyle = tr) } },
