@@ -127,6 +127,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.example.data.db.AppEntity
 import com.example.data.db.HomeElementEntity
+import com.example.ui.theme.SpaceGroteskFamily
+import com.example.ui.theme.PlusJakartaSansFamily
+import com.example.ui.theme.JetBrainsMonoFamily
 import com.example.data.db.HomePageEntity
 import com.example.data.db.LayoutSnapshotEntity
 import com.example.data.system.AppDiscoveryManager
@@ -244,9 +247,20 @@ fun HomeElementBody(
     val textOutlineColor = Color(styleExtras.optLong("textOutlineColorHex", state.settings.textOutlineColorHex))
     val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", state.settings.textOutlineWidthDp.toDouble()).toFloat()
     val customFontId = styleExtras.optLong("customFontId", -1L)
-    val elementFontFamily = remember(customFontId, state.customFonts) {
-        state.customFonts.firstOrNull { it.fontId == customFontId }?.localPath
-            ?.let { path -> runCatching { File(path).takeIf { it.isFile }?.let { FontFamily(Font(file = it)) } }.getOrNull() }
+    val objectFontStyle = styleExtras.optString("fontStyle", if (customFontId >= 0L) "CUSTOM_$customFontId" else "DEFAULT")
+    val elementFontFamily = remember(objectFontStyle, customFontId, state.customFonts) {
+        when {
+            objectFontStyle == "SPACE_GROTESK" -> SpaceGroteskFamily
+            objectFontStyle == "PLUS_JAKARTA" -> PlusJakartaSansFamily
+            objectFontStyle == "JETBRAINS_MONO" -> JetBrainsMonoFamily
+            objectFontStyle == "SYSTEM" -> FontFamily.Default
+            objectFontStyle.startsWith("CUSTOM_") -> {
+                val selectedId = objectFontStyle.removePrefix("CUSTOM_").toLongOrNull() ?: customFontId
+                state.customFonts.firstOrNull { it.fontId == selectedId }?.localPath
+                    ?.let { path -> runCatching { File(path).takeIf { it.isFile }?.let { FontFamily(Font(file = it)) } }.getOrNull() }
+            }
+            else -> null
+        }
     }
     val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).toFloat().coerceIn(11f, 20f))
     val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || highReadability)) FontWeight.Bold else FontWeight.SemiBold
@@ -2381,15 +2395,29 @@ fun ElementInspectorDialog(
                             Text("Typography & Readability", style = MaterialTheme.typography.titleSmall)
                             Text("Font family", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                FilterChip(
-                                    selected = styleExtras.optLong("customFontId", -1L) < 0L,
-                                    onClick = { updateStyleExtra("customFontId", -1.0) },
-                                    label = { Text("Theme Default") },
-                                )
+                                listOf(
+                                    "DEFAULT" to "Theme Default",
+                                    "SPACE_GROTESK" to "Space Grotesk",
+                                    "PLUS_JAKARTA" to "Plus Jakarta",
+                                    "JETBRAINS_MONO" to "JetBrains Mono",
+                                    "SYSTEM" to "System",
+                                ).forEach { (fontStyle, label) ->
+                                    FilterChip(
+                                        selected = styleExtras.optString("fontStyle", "DEFAULT") == fontStyle && styleExtras.optLong("customFontId", -1L) < 0L,
+                                        onClick = {
+                                            updateStyleExtraString("fontStyle", fontStyle)
+                                            updateStyleExtraLong("customFontId", -1L)
+                                        },
+                                        label = { Text(label, maxLines = 1) },
+                                    )
+                                }
                                 state.customFonts.forEach { font ->
                                     FilterChip(
-                                        selected = styleExtras.optLong("customFontId", -1L) == font.fontId,
-                                        onClick = { updateStyleExtra("customFontId", font.fontId.toDouble()) },
+                                        selected = styleExtras.optString("fontStyle", "") == "CUSTOM_${font.fontId}" || (styleExtras.optLong("customFontId", -1L) == font.fontId),
+                                        onClick = {
+                                            updateStyleExtraString("fontStyle", "CUSTOM_${font.fontId}")
+                                            updateStyleExtraLong("customFontId", font.fontId)
+                                        },
                                         label = { Text(font.displayName, maxLines = 1) },
                                     )
                                 }
