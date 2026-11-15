@@ -362,6 +362,7 @@ private fun TagDeckRoot(
                         viewModel.executeElementActions(el.actionsConfigJson, trig, navigateTo, onScrollPage)
                     },
                     onAddPage = { viewModel.addHomePage(it) },
+                    onCreateStarterTemplate = { viewModel.createStarterTemplate(it) },
                     onSavePage = { viewModel.saveHomePage(it) },
                     onDuplicatePage = { viewModel.duplicateHomePage(it) },
                     onReorderPages = { viewModel.reorderHomePages(it) },
