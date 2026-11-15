@@ -10,6 +10,8 @@ import com.example.data.db.AppEntity
 import com.example.data.db.AppWithTags
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
@@ -101,12 +103,15 @@ class LauncherViewModel(
         DataSlice3(sidebars, gestures, imgs, presets, settings)
     }
 
+    private val dataFlow4 = combine(repository.customFontsFlow, repository.themeProfilesFlow) { fonts, themes -> DataSlice4(fonts, themes) }
+
     val uiState: StateFlow<LauncherUiState> = combine(
         dataFlow1,
         dataFlow2,
         dataFlow3,
+        dataFlow4,
         transientState,
-    ) { d1, d2, d3, t ->
+    ) { d1, d2, d3, d4, t ->
         LauncherUiState(
             isLoading = t.isLoading,
             appsWithTags = d1.apps,
@@ -123,6 +128,8 @@ class LauncherViewModel(
             gestures = d3.gestures.associateBy { it.gestureType },
             imageResources = d3.imageResources,
             backgroundPresets = d3.backgroundPresets,
+            customFonts = d4.customFonts,
+            themeProfiles = d4.themeProfiles,
             settings = d3.settings,
             installedIconPacks = t.installedIconPacks,
             isDefaultLauncher = t.isDefaultLauncher,
@@ -1042,6 +1049,11 @@ class LauncherViewModel(
         val imageResources: List<ImageResourceEntity>,
         val backgroundPresets: List<BackgroundPresetEntity>,
         val settings: LauncherSettings,
+    )
+
+    private data class DataSlice4(
+        val customFonts: List<CustomFontEntity>,
+        val themeProfiles: List<ThemeProfileEntity>,
     )
 
     class Factory(
