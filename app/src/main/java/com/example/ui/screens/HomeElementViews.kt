@@ -94,6 +94,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -127,6 +128,7 @@ import com.example.ui.state.LauncherUiState
 import com.example.ui.theme.TagPresetColors
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -135,7 +137,16 @@ import kotlin.math.roundToInt
 
 private fun contrastLabelModifier(@Suppress("UNUSED_PARAMETER") textColor: Color): Modifier = Modifier
 
-private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.imageMaskShape) {
+private fun resolveMaskShape(element: HomeElementEntity): Shape {
+    val extras = runCatching { JSONObject(element.styleExtrasJson) }.getOrNull()
+    val base = element.cornerRadiusDp.coerceIn(0f, 74f).toDouble()
+    val customCorners = RoundedCornerShape(
+        topStart = extras?.optDouble("topStartDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
+        topEnd = extras?.optDouble("topEndDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
+        bottomEnd = extras?.optDouble("bottomEndDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
+        bottomStart = extras?.optDouble("bottomStartDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
+    )
+    return when (element.imageMaskShape) {
     "CIRCLE" -> CircleShape
     "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
     "DIAMOND" -> GenericShape { size, _ ->
@@ -156,7 +167,8 @@ private fun resolveMaskShape(element: HomeElementEntity): Shape = when (element.
         lineTo(0f, h * 0.25f)
         close()
     }
-    else -> RoundedCornerShape(element.cornerRadiusDp.coerceIn(0f, 74f).dp)
+    else -> customCorners
+    }
 }
 
 @Composable
@@ -177,6 +189,9 @@ fun HomeElementBody(
 ) {
     val context = LocalContext.current
     val shape = resolveMaskShape(element)
+    val styleExtras = remember(element.styleExtrasJson) { runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() } }
+    val glowRadiusDp = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f)
+    val glowColor = Color(styleExtras.optLong("glowColorHex", element.borderColorHex))
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
     val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
@@ -220,6 +235,7 @@ fun HomeElementBody(
     Surface(
         modifier = Modifier
             .fillMaxSize()
+            .then(if (glowRadiusDp > 0.1f) Modifier.shadow(glowRadiusDp.dp, shape, ambientColor = glowColor, spotColor = glowColor) else Modifier)
             .then(gestureMod),
         shape = shape,
         color = bg,
