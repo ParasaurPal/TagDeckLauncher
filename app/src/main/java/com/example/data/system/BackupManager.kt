@@ -263,6 +263,35 @@ object BackupManager {
         }
         root.put("backgroundPresets", presetsArr)
 
+        val fontsArr = JSONArray()
+        payload.customFonts.forEach { f ->
+            fontsArr.put(JSONObject().apply {
+                put("fontId", f.fontId)
+                put("displayName", f.displayName)
+                put("localPath", f.localPath)
+                put("familyName", f.familyName)
+                put("weight", f.weight)
+                put("isItalic", f.isItalic)
+                put("isFavorite", f.isFavorite)
+                put("createdAt", f.createdAt)
+            })
+        }
+        root.put("customFonts", fontsArr)
+
+        val themesArr = JSONArray()
+        payload.themeProfiles.forEach { t ->
+            themesArr.put(JSONObject().apply {
+                put("profileId", t.profileId)
+                put("name", t.name)
+                put("description", t.description)
+                put("settingsJson", t.settingsJson)
+                put("createdAt", t.createdAt)
+                put("updatedAt", t.updatedAt)
+                put("isBuiltIn", t.isBuiltIn)
+            })
+        }
+        root.put("themeProfiles", themesArr)
+
         val s = payload.settings
         root.put("settings", JSONObject().apply {
             put("themeMode", s.themeMode)
@@ -604,6 +633,37 @@ object BackupManager {
             )
         }
 
+        val customFonts = mutableListOf<CustomFontEntity>()
+        val fontsArr = root.optJSONArray("customFonts") ?: JSONArray()
+        for (i in 0 until fontsArr.length()) {
+            val o = fontsArr.getJSONObject(i)
+            customFonts.add(CustomFontEntity(
+                fontId = o.optLong("fontId", 0),
+                displayName = o.optString("displayName", "Custom font"),
+                localPath = o.optString("localPath", ""),
+                familyName = o.optString("familyName", ""),
+                weight = o.optInt("weight", 400),
+                isItalic = o.optBoolean("isItalic", false),
+                isFavorite = o.optBoolean("isFavorite", false),
+                createdAt = o.optLong("createdAt", System.currentTimeMillis()),
+            ))
+        }
+
+        val themeProfiles = mutableListOf<ThemeProfileEntity>()
+        val themesArr = root.optJSONArray("themeProfiles") ?: JSONArray()
+        for (i in 0 until themesArr.length()) {
+            val o = themesArr.getJSONObject(i)
+            themeProfiles.add(ThemeProfileEntity(
+                profileId = o.optLong("profileId", 0),
+                name = o.optString("name", "Theme"),
+                description = o.optString("description", ""),
+                settingsJson = o.optString("settingsJson", "{}"),
+                createdAt = o.optLong("createdAt", System.currentTimeMillis()),
+                updatedAt = o.optLong("updatedAt", System.currentTimeMillis()),
+                isBuiltIn = o.optBoolean("isBuiltIn", false),
+            ))
+        }
+
         val so = root.optJSONObject("settings") ?: JSONObject()
         val settings = LauncherSettings(
             themeMode = so.optString("themeMode", "DARK"),
@@ -705,6 +765,8 @@ object BackupManager {
             imageResources = images,
             embeddedImagesBase64 = embeddedMap,
             backgroundPresets = presets,
+            customFonts = customFonts,
+            themeProfiles = themeProfiles,
             settings = settings,
         )
     }
