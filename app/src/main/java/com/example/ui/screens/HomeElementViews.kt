@@ -15,6 +15,8 @@ import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -113,6 +115,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -322,6 +325,22 @@ fun HomeElementBody(
             )
         }
     } else Modifier
+    val pressedState = remember(element.elementId) { mutableStateOf(false) }
+    val pressedStateEnabled = styleExtras.optBoolean("pressedStateEnabled", false)
+    val pressedScale by animateFloatAsState(
+        targetValue = if (pressedStateEnabled && pressedState.value && !state.isEditMode) styleExtras.optDouble("pressedScale", 0.94).toFloat().coerceIn(0.82f, 1f) else 1f,
+        animationSpec = tween(styleExtras.optInt("pressedDurationMs", 110).coerceIn(50, 300)),
+        label = "element_pressed_scale",
+    )
+    val pressedStateModifier = if (pressedStateEnabled && !state.isEditMode) Modifier.pointerInput(element.elementId) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                pressedState.value = event.changes.any { it.pressed }
+            }
+        }
+    } else Modifier
+
     val colorFilter = remember(
         element.imageBrightness, element.imageContrast, element.imageSaturation,
         element.imageHueDeg, element.imageGrayscale, element.imageTintHex,
@@ -358,6 +377,8 @@ fun HomeElementBody(
     Surface(
         modifier = Modifier
             .fillMaxSize()
+            .graphicsLayer { scaleX = pressedScale; scaleY = pressedScale }
+            .then(pressedStateModifier)
             .then(if (glowRadiusDp > 0.1f) Modifier.shadow(glowRadiusDp.dp, shape, ambientColor = glowColor, spotColor = glowColor) else Modifier)
             .then(customBorderModifier)
             .then(gestureMod),
@@ -2712,6 +2733,16 @@ fun ElementInspectorDialog(
                             modifier = Modifier.testTag("inspector_border_width_slider"),
                         )
 
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Pressed-state feedback")
+                            Switch(checked = styleExtras.optBoolean("pressedStateEnabled", false), onCheckedChange = { updateStyleExtraBoolean("pressedStateEnabled", it) })
+                        }
+                        if (styleExtras.optBoolean("pressedStateEnabled", false)) {
+                            Text("Pressed scale: ${"%.2f".format(styleExtras.optDouble("pressedScale", 0.94))}x", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = styleExtras.optDouble("pressedScale", 0.94).toFloat().coerceIn(0.82f, 1f), onValueChange = { updateStyleExtra("pressedScale", it.toDouble()) }, valueRange = 0.82f..1f)
+                            Text("Animation speed: ${styleExtras.optInt("pressedDurationMs", 110)}ms", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = styleExtras.optInt("pressedDurationMs", 110).toFloat().coerceIn(50f, 300f), onValueChange = { updateStyleExtra("pressedDurationMs", it.roundToInt()) }, valueRange = 50f..300f)
+                        }
                         Text("Border Style", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("SOLID", "DASHED", "GRADIENT").forEach { mode ->
