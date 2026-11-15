@@ -315,6 +315,11 @@ object BackupManager {
             put("wallpaperBlurDp", s.wallpaperBlurDp.toDouble())
             put("wallpaperDimAlpha", s.wallpaperDimAlpha.toDouble())
             put("wallpaperDimColorHex", s.wallpaperDimColorHex)
+            put("wallpaperVignette", s.wallpaperVignette.toDouble())
+            put("wallpaperSaturation", s.wallpaperSaturation.toDouble())
+            put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
+            put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
+            put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
             put("allAppsSidebarEdge", s.allAppsSidebarEdge)
             put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
             put("allAppsBgType", s.allAppsBgType)
@@ -690,6 +695,11 @@ object BackupManager {
             wallpaperBlurDp = so.optDouble("wallpaperBlurDp", 0.0).toFloat(),
             wallpaperDimAlpha = so.optDouble("wallpaperDimAlpha", 0.25).toFloat(),
             wallpaperDimColorHex = so.optLong("wallpaperDimColorHex", 0xFF000000L),
+            wallpaperVignette = so.optDouble("wallpaperVignette", 0.0).toFloat(),
+            wallpaperSaturation = so.optDouble("wallpaperSaturation", 1.0).toFloat(),
+            wallpaperParallaxIntensity = so.optDouble("wallpaperParallaxIntensity", 0.0).toFloat(),
+            wallpaperTintHex = so.optNullableLong("wallpaperTintHex"),
+            wallpaperAmbientMotion = so.optBoolean("wallpaperAmbientMotion", false),
             allAppsSidebarEdge = so.optString("allAppsSidebarEdge", "RIGHT"),
             allAppsSidebarWidthFraction = so.optDouble("allAppsSidebarWidthFraction", 0.90).toFloat(),
             allAppsBgType = so.optString("allAppsBgType", "SOLID"),
