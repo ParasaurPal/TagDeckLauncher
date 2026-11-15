@@ -323,6 +323,7 @@ object BackupManager {
             put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
             put("globalTextColorHex", s.globalTextColorHex)
             put("showHomeAppLabels", s.showHomeAppLabels)
+            put("appLabelOutlineEnabled", s.appLabelOutlineEnabled)
             put("wallpaperType", s.wallpaperType)
             put("wallpaperCustomPath", s.wallpaperCustomPath ?: JSONObject.NULL)
             put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
@@ -340,6 +341,8 @@ object BackupManager {
             put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
             put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
             put("wallpaperAmbientEffectType", s.wallpaperAmbientEffectType)
+            put("sidebarTextColorMode", s.sidebarTextColorMode)
+            put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
             put("allAppsSidebarEdge", s.allAppsSidebarEdge)
             put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
             put("allAppsBgType", s.allAppsBgType)
@@ -387,6 +390,8 @@ object BackupManager {
             put("statusStripShowDate", s.statusStripShowDate)
             put("statusStripShowBattery", s.statusStripShowBattery)
             put("statusStripAccentColorHex", s.statusStripAccentColorHex)
+            put("widgetFeedEnabled", s.widgetFeedEnabled)
+            put("widgetFeedTitleColor", s.widgetFeedTitleColor)
             put("edgeHandlesVisible", s.edgeHandlesVisible)
             put("edgeHandleOpacity", s.edgeHandleOpacity.toDouble())
             put("edgeHandleWidthDp", s.edgeHandleWidthDp.toDouble())
@@ -415,6 +420,8 @@ object BackupManager {
             put("lineIconDefaultOutlineColorHex", s.lineIconDefaultOutlineColorHex)
             put("lineIconDefaultOutlineWidthPx", s.lineIconDefaultOutlineWidthPx.toDouble())
             put("lockedAppsCsv", s.lockedAppsCsv)
+            put("notificationsBadgeHint", s.notificationsBadgeHint)
+            put("recentSearchesCsv", s.recentSearchesCsv)
         })
 
         return root.toString(2)
@@ -734,6 +741,7 @@ object BackupManager {
             globalBorderWidthDp = so.optDouble("globalBorderWidthDp", 1.0).toFloat(),
             globalTextColorHex = so.optLong("globalTextColorHex", 0xFFF8FAFC),
             showHomeAppLabels = so.optBoolean("showHomeAppLabels", true),
+            appLabelOutlineEnabled = so.optBoolean("appLabelOutlineEnabled", false),
             wallpaperType = so.optString("wallpaperType", "BUILTIN_PRISM"),
             wallpaperCustomPath = so.optNullableString("wallpaperCustomPath"),
             wallpaperGradientStartHex = so.optLong("wallpaperGradientStartHex", 0xFF0A1124L),
@@ -751,6 +759,8 @@ object BackupManager {
             wallpaperTintHex = so.optNullableLong("wallpaperTintHex"),
             wallpaperAmbientMotion = so.optBoolean("wallpaperAmbientMotion", false),
             wallpaperAmbientEffectType = so.optString("wallpaperAmbientEffectType", "RADIAL"),
+            sidebarTextColorMode = so.optString("sidebarTextColorMode", "AUTO"),
+            sidebarCategoryIconStyle = so.optString("sidebarCategoryIconStyle", "BLACK_WHITE"),
             allAppsSidebarEdge = so.optString("allAppsSidebarEdge", "RIGHT"),
             allAppsSidebarWidthFraction = so.optDouble("allAppsSidebarWidthFraction", 0.90).toFloat(),
             allAppsBgType = so.optString("allAppsBgType", "SOLID"),
@@ -798,6 +808,8 @@ object BackupManager {
             statusStripShowDate = so.optBoolean("statusStripShowDate", true),
             statusStripShowBattery = so.optBoolean("statusStripShowBattery", true),
             statusStripAccentColorHex = so.optLong("statusStripAccentColorHex", 0xFF38BDF8L),
+            widgetFeedEnabled = so.optBoolean("widgetFeedEnabled", true),
+            widgetFeedTitleColor = so.optString("widgetFeedTitleColor", "WHITE"),
             edgeHandlesVisible = so.optBoolean("edgeHandlesVisible", true),
             edgeHandleOpacity = so.optDouble("edgeHandleOpacity", 0.45).toFloat(),
             edgeHandleWidthDp = so.optDouble("edgeHandleWidthDp", 4.0).toFloat(),
@@ -826,6 +838,8 @@ object BackupManager {
             lineIconDefaultOutlineColorHex = so.optLong("lineIconDefaultOutlineColorHex", 0xFF000000L),
             lineIconDefaultOutlineWidthPx = so.optDouble("lineIconDefaultOutlineWidthPx", 1.2).toFloat(),
             lockedAppsCsv = so.optString("lockedAppsCsv", ""),
+            notificationsBadgeHint = so.optBoolean("notificationsBadgeHint", false),
+            recentSearchesCsv = so.optString("recentSearchesCsv", ""),
             seededDefaults = true,
         )
 
