@@ -41,6 +41,11 @@ data class LauncherSettings(
     val wallpaperBlurDp: Float = 0f,
     val wallpaperDimAlpha: Float = 0.25f,
     val wallpaperDimColorHex: Long = 0xFF000000L,
+    val wallpaperVignette: Float = 0f,
+    val wallpaperSaturation: Float = 1f,
+    val wallpaperParallaxIntensity: Float = 0f,
+    val wallpaperTintHex: Long? = null,
+    val wallpaperAmbientMotion: Boolean = false,
     // Universal All-Apps Sidebar & Drawer
     val allAppsSidebarEdge: String = "RIGHT", // LEFT, RIGHT, BOTTOM
     val allAppsSidebarWidthFraction: Float = 0.90f,
@@ -165,6 +170,11 @@ class LauncherPreferencesRepository(private val context: Context) {
         val WALLPAPER_BLUR_DP = floatPreferencesKey("wallpaper_blur_dp")
         val WALLPAPER_DIM_ALPHA = floatPreferencesKey("wallpaper_dim_alpha")
         val WALLPAPER_DIM_COLOR = longPreferencesKey("wallpaper_dim_color")
+        val WALLPAPER_VIGNETTE = floatPreferencesKey("wallpaper_vignette")
+        val WALLPAPER_SATURATION = floatPreferencesKey("wallpaper_saturation")
+        val WALLPAPER_PARALLAX = floatPreferencesKey("wallpaper_parallax")
+        val WALLPAPER_TINT = longPreferencesKey("wallpaper_tint")
+        val WALLPAPER_AMBIENT = booleanPreferencesKey("wallpaper_ambient")
 
         val ALL_APPS_SIDEBAR_EDGE = stringPreferencesKey("all_apps_sidebar_edge")
         val ALL_APPS_SIDEBAR_WIDTH = floatPreferencesKey("all_apps_sidebar_width")
@@ -264,6 +274,11 @@ class LauncherPreferencesRepository(private val context: Context) {
         wallpaperBlurDp = prefs[Keys.WALLPAPER_BLUR_DP] ?: 0f,
         wallpaperDimAlpha = prefs[Keys.WALLPAPER_DIM_ALPHA] ?: 0.25f,
         wallpaperDimColorHex = prefs[Keys.WALLPAPER_DIM_COLOR] ?: 0xFF000000L,
+        wallpaperVignette = prefs[Keys.WALLPAPER_VIGNETTE] ?: 0f,
+        wallpaperSaturation = prefs[Keys.WALLPAPER_SATURATION] ?: 1f,
+        wallpaperParallaxIntensity = prefs[Keys.WALLPAPER_PARALLAX] ?: 0f,
+        wallpaperTintHex = prefs[Keys.WALLPAPER_TINT],
+        wallpaperAmbientMotion = prefs[Keys.WALLPAPER_AMBIENT] ?: false,
         allAppsSidebarEdge = prefs[Keys.ALL_APPS_SIDEBAR_EDGE] ?: "RIGHT",
         allAppsSidebarWidthFraction = prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] ?: 0.90f,
         allAppsBgType = prefs[Keys.ALL_APPS_BG_TYPE] ?: "SOLID",
@@ -365,6 +380,11 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WALLPAPER_BLUR_DP] = updated.wallpaperBlurDp
             prefs[Keys.WALLPAPER_DIM_ALPHA] = updated.wallpaperDimAlpha
             prefs[Keys.WALLPAPER_DIM_COLOR] = updated.wallpaperDimColorHex
+            prefs[Keys.WALLPAPER_VIGNETTE] = updated.wallpaperVignette
+            prefs[Keys.WALLPAPER_SATURATION] = updated.wallpaperSaturation
+            prefs[Keys.WALLPAPER_PARALLAX] = updated.wallpaperParallaxIntensity
+            if (updated.wallpaperTintHex != null) prefs[Keys.WALLPAPER_TINT] = updated.wallpaperTintHex else prefs.remove(Keys.WALLPAPER_TINT)
+            prefs[Keys.WALLPAPER_AMBIENT] = updated.wallpaperAmbientMotion
 
             prefs[Keys.ALL_APPS_SIDEBAR_EDGE] = updated.allAppsSidebarEdge
             prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] = updated.allAppsSidebarWidthFraction
