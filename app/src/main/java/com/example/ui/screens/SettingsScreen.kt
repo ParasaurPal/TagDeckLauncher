@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.graphics.Typeface
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -251,11 +252,24 @@ fun SettingsScreen(
                     val rawName = uri.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/') ?: "CustomFont.ttf"
                     val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_")
                     val extension = safeName.substringAfterLast('.', "").lowercase()
-                    require(extension == "ttf" || extension == "otf" || extension == "ttc") { "Choose a TTF, OTF, or TTC font file." }
+                    require(extension == "ttf" || extension == "otf") { "Choose a TTF or OTF font file." }
                     val folder = File(context.filesDir, "custom_fonts").apply { mkdirs() }
                     val destination = File(folder, System.currentTimeMillis().toString() + "_" + safeName)
-                    context.contentResolver.openInputStream(uri)?.use { input -> destination.outputStream().use { output -> input.copyTo(output) } } ?: error("Unable to read selected font.")
-                    CustomFontEntity(displayName = safeName.substringBeforeLast('.'), localPath = destination.absolutePath, familyName = safeName.substringBeforeLast('.'))
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            destination.outputStream().use { output -> input.copyTo(output) }
+                        } ?: error("Unable to read selected font.")
+                        require(destination.length() in 1L..25L * 1024L * 1024L) { "Font files must be smaller than 25 MB." }
+                        val validatedTypeface = Typeface.createFromFile(destination)
+                        CustomFontEntity(
+                            displayName = safeName.substringBeforeLast('.'),
+                            localPath = destination.absolutePath,
+                            familyName = validatedTypeface.toString().take(120),
+                        )
+                    } catch (error: Throwable) {
+                        destination.delete()
+                        throw error
+                    }
                 }.onSuccess { font ->
                     withContext(Dispatchers.Main) { onSaveCustomFont(font); onShowMessage("Font imported: " + font.displayName) }
                 }.onFailure { error ->
