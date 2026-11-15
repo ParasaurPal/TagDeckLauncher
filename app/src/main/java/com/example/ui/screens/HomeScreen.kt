@@ -1809,7 +1809,7 @@ private fun FreeformPageCanvas(
                                 val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
                                 val cur = latestElem
                                 val updated = if (latestIsLandscape) {
-                                    cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, widthDp = widthDp, heightDp = heightDp)
+                                    cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
                                 } else {
                                     cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
                                 }
