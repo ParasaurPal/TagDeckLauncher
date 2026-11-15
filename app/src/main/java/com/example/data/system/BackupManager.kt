@@ -252,6 +252,7 @@ object BackupManager {
                 put("fileFormat", img.fileFormat)
                 put("widthPx", img.widthPx)
                 put("heightPx", img.heightPx)
+                put("createdAt", img.createdAt)
                 val b64 = payload.embeddedImagesBase64[img.localPath]
                 if (b64 != null) put("base64", b64)
             })
@@ -671,6 +672,7 @@ object BackupManager {
                     fileFormat = o.optString("fileFormat", "PNG"),
                     widthPx = o.optInt("widthPx", 0),
                     heightPx = o.optInt("heightPx", 0),
+                    createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                 )
             )
             o.optNullableString("base64")?.let { embeddedMap[lp] = it }
