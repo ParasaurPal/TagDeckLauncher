@@ -949,7 +949,10 @@ val page = visiblePages[pageIdx]
     if (showLayerManager) {
         LayerManagerDialog(
             elements = state.homeElements.filter { it.ownerType == "PAGE" && it.pageId == currentPage.pageId },
-            onSelect = { id -> onSelectElement(id) },
+            onSelect = { id ->
+                onSelectElement(id)
+                inspectingElement = state.homeElements.firstOrNull { it.elementId == id }
+            },
             onUpdate = { onSaveElement(it, true) },
             onDismiss = { showLayerManager = false },
         )
