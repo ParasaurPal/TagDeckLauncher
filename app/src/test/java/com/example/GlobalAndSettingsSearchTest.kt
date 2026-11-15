@@ -100,6 +100,7 @@ class GlobalAndSettingsSearchTest {
 
         composeRule.waitForIdle()
         assertTrue(consumedInitial)
+        composeRule.onNodeWithTag("settings_list").performScrollToNode(hasText("Wallpaper & Atmosphere"))
         composeRule.onNodeWithText("Wallpaper & Atmosphere").assertIsDisplayed()
         composeRule.onNodeWithText("Portable Local Backup & Restore").assertDoesNotExist()
 
