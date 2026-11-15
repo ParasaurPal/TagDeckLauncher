@@ -456,14 +456,61 @@ fun HomeElementBody(
                 }
 
                 "QUICK_NOTE_WIDGET" -> {
-                    OutlinedTextField(
-                        value = styleExtras.optString("noteText", ""),
-                        onValueChange = { updateElementExtra("noteText", it) },
-                        modifier = Modifier.fillMaxSize().padding(6.dp),
-                        textStyle = elementTextStyle,
-                        label = { Text(element.label.ifBlank { "Quick Note" }) },
-                        placeholder = { Text("Write a note or checklist…") },
-                    )
+                    if (styleExtras.optString("noteMode", "NOTE") == "CHECKLIST") {
+                        val checklist = runCatching { JSONArray(styleExtras.optString("checklistItemsJson", "[]")) }.getOrElse { JSONArray() }
+                        Column(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                            Text(element.label.ifBlank { "Checklist" }, color = elementTextColor, style = elementTextStyle.copy(fontWeight = FontWeight.Bold))
+                            LazyColumn(modifier = Modifier.weight(1f)) {
+                                items(checklist.length()) { index ->
+                                    val item = checklist.optJSONObject(index) ?: JSONObject()
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = item.optBoolean("checked", false), onCheckedChange = { checked ->
+                                            val updated = JSONArray()
+                                            for (i in 0 until checklist.length()) {
+                                                val existing = JSONObject(checklist.optJSONObject(i)?.toString() ?: "{}")
+                                                if (i == index) existing.put("checked", checked)
+                                                updated.put(existing)
+                                            }
+                                            updateElementExtra("checklistItemsJson", updated.toString())
+                                        })
+                                        OutlinedTextField(
+                                            value = item.optString("text", ""),
+                                            onValueChange = { value ->
+                                                val updated = JSONArray()
+                                                for (i in 0 until checklist.length()) {
+                                                    val existing = JSONObject(checklist.optJSONObject(i)?.toString() ?: "{}")
+                                                    if (i == index) existing.put("text", value)
+                                                    updated.put(existing)
+                                                }
+                                                updateElementExtra("checklistItemsJson", updated.toString())
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            textStyle = elementTextStyle,
+                                            singleLine = true,
+                                        )
+                                        IconButton(onClick = {
+                                            val updated = JSONArray()
+                                            for (i in 0 until checklist.length()) if (i != index) updated.put(checklist.optJSONObject(i))
+                                            updateElementExtra("checklistItemsJson", updated.toString())
+                                        }) { Icon(Icons.Rounded.Close, contentDescription = "Remove item") }
+                                    }
+                                }
+                            }
+                            TextButton(onClick = {
+                                val updated = JSONArray(checklist.toString()).put(JSONObject().put("text", "").put("checked", false))
+                                updateElementExtra("checklistItemsJson", updated.toString())
+                            }) { Text("Add checklist item") }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = styleExtras.optString("noteText", ""),
+                            onValueChange = { updateElementExtra("noteText", it) },
+                            modifier = Modifier.fillMaxSize().padding(6.dp),
+                            textStyle = elementTextStyle,
+                            label = { Text(element.label.ifBlank { "Quick Note" }) },
+                            placeholder = { Text("Write a note…") },
+                        )
+                    }
                 }
 
                 "FOCUS_TIMER_WIDGET" -> {
@@ -1346,7 +1393,7 @@ fun AddHomeElementDialog(
                             addWidgetElement("APP_GROUP_WIDGET", "App Group", JSONObject().put("appGroupMode", "FAVORITES").put("appGroupColumns", 4), 220f, 180f)
                         }
                         AddTypeRow(Icons.Rounded.TextFields, "Quick Notes / Checklist", "Editable notes stored with your launcher layout") {
-                            addWidgetElement("QUICK_NOTE_WIDGET", "Quick Note", JSONObject().put("noteText", ""), 220f, 150f)
+                            addWidgetElement("QUICK_NOTE_WIDGET", "Quick Note", JSONObject().put("noteText", "").put("noteMode", "NOTE").put("checklistItemsJson", "[]"), 220f, 150f)
                         }
                         AddTypeRow(Icons.Rounded.SmartButton, "Focus / Pomodoro Timer", "Persistent countdown with start, pause, and reset") {
                             addWidgetElement("FOCUS_TIMER_WIDGET", "Focus Timer", JSONObject().put("focusDurationMinutes", 25).put("timerRunning", false).put("timerRemainingSeconds", 1500).put("timerEndAtMillis", 0L), 220f, 150f)
@@ -2326,6 +2373,15 @@ fun ElementInspectorDialog(
                             if (styleExtras.optString("containerLayoutMode", "FREEFORM") == "GRID") {
                                 Text("Grid columns: ${styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5)}")
                                 Slider(value = styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5).toFloat(), onValueChange = { updateStyleExtra("containerGridColumns", it.roundToInt().toDouble()) }, valueRange = 1f..5f, steps = 3)
+                            }
+                        }
+                        if (edited.type == "QUICK_NOTE_WIDGET") {
+                            HorizontalDivider()
+                            Text("Note Type", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("NOTE", "CHECKLIST").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("noteMode", "NOTE") == mode, onClick = { updateStyleExtraString("noteMode", mode) }, label = { Text(if (mode == "NOTE") "Freeform Note" else "Checklist") })
+                                }
                             }
                         }
                         if (edited.type == "APP_GROUP_WIDGET") {
