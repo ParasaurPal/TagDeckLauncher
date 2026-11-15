@@ -957,7 +957,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                     )
                 }
 
-                if (!state.isEditMode && (page.showDockOverride ?: state.settings.showDockBar)) {
+                if (!state.isEditMode && (currentPage.showDockOverride ?: state.settings.showDockBar)) {
                     val dockRadius = state.settings.globalCornerRadiusDp.coerceIn(12f, 32f).dp
                     val dockAlpha = state.settings.surfaceOpacity.coerceIn(0.42f, 0.96f)
                     val dockBorderWidth = state.settings.globalBorderWidthDp
@@ -1810,7 +1810,7 @@ private fun FreeformPageCanvas(
                             rotationX = elem.rotationXDeg
                             rotationY = elem.rotationYDeg
                             rotationZ = elem.rotationDeg
-                            cameraDistance = (8f + (1f - elem.perspective.coerceIn(0f, 1f)) * 24f) * density
+                            cameraDistance = (8f + (1f - elem.perspective.toFloat().coerceIn(0f, 1f)) * 24f) * density
                             scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
                             scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
                         }
