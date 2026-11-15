@@ -7,9 +7,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.db.AppEntity
@@ -177,18 +180,20 @@ class GlobalAndSettingsSearchTest {
         // Search across pages, windows, sidebars, widgets
         composeRule.onNodeWithTag("universal_search_input").performTextReplacement("studio")
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("global_search_window_7").assertIsDisplayed()
-        composeRule.onNodeWithTag("global_search_sidebar_3").assertIsDisplayed()
-        composeRule.onNodeWithTag("global_search_element_11").assertIsDisplayed()
-        composeRule.onNodeWithText("Studio Deck").assertIsDisplayed()
-
-        composeRule.onNodeWithTag("global_search_window_7").performClick()
+        val results = composeRule.onNodeWithTag("universal_search_results")
+        results.performScrollToNode(hasTestTag("global_search_window_7"))
+        composeRule.onNodeWithTag("global_search_window_7").assertIsDisplayed().performClick()
         assertEquals(7L, openedWindowId)
 
-        composeRule.onNodeWithTag("global_search_sidebar_3").performClick()
+        results.performScrollToNode(hasTestTag("global_search_sidebar_3"))
+        composeRule.onNodeWithTag("global_search_sidebar_3").assertIsDisplayed().performClick()
         assertEquals(3L, openedSidebarId)
 
-        composeRule.onNodeWithText("Studio Deck").performClick()
+        results.performScrollToNode(hasTestTag("global_search_element_11"))
+        composeRule.onNodeWithTag("global_search_element_11").assertIsDisplayed()
+
+        results.performScrollToNode(hasText("Studio Deck"))
+        composeRule.onNodeWithText("Studio Deck").assertIsDisplayed().performClick()
         assertEquals(1, jumpedPageIdx)
 
         // Empty query result shows clean empty state
