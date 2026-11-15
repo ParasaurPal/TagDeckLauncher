@@ -89,6 +89,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
@@ -208,7 +209,7 @@ fun ActiveOverlayHost(
                     val nestedFolders = state.homeElements.filter { it.elementId in nestedIds && it.type == "FOLDER" }
 
                     FolderPopupModal(
-                        title = folderElem.label.ifBlank { "Folder" },
+                        folder = folderElem,
                         apps = folderApps,
                         nestedFolders = nestedFolders,
                         appDiscovery = appDiscovery,
@@ -1845,7 +1846,7 @@ fun GenericSidebarContent(
 
 @Composable
 private fun FolderPopupModal(
-    title: String,
+    folder: HomeElementEntity,
     apps: List<AppEntity>,
     nestedFolders: List<HomeElementEntity>,
     appDiscovery: AppDiscoveryManager,
@@ -1854,32 +1855,40 @@ private fun FolderPopupModal(
     onLaunchApp: (AppEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val shape = RoundedCornerShape(folder.cornerRadiusDp.coerceIn(8f, 48f).dp)
+    val startColor = Color(folder.backgroundColorHex).takeIf { it.alpha > 0.02f } ?: MaterialTheme.colorScheme.surface
+    val endColor = folder.backgroundGradientEndHex?.let { Color(it) }
+    val popupBrush = if (endColor != null) Brush.linearGradient(listOf(startColor, endColor)) else Brush.linearGradient(listOf(startColor, startColor))
+    val appTextColor = Color(folder.textColorHex)
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable { onDismiss() },
+        modifier = Modifier.fillMaxSize().clickable { onDismiss() },
         contentAlignment = Alignment.Center,
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.86f)
-                .widthIn(max = 380.dp)
+                .widthIn(max = folder.widthDp.coerceIn(280f, 420f).dp)
                 .clickable(enabled = false) {},
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-            tonalElevation = 12.dp,
+            shape = shape,
+            color = Color.Transparent,
+            border = BorderStroke(folder.borderWidthDp.coerceIn(0f, 6f).dp, Color(folder.borderColorHex)),
+            shadowElevation = folder.shadowElevationDp.coerceIn(0f, 24f).dp,
+            tonalElevation = 0.dp,
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(
+                modifier = Modifier
+                    .background(popupBrush, shape)
+                    .padding(folder.paddingDp.coerceIn(8f, 28f).dp + 12.dp),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.FolderOpen, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Rounded.FolderOpen, contentDescription = null, tint = appTextColor)
                     Spacer(Modifier.width(10.dp))
-                    Text(text = title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Text(text = folder.label.ifBlank { "Folder" }, style = MaterialTheme.typography.titleLarge, color = appTextColor, modifier = Modifier.weight(1f))
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Close folder")
+                        Icon(Icons.Rounded.Close, contentDescription = "Close folder", tint = appTextColor)
                     }
                 }
                 if (nestedFolders.isNotEmpty()) {
@@ -1888,7 +1897,8 @@ private fun FolderPopupModal(
                         items(nestedFolders, key = { it.elementId }) { sub ->
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                tonalElevation = 3.dp,
+                                color = Color(folder.borderColorHex).copy(alpha = 0.18f),
+                                border = BorderStroke(1.dp, Color(folder.borderColorHex).copy(alpha = 0.55f)),
                                 modifier = Modifier.clickable { onOpenNestedFolder(sub.elementId) },
                             ) {
                                 Row(
@@ -1896,8 +1906,8 @@ private fun FolderPopupModal(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Icon(Icons.Rounded.FolderOpen, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Text(sub.label.ifBlank { "Folder" }, style = MaterialTheme.typography.labelLarge)
+                                    Icon(Icons.Rounded.FolderOpen, null, modifier = Modifier.size(16.dp), tint = appTextColor)
+                                    Text(sub.label.ifBlank { "Folder" }, style = MaterialTheme.typography.labelLarge, color = appTextColor)
                                 }
                             }
                         }
@@ -1908,33 +1918,36 @@ private fun FolderPopupModal(
                     Text(
                         text = "Folder is empty. Enter Edit Mode to add apps or nested folders.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appTextColor.copy(alpha = 0.75f),
                     )
+                } else if (folder.folderLayoutMode == "LIST") {
+                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(apps, key = { it.packageName }) { app ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onLaunchApp(app) }.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                AppIconView(app, appDiscovery, folder.iconSizeDp.coerceIn(28f, 64f).dp, iconShapeKey)
+                                Spacer(Modifier.width(12.dp))
+                                Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
                 } else {
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.heightIn(max = 280.dp),
+                        columns = GridCells.Fixed(if (folder.folderLayoutMode == "GRID_3X3") 3 else 2),
+                        modifier = Modifier.heightIn(max = 320.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(apps, key = { it.packageName }) { app ->
                             Column(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable { onLaunchApp(app) }
-                                    .padding(4.dp),
+                                modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable { onLaunchApp(app) }.padding(4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                AppIconView(app, appDiscovery, 52.dp, iconShapeKey)
+                                AppIconView(app, appDiscovery, folder.iconSizeDp.coerceIn(28f, 64f).dp, iconShapeKey)
                                 Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = app.displayName,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                )
+                                Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                             }
                         }
                     }
