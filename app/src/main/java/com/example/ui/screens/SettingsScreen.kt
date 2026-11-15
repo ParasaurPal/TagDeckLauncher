@@ -112,6 +112,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CustomFontEntity
+import com.example.data.db.CategoryEntity
 import com.example.data.db.ThemeProfileEntity
 import org.json.JSONObject
 import org.json.JSONArray
@@ -124,6 +125,8 @@ import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.ColorSwatchRow
 import com.example.ui.components.IconOutlineProcessor
 import com.example.ui.components.IconStyleConfig
+import com.example.ui.components.CategoryBadgeIcon
+import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.ImageLibraryDialog
 import com.example.ui.components.StudioDarkSurfaceSwatches
 import com.example.ui.components.StudioNeutralAndAccentSwatches
@@ -186,6 +189,7 @@ fun SettingsScreen(
     onDeleteCustomFont: (Long) -> Unit = {},
     onSaveThemeProfile: (ThemeProfileEntity) -> Unit = {},
     onDeleteThemeProfile: (Long) -> Unit = {},
+    onSaveCategory: (CategoryEntity) -> Unit = {},
     onExportBackupJson: suspend () -> String,
     onImportBackupJson: (String) -> Unit,
     onShowMessage: (String) -> Unit,
@@ -231,6 +235,7 @@ fun SettingsScreen(
         LauncherSettingsCatalog.filterSections(searchQuery)
     }
     var editingGesture by remember { mutableStateOf<GestureBindingEntity?>(null) }
+    var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var showImageLibrary by remember { mutableStateOf(false) }
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
@@ -2110,6 +2115,15 @@ fun SettingsScreen(
             },
             onDeletePreset = onDeleteBackgroundPreset,
             onDismiss = { showBackgroundPresets = false },
+        )
+    }
+
+    editingCategory?.let { category ->
+        CategoryEditorDialog(
+            initialCategory = category,
+            onImportImage = { uri -> onImportImage(uri, "Category Icons", null) },
+            onSave = { updated -> onSaveCategory(updated); editingCategory = null },
+            onDismiss = { editingCategory = null },
         )
     }
 
