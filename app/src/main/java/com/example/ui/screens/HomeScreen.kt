@@ -1178,7 +1178,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
 
     if (showLayerManager) {
         LayerManagerDialog(
-            elements = state.homeElements.filter { it.ownerType == "PAGE" && it.pageId == currentPage.pageId },
+            elements = state.homeElements.filter { it.ownerType == "PAGE" && (it.pageId == currentPage.pageId || it.pinnedToViewport) },
             onSelect = { id ->
                 onSelectElement(id)
                 inspectingElement = state.homeElements.firstOrNull { it.elementId == id }
