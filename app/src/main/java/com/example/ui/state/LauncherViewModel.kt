@@ -936,15 +936,22 @@ class LauncherViewModel(
             "OPEN_TAG_MANAGER" -> onNavigate(LauncherRoute.Tags)
             "OPEN_APP_MANAGER" -> onNavigate(LauncherRoute.Apps)
             "NEXT_PAGE" -> {
-                val pages = uiState.value.homePages.size
-                if (pages > 1) {
-                    val next = (uiState.value.currentPageIndex + 1).coerceAtMost(pages - 1)
+                val pages = uiState.value.homePages.filterNot { it.isHidden }.sortedBy { it.pageOrder }
+                if (pages.size > 1) {
+                    val index = uiState.value.currentPageIndex.coerceIn(0, pages.lastIndex)
+                    val loop = pages.getOrNull(index)?.loopNavigation == true
+                    val next = if (loop) (index + 1) % pages.size else (index + 1).coerceAtMost(pages.lastIndex)
                     onScrollPage(next)
                 }
             }
             "PREV_PAGE" -> {
-                val prev = (uiState.value.currentPageIndex - 1).coerceAtLeast(0)
-                onScrollPage(prev)
+                val pages = uiState.value.homePages.filterNot { it.isHidden }.sortedBy { it.pageOrder }
+                if (pages.size > 1) {
+                    val index = uiState.value.currentPageIndex.coerceIn(0, pages.lastIndex)
+                    val loop = pages.getOrNull(index)?.loopNavigation == true
+                    val previous = if (loop) (index - 1 + pages.size) % pages.size else (index - 1).coerceAtLeast(0)
+                    onScrollPage(previous)
+                }
             }
             "TOGGLE_EDIT_MODE" -> setEditMode(!uiState.value.isEditMode)
             "MACRO" -> {
