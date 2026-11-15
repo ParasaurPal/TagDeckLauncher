@@ -224,6 +224,27 @@ fun SettingsScreen(
     var showBackgroundPresets by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
 
+    val customFontPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                runCatching {
+                    val rawName = uri.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/') ?: "CustomFont.ttf"
+                    val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                    val extension = safeName.substringAfterLast('.', "").lowercase()
+                    require(extension == "ttf" || extension == "otf" || extension == "ttc") { "Choose a TTF, OTF, or TTC font file." }
+                    val folder = File(context.filesDir, "custom_fonts").apply { mkdirs() }
+                    val destination = File(folder, System.currentTimeMillis().toString() + "_" + safeName)
+                    context.contentResolver.openInputStream(uri)?.use { input -> destination.outputStream().use { output -> input.copyTo(output) } } ?: error("Unable to read selected font.")
+                    CustomFontEntity(displayName = safeName.substringBeforeLast('.'), localPath = destination.absolutePath, familyName = safeName.substringBeforeLast('.'))
+                }.onSuccess { font ->
+                    withContext(Dispatchers.Main) { onSaveCustomFont(font); onShowMessage("Font imported: " + font.displayName) }
+                }.onFailure { error ->
+                    withContext(Dispatchers.Main) { onShowMessage(error.message ?: "Font import failed") }
+                }
+            }
+        }
+    }
+
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
