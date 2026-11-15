@@ -1735,6 +1735,7 @@ fun PagesAndSnapshotsDialog(
     onJumpToPage: (Long) -> Unit = {},
     onImportImage: suspend (Uri, String, String?) -> String?,
     onAddPage: (String) -> Unit,
+    onCreateStarterTemplate: (String) -> Unit,
     onSavePage: (HomePageEntity) -> Unit,
     onDuplicatePage: (HomePageEntity) -> Unit,
     onReorderPages: (List<Long>) -> Unit,
