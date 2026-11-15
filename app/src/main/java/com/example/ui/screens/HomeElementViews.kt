@@ -239,17 +239,18 @@ fun HomeElementBody(
     }
     val glowRadiusDp = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f)
     val glowColor = Color(styleExtras.optLong("glowColorHex", element.borderColorHex))
-    val textOutlineEnabled = styleExtras.optBoolean("textOutlineEnabled", false)
+    val highReadability = state.settings.highReadabilityMode
+    val textOutlineEnabled = styleExtras.optBoolean("textOutlineEnabled", highReadability)
     val textOutlineColor = Color(styleExtras.optLong("textOutlineColorHex", 0xFF000000L))
-    val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat()
+    val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", if (highReadability) 1.0 else 0.5).toFloat()
     val customFontId = styleExtras.optLong("customFontId", -1L)
     val elementFontFamily = remember(customFontId, state.customFonts) {
         state.customFonts.firstOrNull { it.fontId == customFontId }?.localPath
             ?.let { path -> runCatching { File(path).takeIf { it.isFile }?.let { FontFamily(Font(file = it)) } }.getOrNull() }
     }
-    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f))
-    val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", false)) FontWeight.Bold else FontWeight.SemiBold
-    val elementTextColor = if (styleExtras.optBoolean("textAutoContrast", false) && Color(element.backgroundColorHex).alpha > 0.05f) {
+    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", if (highReadability) 13.0 else 11.0).toFloat().coerceIn(8f, 24f))
+    val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", highReadability)) FontWeight.Bold else FontWeight.SemiBold
+    val elementTextColor = if (styleExtras.optBoolean("textAutoContrast", highReadability) && Color(element.backgroundColorHex).alpha > 0.05f) {
         val bgColor = Color(element.backgroundColorHex)
         val luminance = bgColor.red * 0.299f + bgColor.green * 0.587f + bgColor.blue * 0.114f
         if (luminance > 0.55f) Color(0xFF111111) else Color.White
@@ -258,12 +259,12 @@ fun HomeElementBody(
         fontFamily = elementFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
         fontSize = elementFontSize.sp,
         fontWeight = elementFontWeight,
-        letterSpacing = styleExtras.optDouble("textLetterSpacingSp", 0.0).toFloat().coerceIn(-1f, 4f).sp,
-        lineHeight = (elementFontSize * styleExtras.optDouble("textLineHeightMultiplier", 1.25).toFloat().coerceIn(0.8f, 2f)).sp,
+        letterSpacing = styleExtras.optDouble("textLetterSpacingSp", if (highReadability) 0.2 else 0.0).toFloat().coerceIn(-1f, 4f).sp,
+        lineHeight = (elementFontSize * styleExtras.optDouble("textLineHeightMultiplier", if (highReadability) 1.35 else 1.25).toFloat().coerceIn(0.8f, 2f)).sp,
     )
     val labelReadabilityModifier = Modifier
-        .then(if (styleExtras.optBoolean("textShadowEnabled", false)) Modifier.shadow(styleExtras.optDouble("textShadowIntensity", 4.0).toFloat().coerceIn(0f, 18f).dp, RoundedCornerShape(8.dp)) else Modifier)
-        .then(if (styleExtras.optBoolean("labelBackdropEnabled", false)) Modifier.clip(RoundedCornerShape(8.dp)).background(Color(styleExtras.optLong("labelBackdropColorHex", 0x99000000L))) else Modifier)
+        .then(if (styleExtras.optBoolean("textShadowEnabled", highReadability)) Modifier.shadow(styleExtras.optDouble("textShadowIntensity", if (highReadability) 5.0 else 4.0).toFloat().coerceIn(0f, 18f).dp, RoundedCornerShape(8.dp)) else Modifier)
+        .then(if (styleExtras.optBoolean("labelBackdropEnabled", highReadability)) Modifier.clip(RoundedCornerShape(8.dp)).background(Color(styleExtras.optLong("labelBackdropColorHex", 0x99000000L))) else Modifier)
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
     val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
@@ -822,7 +823,7 @@ fun HomeElementBody(
                             style = elementTextStyle,
                             textAlign = TextAlign.Center,
                             modifier = labelReadabilityModifier,
-                            maxLines = if (styleExtras.optBoolean("textWrapTwoLines", false)) 2 else 1,
+                            maxLines = if (styleExtras.optBoolean("textWrapTwoLines", highReadability)) 2 else 1,
                             overflow = TextOverflow.Ellipsis,
                             outlineEnabled = textOutlineEnabled,
                             outlineColor = textOutlineColor,
