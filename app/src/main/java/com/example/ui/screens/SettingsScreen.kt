@@ -525,7 +525,26 @@ fun SettingsScreen(
                         modifier = Modifier.testTag("settings_font_scale_slider"),
                     )
 
-                    Text("Home Element Default Text Color", style = MaterialTheme.typography.labelLarge)
+                    HorizontalDivider()
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Custom Font Library", style = MaterialTheme.typography.titleSmall)
+                            Text("Import TTF, OTF, or TTC files. Fonts stay in app storage.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Button(onClick = { customFontPicker.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream", "*/*")) }) { Text("Import") }
+                    }
+                    if (state.customFonts.isEmpty()) {
+                        Text("No custom fonts imported yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        state.customFonts.forEach { font ->
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(selected = s.fontStyle == "CUSTOM_" + font.fontId, onClick = { onUpdateSettings { it.copy(fontStyle = "CUSTOM_" + font.fontId) } }, label = { Text(font.displayName, maxLines = 1) }, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { onDeleteCustomFont(font.fontId); if (s.fontStyle == "CUSTOM_" + font.fontId) onUpdateSettings { it.copy(fontStyle = "DEFAULT") } }) { Text("Remove") }
+                            }
+                        }
+                    }
+
+                                        Text("Home Element Default Text Color", style = MaterialTheme.typography.labelLarge)
                     ColorSwatchRow(
                         selectedColorHex = s.globalTextColorHex,
                         colors = StudioNeutralAndAccentSwatches,
