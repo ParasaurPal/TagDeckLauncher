@@ -231,13 +231,29 @@ fun WallpaperBackground(
             )
         }
         if (settings.wallpaperAmbientMotion && ambientStrength > 0.01f) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(
-                    Brush.radialGradient(
-                        colors = listOf(Color.Transparent, Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.075f)),
+            val ambientLayer = when (settings.wallpaperAmbientEffectType) {
+                "AURORA" -> Brush.horizontalGradient(
+                    listOf(
+                        Color.Transparent,
+                        Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.09f),
+                        Color(settings.secondaryColorHex).copy(alpha = ambientStrength * 0.07f),
+                        Color.Transparent,
                     )
                 )
-            )
+                "GLOW" -> Brush.verticalGradient(
+                    listOf(
+                        Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.08f),
+                        Color.Transparent,
+                    )
+                )
+                "PULSE" -> Brush.radialGradient(
+                    colors = listOf(Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.12f), Color.Transparent),
+                )
+                else -> Brush.radialGradient(
+                    colors = listOf(Color.Transparent, Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.075f)),
+                )
+            }
+            Box(modifier = Modifier.fillMaxSize().background(ambientLayer))
         }
     }
 }
