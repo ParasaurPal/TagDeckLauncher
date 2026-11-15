@@ -517,6 +517,8 @@ private fun TagDeckRoot(
                     onDeleteBackgroundPreset = { id -> viewModel.deleteBackgroundPreset(id) },
                     onSaveCustomFont = { font -> viewModel.saveCustomFont(font) },
                     onDeleteCustomFont = { id -> viewModel.deleteCustomFont(id) },
+                    onSaveThemeProfile = { profile -> viewModel.saveThemeProfile(profile) },
+                    onDeleteThemeProfile = { id -> viewModel.deleteThemeProfile(id) },
                     onExportBackupJson = { viewModel.exportFullBackupJson() },
                     onImportBackupJson = { viewModel.importFullBackupJson(it) },
                     onShowMessage = { viewModel.showMessage(it) },
