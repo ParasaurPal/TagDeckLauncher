@@ -330,7 +330,7 @@ fun AppDrawerOverlay(
                                             size = 28.dp,
                                         )
                                     } else if (activeCategory != null) {
-                                        CategoryBadgeIcon(activeCategory, size = 28.dp)
+                                        CategoryBadgeIcon(activeCategory, size = 28.dp, isOpen = true)
                                     }
                                     Spacer(Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
