@@ -118,6 +118,7 @@ import com.example.ui.state.LauncherUiState
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 @Composable
 fun HomeScreen(
@@ -259,33 +260,72 @@ fun HomeScreen(
                 .fillMaxSize()
                 .pointerInput(state.isEditMode, state.gestures) {
                     if (!state.isEditMode) {
+                        var twoFingerStartX = 0f
                         var twoFingerStartY = 0f
+                        var twoFingerStartDistance = 0f
+                        var twoFingerStartAt = 0L
                         var trackingTwoFinger = false
+                        var twoFingerMoved = false
+                        var twoFingerGestureFired = false
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
                                 val pressed = event.changes.filter { it.pressed }
                                 if (pressed.size == 2) {
+                                    val avgX = (pressed[0].position.x + pressed[1].position.x) / 2f
                                     val avgY = (pressed[0].position.y + pressed[1].position.y) / 2f
+                                    val dx = pressed[0].position.x - pressed[1].position.x
+                                    val dyBetween = pressed[0].position.y - pressed[1].position.y
+                                    val distance = sqrt(dx * dx + dyBetween * dyBetween)
                                     if (!trackingTwoFinger) {
                                         trackingTwoFinger = true
+                                        twoFingerStartX = avgX
                                         twoFingerStartY = avgY
-                                    } else {
-                                        val dy = avgY - twoFingerStartY
-                                        if (dy < -110f) {
-                                            trackingTwoFinger = false
-                                            onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        twoFingerStartDistance = distance
+                                        twoFingerStartAt = System.currentTimeMillis()
+                                        twoFingerMoved = false
+                                        twoFingerGestureFired = false
+                                    } else if (!twoFingerGestureFired) {
+                                        val moveX = avgX - twoFingerStartX
+                                        val moveY = avgY - twoFingerStartY
+                                        val distanceDelta = distance - twoFingerStartDistance
+                                        if (kotlin.math.abs(moveX) > 28f || kotlin.math.abs(moveY) > 28f || kotlin.math.abs(distanceDelta) > 24f) twoFingerMoved = true
+                                        when {
+                                            distanceDelta > 90f -> {
+                                                twoFingerGestureFired = true
+                                                onTriggerGesture("PINCH_OUT") { target ->
+                                                    scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                }
                                             }
-                                        } else if (dy > 110f) {
-                                            trackingTwoFinger = false
-                                            onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                            distanceDelta < -90f -> {
+                                                twoFingerGestureFired = true
+                                                onTriggerGesture("PINCH_IN") { target ->
+                                                    scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                }
+                                            }
+                                            moveY < -110f -> {
+                                                twoFingerGestureFired = true
+                                                onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
+                                                    scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                }
+                                            }
+                                            moveY > 110f -> {
+                                                twoFingerGestureFired = true
+                                                onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
+                                                    scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                }
                                             }
                                         }
                                     }
-                                } else {
+                                } else if (pressed.isEmpty()) {
+                                    if (trackingTwoFinger && !twoFingerGestureFired && !twoFingerMoved && System.currentTimeMillis() - twoFingerStartAt < 320L) {
+                                        onTriggerGesture("TWO_FINGER_TAP") { target ->
+                                            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        }
+                                    }
                                     trackingTwoFinger = false
+                                    twoFingerGestureFired = false
+                                    twoFingerMoved = false
                                 }
                             }
                         }
