@@ -141,6 +141,7 @@ fun AppDrawerOverlay(
         var showCustomizeDialog by remember { mutableStateOf(false) }
         var showT9Search by remember { mutableStateOf(false) }
         var t9Query by remember { mutableStateOf("") }
+        var selectedT9Package by remember { mutableStateOf<String?>(null) }
 
         val allCategory = remember(state.categories) {
             state.categories.find { it.categoryId == FILTER_ALL }
@@ -610,65 +611,105 @@ fun AppDrawerOverlay(
 
                             if (showT9Search) {
                                 val t9Digits = t9Query.filter { it.isDigit() }
-                                val t9Matches = visibleApps.filter { item ->
-                                    t9Digits.isBlank() || t9NameDigits(item.app.displayName).contains(t9Digits)
-                                }
+                                val t9Matches = visibleApps
+                                    .mapNotNull { item ->
+                                        val digits = t9NameDigits(item.app.displayName)
+                                        val index = if (t9Digits.isBlank()) 0 else digits.indexOf(t9Digits)
+                                        if (t9Digits.isNotBlank() && index < 0) null
+                                        else {
+                                            val score = when {
+                                                t9Digits.isBlank() -> 0
+                                                digits == t9Digits -> 100000
+                                                digits.startsWith(t9Digits) -> 50000 - (digits.length - t9Digits.length)
+                                                else -> 25000 - (index * 100) - kotlin.math.abs(digits.length - t9Digits.length)
+                                            }
+                                            item to score
+                                        }
+                                    }
+                                    .sortedBy { it.second }
+                                    .map { it.first }
+                                val selectedT9App = t9Matches.firstOrNull { it.app.packageName == selectedT9Package }
+                                    ?: t9Matches.lastOrNull()
                                 Surface(
                                     modifier = Modifier.fillMaxSize().testTag("drawer_t9_search_overlay"),
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
                                     shape = RoundedCornerShape(0.dp),
                                 ) {
                                     Column(
-                                        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(7.dp),
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                             Text("T9 Search", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                            Text("✕", modifier = Modifier.clip(CircleShape).clickable { showT9Search = false }.padding(10.dp), color = MaterialTheme.colorScheme.onSurface)
+                                            Text("Close", modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showT9Search = false }.padding(horizontal = 10.dp, vertical = 7.dp), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
                                         }
-                                        Text(if (t9Query.isBlank()) "Enter numbers to find an app" else t9Query, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                                        Column(verticalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-                                            listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("⌫", "0", "Clear")).forEach { rowKeys ->
+                                        Text(
+                                            if (t9Query.isBlank()) "Enter numbers to find an app" else t9Query,
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                        )
+                                        Text("Matching apps · closest match at bottom", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+                                        LazyColumn(
+                                            modifier = Modifier.weight(1f).fillMaxWidth().testTag("drawer_t9_results"),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                                        ) {
+                                            items(t9Matches, key = { it.app.packageName }) { item ->
+                                                val selected = item.app.packageName == selectedT9App?.app?.packageName
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth()
+                                                        .clip(RoundedCornerShape(9.dp))
+                                                        .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.20f) else Color.Transparent)
+                                                        .clickable { selectedT9Package = item.app.packageName }
+                                                        .padding(horizontal = 9.dp, vertical = 5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    AppIconView(app = item.app, appDiscovery = appDiscovery, size = 30.dp, iconShapeKey = state.settings.globalIconShape)
+                                                    Spacer(Modifier.width(9.dp))
+                                                    Text(item.app.displayName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                }
+                                            }
+                                            if (t9Matches.isEmpty()) {
+                                                item { Text("No matching apps", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(12.dp)) }
+                                            }
+                                        }
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                            listOf(listOf("1", "2\nABC", "3\nDEF"), listOf("4\nGHI", "5\nJKL", "6\nMNO"), listOf("7\nPQRS", "8\nTUV", "9\nWXYZ"), listOf("⌫\nDelete", "0", "Clear")).forEach { rowKeys ->
                                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                                     rowKeys.forEach { key ->
+                                                        val parts = key.split("\n")
                                                         Surface(
                                                             modifier = Modifier.weight(1f).height(48.dp).clickable {
-                                                                when (key) {
-                                                                    "⌫" -> t9Query = t9Query.dropLast(1)
-                                                                    "Clear" -> t9Query = ""
-                                                                    else -> if (t9Query.length < 20) t9Query += key
+                                                                when (parts[0]) {
+                                                                    "⌫" -> { t9Query = t9Query.dropLast(1); selectedT9Package = null }
+                                                                    "Clear" -> { t9Query = ""; selectedT9Package = null }
+                                                                    else -> if (t9Query.length < 20) { t9Query += parts[0]; selectedT9Package = null }
                                                                 }
                                                             },
-                                                            shape = RoundedCornerShape(12.dp),
+                                                            shape = RoundedCornerShape(9.dp),
                                                             color = MaterialTheme.colorScheme.surfaceVariant,
                                                         ) {
-                                                            Box(contentAlignment = Alignment.Center) {
-                                                                Text(key, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                                                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                                                Text(parts[0], style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                                                if (parts.size > 1) Text(parts[1], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                             }
                                                         }
                                                     }
                                                 }
                                             }
-                                        }
-                                        Text("Matching apps (\${t9Matches.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            items(t9Matches, key = { it.app.packageName }) { item ->
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                                                        .clickable { onLaunchApp(item.app); onClose() }
-                                                        .padding(horizontal = 10.dp, vertical = 9.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    AppIconView(app = item.app, appDiscovery = appDiscovery, size = 34.dp, iconShapeKey = state.settings.globalIconShape)
-                                                    Spacer(Modifier.width(10.dp))
-                                                    Text(item.app.displayName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                }
+                                            Button(
+                                                onClick = { selectedT9App?.let { onLaunchApp(it.app); onClose() } },
+                                                enabled = selectedT9App != null,
+                                                modifier = Modifier.fillMaxWidth().height(46.dp).testTag("drawer_t9_launch_button"),
+                                                shape = RoundedCornerShape(8.dp),
+                                            ) {
+                                                Text("Launch", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
 
                         if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchPosition == "BOTTOM") {
                             Box(
