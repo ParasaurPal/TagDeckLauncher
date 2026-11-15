@@ -1598,7 +1598,7 @@ private fun FreeformPageCanvas(
                 }
             }
 
-            val stackedChildIds = elements.filter { it.type == "WIDGET_STACK" }
+            val stackedChildIds = elements.filter { it.type == "WIDGET_STACK" || it.type == "TAB_SWITCHER_WIDGET" }
                 .flatMap { it.widgetStackItemsJson.split(",").mapNotNull { raw -> raw.trim().toLongOrNull() } }
                 .toSet()
             elements.filter { it.elementId !in stackedChildIds && it.parentContainerId == null }.forEach { elem ->
