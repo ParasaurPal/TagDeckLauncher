@@ -2369,35 +2369,35 @@ fun ElementInspectorDialog(
                                     )
                                 }
                             }
-                            Text("Minimum label size: ${styleExtras.optDouble("minimumFontSizeSp", 11.0).roundToInt()}sp", style = MaterialTheme.typography.labelMedium)
+                            Text("Minimum label size: ${styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).roundToInt()}sp", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("minimumFontSizeSp", 11.0).toFloat().coerceIn(8f, 24f), onValueChange = { updateStyleExtra("minimumFontSizeSp", it.toDouble()) }, valueRange = 8f..24f)
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Bold weight boost")
-                                Switch(checked = styleExtras.optBoolean("textBoldBoost", false), onCheckedChange = { updateStyleExtraBoolean("textBoldBoost", it) })
+                                Switch(checked = styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textBoldBoost", it) })
                             }
-                            Text("Letter spacing: ${"%.1f".format(styleExtras.optDouble("textLetterSpacingSp", 0.0))}sp", style = MaterialTheme.typography.labelMedium)
+                            Text("Letter spacing: ${"%.1f".format(styleExtras.optDouble("textLetterSpacingSp", state.settings.letterSpacingEm * edited.fontSizeSp))}sp", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("textLetterSpacingSp", 0.0).toFloat().coerceIn(-1f, 4f), onValueChange = { updateStyleExtra("textLetterSpacingSp", it.toDouble()) }, valueRange = -1f..4f)
-                            Text("Line height: ${"%.2f".format(styleExtras.optDouble("textLineHeightMultiplier", 1.25))}x", style = MaterialTheme.typography.labelMedium)
+                            Text("Line height: ${"%.2f".format(styleExtras.optDouble("textLineHeightMultiplier", state.settings.lineHeightMultiplier.toDouble()))}x", style = MaterialTheme.typography.labelMedium)
                             Slider(value = styleExtras.optDouble("textLineHeightMultiplier", 1.25).toFloat().coerceIn(0.8f, 2f), onValueChange = { updateStyleExtra("textLineHeightMultiplier", it.toDouble()) }, valueRange = 0.8f..2f)
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Wrap labels to two lines")
-                                Switch(checked = styleExtras.optBoolean("textWrapTwoLines", false), onCheckedChange = { updateStyleExtraBoolean("textWrapTwoLines", it) })
+                                Switch(checked = styleExtras.optBoolean("textWrapTwoLines", state.settings.labelMaxLines > 1 || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textWrapTwoLines", it) })
                             }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Auto-contrast text")
-                                Switch(checked = styleExtras.optBoolean("textAutoContrast", false), onCheckedChange = { updateStyleExtraBoolean("textAutoContrast", it) })
+                                Switch(checked = styleExtras.optBoolean("textAutoContrast", state.settings.autoContrastText || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textAutoContrast", it) })
                             }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Text drop shadow")
-                                Switch(checked = styleExtras.optBoolean("textShadowEnabled", false), onCheckedChange = { updateStyleExtraBoolean("textShadowEnabled", it) })
+                                Switch(checked = styleExtras.optBoolean("textShadowEnabled", state.settings.textShadowEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("textShadowEnabled", it) })
                             }
                             if (styleExtras.optBoolean("textShadowEnabled", false)) {
-                                Text("Shadow intensity: ${styleExtras.optDouble("textShadowIntensity", 4.0).roundToInt()}dp", style = MaterialTheme.typography.labelMedium)
+                                Text("Shadow intensity: ${styleExtras.optDouble("textShadowIntensity", state.settings.textShadowRadiusDp.toDouble()).roundToInt()}dp", style = MaterialTheme.typography.labelMedium)
                                 Slider(value = styleExtras.optDouble("textShadowIntensity", 4.0).toFloat().coerceIn(0f, 18f), onValueChange = { updateStyleExtra("textShadowIntensity", it.toDouble()) }, valueRange = 0f..18f)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Label backdrop pill")
-                                Switch(checked = styleExtras.optBoolean("labelBackdropEnabled", false), onCheckedChange = { updateStyleExtraBoolean("labelBackdropEnabled", it) })
+                                Switch(checked = styleExtras.optBoolean("labelBackdropEnabled", state.settings.labelBackdropEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("labelBackdropEnabled", it) })
                             }
                             OutlinedButton(onClick = {
                                 val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
