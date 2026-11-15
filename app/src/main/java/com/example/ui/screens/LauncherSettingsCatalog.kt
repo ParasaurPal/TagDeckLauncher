@@ -180,6 +180,7 @@ object LauncherSettingsCatalog {
                 entry("folder_studio", SECTION_HOME_CANVAS, "Folder Studio", "Choose folder grid, list, or stack previews, edit app membership, and nest folders", listOf("folder", "nested folders", "folder layout", "folder apps")),
                 entry("graphic_gauges", SECTION_HOME_CANVAS, "Graphic Gauges", "Add editable circular gauges with custom values, labels, colors, and styles", listOf("gauge", "progress ring", "meter", "progress")),
                 entry("starter_templates", SECTION_HOME_CANVAS, "Starter Layout Templates", "Create Minimal, Productivity, or Widget Board pages with ready-made objects", listOf("template", "starter layout", "productivity page", "widget board")),
+                entry("built_in_widgets", SECTION_HOME_CANVAS, "Built-in Interactive Widgets", "Add app groups, notes, focus timers, calculators, search bars, device panels, tab switchers, and live gauges", listOf("app group", "favorites widget", "recent apps", "most used", "quick note", "checklist", "pomodoro", "focus timer", "calculator", "search widget", "device controls", "tab switcher", "gauge")),
             ),
         ),
         section(
