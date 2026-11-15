@@ -256,7 +256,7 @@ fun HomeScreen(
                                         } else if (dy > 110f) {
                                             trackingTwoFinger = false
                                             onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                             }
                                         }
                                     }
@@ -424,7 +424,7 @@ fun HomeScreen(
                                                     onOpenFolder = onOpenFolder,
                                                     onElementTrigger = { elem, trigger ->
                                                         onExecuteElementAction(elem, trigger) { target ->
-                                                            scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                         }
                                                     },
                                                     onUpdateElement = { onSaveElement(it, true) },
@@ -499,14 +499,14 @@ val page = visiblePages[pageIdx]
                                     onSelectElement(null)
                                 } else {
                                     onTriggerGesture("SINGLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                     }
                                 }
                             },
                             onCanvasDoubleTap = {
                                 if (!state.isEditMode) {
                                     onTriggerGesture("DOUBLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                     }
                                 }
                             },
@@ -518,7 +518,7 @@ val page = visiblePages[pageIdx]
                             onVerticalSwipe = { isUp ->
                                 if (!state.isEditMode) {
                                     onTriggerGesture(if (isUp) "SWIPE_UP" else "SWIPE_DOWN") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                     }
                                 }
                             },
@@ -531,7 +531,7 @@ val page = visiblePages[pageIdx]
                             onOpenFolder = onOpenFolder,
                             onElementTrigger = { elem, trigger ->
                                 onExecuteElementAction(elem, trigger) { target ->
-                                    scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                    scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                 }
                             },
                             onSelectElement = { id ->
