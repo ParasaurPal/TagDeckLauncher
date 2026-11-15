@@ -384,6 +384,44 @@ fun HomeScreen(
                             val groupId = "group_" + System.currentTimeMillis()
                             state.homeElements.filter { it.elementId in state.multiSelectedIds }.forEach { onSaveElement(it.copy(groupId = groupId), true) }
                         },
+                        onStackMulti = {
+                            val selected = state.homeElements.filter { it.elementId in state.multiSelectedIds }
+                            val compatible = selected.size > 1 && selected.all {
+                                it.pageId == selected.first().pageId &&
+                                    it.ownerType == selected.first().ownerType &&
+                                    it.ownerWindowId == selected.first().ownerWindowId &&
+                                    it.parentContainerId == selected.first().parentContainerId &&
+                                    it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET"
+                            }
+                            if (compatible) {
+                                val first = selected.first()
+                                val stack = HomeElementEntity(
+                                    pageId = first.pageId,
+                                    ownerType = first.ownerType,
+                                    ownerWindowId = first.ownerWindowId,
+                                    parentContainerId = first.parentContainerId,
+                                    type = "WIDGET_STACK",
+                                    xFraction = selected.minOf { it.xFraction },
+                                    yFraction = selected.minOf { it.yFraction },
+                                    widthDp = selected.maxOf { it.widthDp }.coerceIn(80f, 420f),
+                                    heightDp = selected.maxOf { it.heightDp }.coerceIn(80f, 520f),
+                                    zIndex = (selected.maxOfOrNull { it.zIndex } ?: 0) + 1,
+                                    label = "Widget Stack",
+                                    widgetStackItemsJson = selected.sortedBy { it.zIndex }.joinToString(",") { it.elementId.toString() },
+                                    widgetStackIndex = 0,
+                                    widgetStackSwipeEnabled = true,
+                                )
+                                onSaveElement(stack, true)
+                                selected.forEach { onToggleMultiSelect(it.elementId) }
+                            }
+                        },
+                        onUnstackMulti = {
+                            state.homeElements.filter { it.elementId in state.multiSelectedIds && it.type == "WIDGET_STACK" }
+                                .forEach { stack ->
+                                    onDeleteElement(stack)
+                                    onToggleMultiSelect(stack.elementId)
+                                }
+                        },
                         onUngroupMulti = {
                             val groupIds = state.homeElements.filter { it.elementId in state.multiSelectedIds }.mapNotNull { it.groupId }.toSet()
                             state.homeElements.filter { it.groupId in groupIds }.forEach { onSaveElement(it.copy(groupId = null), true) }
@@ -1242,6 +1280,8 @@ private fun StudioEditToolbar(
     onLockMulti: () -> Unit,
     onGroupMulti: () -> Unit = {},
     onUngroupMulti: () -> Unit = {},
+    onStackMulti: () -> Unit = {},
+    onUnstackMulti: () -> Unit = {},
     onAlignMulti: (String) -> Unit = {},
     onPaste: () -> Unit,
     onAddElement: () -> Unit,
@@ -1455,6 +1495,8 @@ private fun StudioEditToolbar(
                     if (multiSelectCount > 1) {
                         AssistChip(onClick = onGroupMulti, label = { Text("Group") })
                         AssistChip(onClick = onUngroupMulti, label = { Text("Ungroup") })
+                        AssistChip(onClick = onStackMulti, label = { Text("Stack Selected") })
+                        AssistChip(onClick = onUnstackMulti, label = { Text("Unstack") })
                         AssistChip(onClick = { onAlignMulti("LEFT") }, label = { Text("Align Left") })
                         AssistChip(onClick = { onAlignMulti("CENTER_X") }, label = { Text("Center X") })
                         AssistChip(onClick = { onAlignMulti("RIGHT") }, label = { Text("Align Right") })
