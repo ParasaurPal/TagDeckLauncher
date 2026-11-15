@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.R
+import java.io.File
 
 val SpaceGroteskFamily = FontFamily(
     Font(R.font.space_grotesk, FontWeight.Normal),
@@ -31,12 +32,18 @@ val JetBrainsMonoFamily = FontFamily(
 fun buildTagDeckTypography(
     fontStyle: String = "DEFAULT",
     fontScale: Float = 1.0f,
+    customFontPath: String? = null,
 ): Typography {
     val scale = fontScale.coerceIn(0.75f, 1.5f)
     val displayFamily: FontFamily
     val bodyFamily: FontFamily
     val monoFamily: FontFamily
-    when (fontStyle) {
+    val customFamily = customFontPath?.let { path -> runCatching { if (File(path).isFile) FontFamily(Font(file = File(path))) else null }.getOrNull() }
+    if (customFamily != null && fontStyle.startsWith("CUSTOM_")) {
+        displayFamily = customFamily
+        bodyFamily = customFamily
+        monoFamily = customFamily
+    } else when (fontStyle) {
         "SPACE_GROTESK" -> {
             displayFamily = SpaceGroteskFamily
             bodyFamily = SpaceGroteskFamily
