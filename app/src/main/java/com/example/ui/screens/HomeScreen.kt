@@ -309,6 +309,36 @@ fun HomeScreen(
                             val groupIds = state.homeElements.filter { it.elementId in state.multiSelectedIds }.mapNotNull { it.groupId }.toSet()
                             state.homeElements.filter { it.groupId in groupIds }.forEach { onSaveElement(it.copy(groupId = null), true) }
                         },
+                        onAlignMulti = { mode ->
+                            val selected = state.homeElements.filter { it.elementId in state.multiSelectedIds }
+                            if (selected.size > 1) {
+                                val screenWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1).toFloat()
+                                val screenHeight = LocalConfiguration.current.screenHeightDp.coerceAtLeast(1).toFloat()
+                                val targetX = when (mode) {
+                                    "LEFT" -> selected.minOf { it.xFraction }
+                                    "RIGHT" -> selected.maxOf { it.xFraction + it.widthDp / screenWidth }
+                                    else -> selected.map { it.xFraction + it.widthDp / screenWidth / 2f }.average().toFloat()
+                                }
+                                val targetY = when (mode) {
+                                    "TOP" -> selected.minOf { it.yFraction }
+                                    "BOTTOM" -> selected.maxOf { it.yFraction + it.heightDp / screenHeight }
+                                    else -> selected.map { it.yFraction + it.heightDp / screenHeight / 2f }.average().toFloat()
+                                }
+                                selected.forEach { element ->
+                                    val x = when (mode) {
+                                        "LEFT" -> targetX
+                                        "RIGHT" -> targetX - element.widthDp / screenWidth
+                                        else -> targetX - element.widthDp / screenWidth / 2f
+                                    }.coerceIn(0f, 0.92f)
+                                    val y = when (mode) {
+                                        "TOP" -> targetY
+                                        "BOTTOM" -> targetY - element.heightDp / screenHeight
+                                        else -> targetY - element.heightDp / screenHeight / 2f
+                                    }.coerceIn(0f, 0.92f)
+                                    onSaveElement(element.copy(xFraction = x, yFraction = y), true)
+                                }
+                            }
+                        },
                         onPaste = { onPasteElement(currentPage.pageId) },
                         onAddElement = { showAddElementDialog = true },
                         onOpenWidgets = { showWidgetPicker = true },
@@ -1077,6 +1107,7 @@ private fun StudioEditToolbar(
     onLockMulti: () -> Unit,
     onGroupMulti: () -> Unit = {},
     onUngroupMulti: () -> Unit = {},
+    onAlignMulti: (String) -> Unit = {},
     onPaste: () -> Unit,
     onAddElement: () -> Unit,
     onOpenWidgets: () -> Unit,
@@ -1281,7 +1312,7 @@ private fun StudioEditToolbar(
             }
             if (multiSelectCount > 0) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1289,6 +1320,12 @@ private fun StudioEditToolbar(
                     if (multiSelectCount > 1) {
                         AssistChip(onClick = onGroupMulti, label = { Text("Group") })
                         AssistChip(onClick = onUngroupMulti, label = { Text("Ungroup") })
+                        AssistChip(onClick = { onAlignMulti("LEFT") }, label = { Text("Align Left") })
+                        AssistChip(onClick = { onAlignMulti("CENTER_X") }, label = { Text("Center X") })
+                        AssistChip(onClick = { onAlignMulti("RIGHT") }, label = { Text("Align Right") })
+                        AssistChip(onClick = { onAlignMulti("TOP") }, label = { Text("Align Top") })
+                        AssistChip(onClick = { onAlignMulti("CENTER_Y") }, label = { Text("Center Y") })
+                        AssistChip(onClick = { onAlignMulti("BOTTOM") }, label = { Text("Align Bottom") })
                     }
                     AssistChip(onClick = onLockMulti, leadingIcon = { Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp)) }, label = { Text("Lock") })
                     AssistChip(onClick = onDeleteMulti, leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(16.dp)) }, label = { Text("Delete") })
