@@ -111,6 +111,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -679,8 +681,14 @@ fun SettingsScreen(
                         Text("No custom fonts imported yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         state.customFonts.forEach { font ->
+                            val previewFamily = remember(font.fontId, font.localPath) {
+                                runCatching { FontFamily(Font(file = File(font.localPath))) }.getOrNull()
+                            }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(selected = s.fontStyle == "CUSTOM_" + font.fontId, onClick = { onUpdateSettings { it.copy(fontStyle = "CUSTOM_" + font.fontId) } }, label = { Text(font.displayName, maxLines = 1) }, modifier = Modifier.weight(1f))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    FilterChip(selected = s.fontStyle == "CUSTOM_" + font.fontId, onClick = { onUpdateSettings { it.copy(fontStyle = "CUSTOM_" + font.fontId) } }, label = { Text(font.displayName, maxLines = 1) })
+                                    Text("Aa Bb Cc 0123", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = previewFamily ?: MaterialTheme.typography.bodyMedium.fontFamily), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 TextButton(onClick = { onDeleteCustomFont(font.fontId); if (s.fontStyle == "CUSTOM_" + font.fontId) onUpdateSettings { it.copy(fontStyle = "DEFAULT") } }) { Text("Remove") }
                             }
                         }
