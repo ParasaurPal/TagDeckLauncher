@@ -45,7 +45,7 @@ object BackupManager {
 
     fun encodeFullBackup(payload: FullBackupPayload): String {
         val root = JSONObject()
-        root.put("version", 3)
+        root.put("version", 4)
         root.put("exportedAt", System.currentTimeMillis())
 
         val appsArr = JSONArray()
