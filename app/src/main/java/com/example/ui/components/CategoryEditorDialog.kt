@@ -83,6 +83,11 @@ fun CategoryEditorDialog(
         mutableLongStateOf(initialCategory?.colorHex ?: TagPresetColors.first())
     }
     var iconSizeDp by remember(initialCategory?.categoryId) { mutableIntStateOf(initialCategory?.iconSizeDp ?: 24) }
+    var openIconStateEnabled by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.iconOpenStateEnabled ?: false) }
+    var openIconKey by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openIconKey ?: initialCategory?.iconKey ?: "tag") }
+    var openCustomIconPath by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openCustomIconPath) }
+    var openCustomEmoji by remember(initialCategory?.categoryId) { mutableStateOf(initialCategory?.openCustomEmoji ?: "") }
+    var openColorHex by remember(initialCategory?.categoryId) { mutableLongStateOf(initialCategory?.openColorHex ?: initialCategory?.colorHex ?: TagPresetColors.first()) }
 
     var bgType by remember(initialCategory?.categoryId) {
         mutableStateOf(initialCategory?.backgroundType ?: "INHERIT")
@@ -136,6 +141,12 @@ fun CategoryEditorDialog(
             }
         }
     }
+    val openIconFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val path = onImportImage(uri)
+            if (path != null) { openCustomIconPath = path; openCustomEmoji = "" }
+        }
+    }
     val bgPhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
@@ -179,6 +190,11 @@ fun CategoryEditorDialog(
         backgroundAlpha = bgAlpha,
         showInMainBar = showInMainBar,
         iconSizeDp = iconSizeDp,
+        iconOpenStateEnabled = openIconStateEnabled,
+        openIconKey = openIconKey,
+        openCustomIconPath = openCustomIconPath,
+        openCustomEmoji = openCustomEmoji.takeIf { it.isNotBlank() },
+        openColorHex = if (openIconStateEnabled) openColorHex else null,
     )
 
     val bgTypeOptions = listOf(
@@ -486,6 +502,11 @@ fun CategoryEditorDialog(
                         backgroundAlpha = bgAlpha,
                         showInMainBar = showInMainBar,
                         iconSizeDp = iconSizeDp,
+                        iconOpenStateEnabled = openIconStateEnabled,
+                        openIconKey = openIconKey,
+                        openCustomIconPath = openCustomIconPath,
+                        openCustomEmoji = openCustomEmoji.takeIf { it.isNotBlank() },
+                        openColorHex = if (openIconStateEnabled) openColorHex else null,
                     )
                     onSave(saved)
                 },
