@@ -2257,6 +2257,53 @@ fun ElementInspectorDialog(
                                 edited = edited.copy(fontSizeSp = maxOf(edited.fontSizeSp, 14f), styleExtrasJson = updated.toString())
                             }, modifier = Modifier.fillMaxWidth()) { Text("Apply High-Readability Preset") }
                         }
+                        if (edited.type == "APP_GROUP_WIDGET") {
+                            HorizontalDivider()
+                            Text("App Group", style = MaterialTheme.typography.titleSmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("FAVORITES", "RECENT", "MOST_USED", "ALL", "CATEGORY", "TAG").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("appGroupMode", "FAVORITES") == mode, onClick = { updateStyleExtraString("appGroupMode", mode) }, label = { Text(mode.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }) })
+                                }
+                            }
+                            Text("Columns: ${styleExtras.optInt("appGroupColumns", 4).coerceIn(2, 6)}")
+                            Slider(value = styleExtras.optInt("appGroupColumns", 4).coerceIn(2, 6).toFloat(), onValueChange = { updateStyleExtra("appGroupColumns", it.roundToInt().toDouble()) }, valueRange = 2f..6f, steps = 3)
+                            if (styleExtras.optString("appGroupMode", "FAVORITES") == "CATEGORY") {
+                                Text("Choose category")
+                                state.categories.forEach { category ->
+                                    TextButton(onClick = { edited = edited.copy(targetCategoryId = category.categoryId) }) {
+                                        Text((if (edited.targetCategoryId == category.categoryId) "● " else "○ ") + category.name)
+                                    }
+                                }
+                            } else if (styleExtras.optString("appGroupMode", "FAVORITES") == "TAG") {
+                                Text("Choose tag")
+                                state.allTags.forEach { tag ->
+                                    TextButton(onClick = { edited = edited.copy(targetTagId = tag.tagId) }) {
+                                        Text((if (edited.targetTagId == tag.tagId) "● " else "○ ") + tag.name)
+                                    }
+                                }
+                            }
+                        }
+                        if (edited.type == "TAB_SWITCHER_WIDGET") {
+                            HorizontalDivider()
+                            Text("Tab Contents", style = MaterialTheme.typography.titleSmall)
+                            Text("Choose existing objects on this page to place behind tabs.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val selectedTabIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
+                            state.homeElements
+                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }
+                                .sortedBy { it.zIndex }
+                                .forEach { candidate ->
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = candidate.elementId in selectedTabIds,
+                                            onCheckedChange = { checked ->
+                                                val nextIds = if (checked) selectedTabIds + candidate.elementId else selectedTabIds - candidate.elementId
+                                                edited = edited.copy(widgetStackItemsJson = nextIds.joinToString(","), widgetStackIndex = 0)
+                                            },
+                                        )
+                                        Text(candidate.label.ifBlank { candidate.type.replace('_', ' ') }, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                        }
                         Text("Independent Corner Radii", style = MaterialTheme.typography.labelLarge)
                         listOf(
                             "topStartDp" to "Top Start",
