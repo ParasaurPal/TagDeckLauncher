@@ -2045,6 +2045,18 @@ fun ElementInspectorDialog(
                             Text("Pin to Viewport")
                             Switch(checked = edited.pinnedToViewport, onCheckedChange = { edited = edited.copy(pinnedToViewport = it) })
                         }
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Pin to Every Home Page")
+                            Switch(checked = edited.pinnedToAllPages, onCheckedChange = { edited = edited.copy(pinnedToAllPages = it) })
+                        }
+                        OutlinedTextField(
+                            value = edited.visibilityGroupId.orEmpty(),
+                            onValueChange = { edited = edited.copy(visibilityGroupId = it.trim().take(40).ifBlank { null }) },
+                            label = { Text("Visibility Group ID") },
+                            supportingText = { Text("Objects with the same ID can be shown or hidden together by a macro.") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                         if (edited.pinnedToViewport) {
                             Text("Pinned Edge")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
