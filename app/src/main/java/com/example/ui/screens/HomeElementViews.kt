@@ -2909,7 +2909,7 @@ fun PagesAndSnapshotsDialog(
                 Text("Create a page with a ready-made layout. You can move and restyle every object afterward.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("Minimal", "Productivity", "Widget Board").forEach { template ->
+                    listOf("Cyber HUD", "Editorial Minimal", "Glass Bento Dashboard", "Minimal", "Productivity", "Widget Board").forEach { template ->
                         OutlinedButton(onClick = { onCreateStarterTemplate(template); onDismiss() }) { Text(template) }
                     }
                 }
