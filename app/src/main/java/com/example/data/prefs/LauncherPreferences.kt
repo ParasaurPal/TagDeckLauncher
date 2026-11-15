@@ -43,6 +43,8 @@ data class LauncherSettings(
     val wallpaperDimColorHex: Long = 0xFF000000L,
     val wallpaperVignette: Float = 0f,
     val wallpaperSaturation: Float = 1f,
+    val wallpaperContrast: Float = 1f,
+    val wallpaperBrightness: Float = 0f,
     val wallpaperParallaxIntensity: Float = 0f,
     val wallpaperTintHex: Long? = null,
     val wallpaperAmbientMotion: Boolean = false,
@@ -184,6 +186,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val WALLPAPER_DIM_COLOR = longPreferencesKey("wallpaper_dim_color")
         val WALLPAPER_VIGNETTE = floatPreferencesKey("wallpaper_vignette")
         val WALLPAPER_SATURATION = floatPreferencesKey("wallpaper_saturation")
+        val WALLPAPER_CONTRAST = floatPreferencesKey("wallpaper_contrast")
+        val WALLPAPER_BRIGHTNESS = floatPreferencesKey("wallpaper_brightness")
         val WALLPAPER_PARALLAX = floatPreferencesKey("wallpaper_parallax")
         val WALLPAPER_TINT = longPreferencesKey("wallpaper_tint")
         val WALLPAPER_AMBIENT = booleanPreferencesKey("wallpaper_ambient")
@@ -300,6 +304,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         wallpaperDimColorHex = prefs[Keys.WALLPAPER_DIM_COLOR] ?: 0xFF000000L,
         wallpaperVignette = prefs[Keys.WALLPAPER_VIGNETTE] ?: 0f,
         wallpaperSaturation = prefs[Keys.WALLPAPER_SATURATION] ?: 1f,
+        wallpaperContrast = prefs[Keys.WALLPAPER_CONTRAST] ?: 1f,
+        wallpaperBrightness = prefs[Keys.WALLPAPER_BRIGHTNESS] ?: 0f,
         wallpaperParallaxIntensity = prefs[Keys.WALLPAPER_PARALLAX] ?: 0f,
         wallpaperTintHex = prefs[Keys.WALLPAPER_TINT],
         wallpaperAmbientMotion = prefs[Keys.WALLPAPER_AMBIENT] ?: false,
@@ -418,6 +424,8 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WALLPAPER_DIM_COLOR] = updated.wallpaperDimColorHex
             prefs[Keys.WALLPAPER_VIGNETTE] = updated.wallpaperVignette
             prefs[Keys.WALLPAPER_SATURATION] = updated.wallpaperSaturation
+            prefs[Keys.WALLPAPER_CONTRAST] = updated.wallpaperContrast
+            prefs[Keys.WALLPAPER_BRIGHTNESS] = updated.wallpaperBrightness
             prefs[Keys.WALLPAPER_PARALLAX] = updated.wallpaperParallaxIntensity
             if (updated.wallpaperTintHex != null) prefs[Keys.WALLPAPER_TINT] = updated.wallpaperTintHex else prefs.remove(Keys.WALLPAPER_TINT)
             prefs[Keys.WALLPAPER_AMBIENT] = updated.wallpaperAmbientMotion
