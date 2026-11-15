@@ -1778,6 +1778,47 @@ fun ElementInspectorDialog(
                                 },
                             ) { Text("Paste Style") }
                         }
+                        if (edited.type == "WIDGET_STACK") {
+                            HorizontalDivider()
+                            Text("Widget Stack", style = MaterialTheme.typography.titleSmall)
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Swipe between items")
+                                Switch(checked = edited.widgetStackSwipeEnabled, onCheckedChange = { edited = edited.copy(widgetStackSwipeEnabled = it) })
+                            }
+                            Text("Swipe direction", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("HORIZONTAL" to "Horizontal", "VERTICAL" to "Vertical").forEach { (key, label) ->
+                                    FilterChip(selected = styleExtras.optString("stackAxis", "HORIZONTAL") == key, onClick = { updateStyleExtraString("stackAxis", key) }, label = { Text(label) })
+                                }
+                            }
+                            Text("Indicator style", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("PILL", "DOTS", "NUMBER", "NONE").forEach { key ->
+                                    FilterChip(selected = styleExtras.optString("stackIndicatorStyle", "PILL") == key, onClick = { updateStyleExtraString("stackIndicatorStyle", key) }, label = { Text(key.lowercase().replaceFirstChar { it.uppercase() }) })
+                                }
+                            }
+                            val autoRotateSeconds = styleExtras.optInt("autoRotateSeconds", 0).coerceIn(0, 120)
+                            Text(if (autoRotateSeconds == 0) "Auto-rotate: Off" else "Auto-rotate every $autoRotateSeconds seconds", style = MaterialTheme.typography.labelMedium)
+                            Slider(value = autoRotateSeconds.toFloat(), onValueChange = { updateStyleExtra("autoRotateSeconds", it.roundToInt().toDouble()) }, valueRange = 0f..120f, steps = 23)
+                            Text("Stack contents", style = MaterialTheme.typography.labelMedium)
+                            Text("Choose existing objects on this page. Items in a stack are hidden from the main canvas and remain editable in the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val selectedStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
+                            state.homeElements
+                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }
+                                .sortedBy { it.zIndex }
+                                .forEach { candidate ->
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = candidate.elementId in selectedStackIds,
+                                            onCheckedChange = { checked ->
+                                                val nextIds = if (checked) selectedStackIds + candidate.elementId else selectedStackIds - candidate.elementId
+                                                edited = edited.copy(widgetStackItemsJson = nextIds.joinToString(","), widgetStackIndex = 0)
+                                            },
+                                        )
+                                        Text(candidate.label.ifBlank { candidate.type.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } }, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                        }
                         Text("Independent Corner Radii", style = MaterialTheme.typography.labelLarge)
                         listOf(
                             "topStartDp" to "Top Start",
