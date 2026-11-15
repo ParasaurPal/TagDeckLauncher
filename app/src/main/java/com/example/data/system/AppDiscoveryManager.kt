@@ -49,33 +49,37 @@ class AppDiscoveryManager(val context: Context) {
     @Volatile private var torchEnabled = false
     val iconPackManager: IconPackManager = IconPackManager(context)
 
-    fun toggleFlashlight(): Boolean = runCatching {
-        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val flashCameraId = cameraManager.cameraIdList.firstOrNull { id ->
-            cameraManager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-        } ?: return false
-        val nextState = !torchEnabled
-        cameraManager.setTorchMode(flashCameraId, nextState)
-        torchEnabled = nextState
-        true
-    }.getOrDefault(false)
+    fun toggleFlashlight(): Boolean {
+        return runCatching {
+            val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val flashCameraId = cameraManager.cameraIdList.firstOrNull { id ->
+                cameraManager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            } ?: return@runCatching false
+            val nextState = !torchEnabled
+            cameraManager.setTorchMode(flashCameraId, nextState)
+            torchEnabled = nextState
+            true
+        }.getOrDefault(false)
+    }
 
-    fun toggleRingerMode(): Boolean = runCatching {
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (!notificationManager.isNotificationPolicyAccessGranted) {
-                openSystemSettings(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                return false
+    fun toggleRingerMode(): Boolean {
+        return runCatching {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                if (!notificationManager.isNotificationPolicyAccessGranted) {
+                    openSystemSettings(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                    return@runCatching false
+                }
             }
-        }
-        audioManager.ringerMode = if (audioManager.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-            AudioManager.RINGER_MODE_VIBRATE
-        } else {
-            AudioManager.RINGER_MODE_NORMAL
-        }
-        true
-    }.getOrDefault(false)
+            audioManager.ringerMode = if (audioManager.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
+                AudioManager.RINGER_MODE_VIBRATE
+            } else {
+                AudioManager.RINGER_MODE_NORMAL
+            }
+            true
+        }.getOrDefault(false)
+    }
 
     suspend fun discoverLaunchableApps(): List<DiscoveredApp> = withContext(Dispatchers.IO) {
         val ownPackage = context.packageName
