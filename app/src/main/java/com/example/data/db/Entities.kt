@@ -54,6 +54,11 @@ data class CategoryEntity(
     val backgroundAlpha: Float = 1f,
     val showInMainBar: Boolean = true,
     val iconSizeDp: Int = 24,
+    val iconOpenStateEnabled: Boolean = false,
+    val openIconKey: String? = null,
+    val openCustomIconPath: String? = null,
+    val openCustomEmoji: String? = null,
+    val openColorHex: Long? = null,
     val parentCategoryId: Long? = null,
     val sortOrder: Int = 0,
     val categoryType: String = "APP", // SYSTEM_ALL, SYSTEM_FAVORITES, APP, GAMES_PARENT, GAME_SUB, CUSTOM
@@ -201,6 +206,11 @@ data class HomePageEntity(
     val backgroundBlurDp: Float = 0f,
     val backgroundAlpha: Float = 0.85f,
     val pageTapActionJson: String? = null,
+    val pageGesturesJson: String? = null,
+    val transitionOverride: String? = null,
+    val transitionDurationMs: Int = 320,
+    val loopNavigation: Boolean = false,
+    val parallaxEnabled: Boolean = false,
 )
 
 @Entity(tableName = "launcher_windows")
@@ -243,6 +253,7 @@ data class HomeElementEntity(
     val locked: Boolean = false,
     val visible: Boolean = true,
     val groupId: String? = null,
+    val parentContainerId: Long? = null,
     val label: String = "",
     val targetPackageName: String? = null,
     val targetTagId: Long? = null,
@@ -277,6 +288,16 @@ data class HomeElementEntity(
     val fontSizeSp: Float = 13f,
     val showLabel: Boolean = true,
     val iconSizeDp: Float = 48f,
+    val styleExtrasJson: String = "",
+    val rotationXDeg: Float = 0f,
+    val rotationYDeg: Float = 0f,
+    val perspective: Float = 0f,
+    val widgetStackItemsJson: String = "",
+    val widgetStackIndex: Int = 0,
+    val widgetStackSwipeEnabled: Boolean = true,
+    val pinnedToViewport: Boolean = false,
+    val pinEdge: String = "NONE",
+    val pinOffsetDp: Float = 0f,
 ) {
     fun folderPackages(): List<String> =
         folderAppPackagesCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -361,4 +382,28 @@ data class BackgroundPresetEntity(
     val imagePath: String? = null,
     val blurDp: Float = 0f,
     val alpha: Float = 1f,
+)
+
+
+@Entity(tableName = "custom_fonts")
+data class CustomFontEntity(
+    @PrimaryKey(autoGenerate = true) val fontId: Long = 0,
+    val displayName: String,
+    val localPath: String,
+    val familyName: String = "",
+    val weight: Int = 400,
+    val isItalic: Boolean = false,
+    val isFavorite: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(tableName = "theme_profiles")
+data class ThemeProfileEntity(
+    @PrimaryKey(autoGenerate = true) val profileId: Long = 0,
+    val name: String,
+    val description: String = "",
+    val settingsJson: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isBuiltIn: Boolean = false,
 )
