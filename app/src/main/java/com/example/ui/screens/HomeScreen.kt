@@ -414,9 +414,10 @@ fun HomeScreen(
                                                     onOpenFolder = onOpenFolder,
                                                     onElementTrigger = { elem, trigger ->
                                                         onExecuteElementAction(elem, trigger) { target ->
-                                                            scope.launch { pagerState.animateScrollToPage(target) }
+                                                            scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                         }
                                                     },
+                                                    onUpdateElement = { onSaveElement(it, true) },
                                                 )
                                             }
                                         }
@@ -1408,7 +1409,10 @@ private fun FreeformPageCanvas(
                 }
             }
 
-            elements.forEach { elem ->
+            val stackedChildIds = elements.filter { it.type == "WIDGET_STACK" }
+                .flatMap { it.widgetStackItemsJson.split(",").mapNotNull { raw -> raw.trim().toLongOrNull() } }
+                .toSet()
+            elements.filter { it.elementId !in stackedChildIds }.forEach { elem ->
                 val latestElem by rememberUpdatedState(elem)
                 val selected = state.isEditMode &&
                     (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
@@ -1525,6 +1529,7 @@ private fun FreeformPageCanvas(
                         onOpenWindow = onOpenWindow,
                         onOpenFolder = onOpenFolder,
                         onElementTrigger = onElementTrigger,
+                        onUpdateElement = { onSaveElement(it, true) },
                     )
 
                     if (state.isEditMode) {
