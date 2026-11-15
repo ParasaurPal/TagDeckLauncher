@@ -2556,6 +2556,58 @@ fun ElementInspectorDialog(
                                     }
                                 }
                         }
+                        if (edited.type == "WIDGET_STACK") {
+                            HorizontalDivider()
+                            Text("Widget Stack Items", style = MaterialTheme.typography.titleSmall)
+                            Text("Choose which existing home objects belong to this stack. Removing an item returns it to the canvas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val stackItemIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toMutableList()
+                            state.homeElements.filter { it.elementId != edited.elementId && it.type !in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && it.parentContainerId == edited.parentContainerId }.forEach { candidate ->
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(checked = candidate.elementId in stackItemIds, onCheckedChange = { checked ->
+                                        val updatedIds = stackItemIds.toMutableList()
+                                        if (checked && candidate.elementId !in updatedIds) updatedIds.add(candidate.elementId)
+                                        if (!checked) updatedIds.remove(candidate.elementId)
+                                        edited = edited.copy(widgetStackItemsJson = updatedIds.joinToString(","))
+                                    })
+                                    Text(candidate.label.ifBlank { candidate.type.replace('_', ' ') }, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    TextButton(enabled = candidate.elementId in stackItemIds && stackItemIds.indexOf(candidate.elementId) > 0, onClick = {
+                                        val ids = stackItemIds.toMutableList()
+                                        val index = ids.indexOf(candidate.elementId)
+                                        if (index > 0) { val previous = ids[index - 1]; ids[index - 1] = ids[index]; ids[index] = previous; edited = edited.copy(widgetStackItemsJson = ids.joinToString(",")) }
+                                    }) { Text("↑") }
+                                    TextButton(enabled = candidate.elementId in stackItemIds && stackItemIds.indexOf(candidate.elementId) < stackItemIds.lastIndex, onClick = {
+                                        val ids = stackItemIds.toMutableList()
+                                        val index = ids.indexOf(candidate.elementId)
+                                        if (index >= 0 && index < ids.lastIndex) { val next = ids[index + 1]; ids[index + 1] = ids[index]; ids[index] = next; edited = edited.copy(widgetStackItemsJson = ids.joinToString(",")) }
+                                    }) { Text("↓") }
+                                }
+                            }
+                            Text("Swipe direction", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("HORIZONTAL", "VERTICAL").forEach { axis ->
+                                    FilterChip(selected = styleExtras.optString("stackAxis", "HORIZONTAL") == axis, onClick = { updateStyleExtra("stackAxis", axis) }, label = { Text(axis.lowercase().replaceFirstChar { it.uppercase() }) })
+                                }
+                            }
+                            Text("Automatic rotation: ${styleExtras.optInt("autoRotateSeconds", 0)} seconds")
+                            Slider(value = styleExtras.optInt("autoRotateSeconds", 0).toFloat(), onValueChange = { updateStyleExtra("autoRotateSeconds", it.roundToInt()) }, valueRange = 0f..120f, steps = 23)
+                            Text("0 disables automatic rotation", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Smart priority", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("MANUAL", "MOST_USED", "RECENT", "FAVORITES_FIRST").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("stackPriorityMode", "MANUAL") == mode, onClick = { updateStyleExtra("stackPriorityMode", mode) }, label = { Text(mode.replace('_', ' ')) })
+                                }
+                            }
+                            Text("Stack indicator", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("PILL", "DOTS", "NUMBER", "NONE").forEach { style ->
+                                    FilterChip(selected = styleExtras.optString("stackIndicatorStyle", "PILL") == style, onClick = { updateStyleExtra("stackIndicatorStyle", style) }, label = { Text(style) })
+                                }
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Swipe between stack items")
+                                Switch(checked = edited.widgetStackSwipeEnabled, onCheckedChange = { edited = edited.copy(widgetStackSwipeEnabled = it) })
+                            }
+                        }
                         Text("Independent Corner Radii", style = MaterialTheme.typography.labelLarge)
                         listOf(
                             "topStartDp" to "Top Start",
