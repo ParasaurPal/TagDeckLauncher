@@ -2238,7 +2238,7 @@ fun ElementInspectorDialog(
                         Text("Widget Stack", style = MaterialTheme.typography.labelLarge)
                         Text("Choose existing objects to place inside this stack. Selected objects are hidden from the page outside the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val currentStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
-                        state.homeElements.filter { it.pageId == edited.pageId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }.forEach { child ->
+                        state.homeElements.filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }.forEach { child ->
                             FilterChip(
                                 selected = child.elementId in currentStackIds,
                                 onClick = {
@@ -2252,7 +2252,7 @@ fun ElementInspectorDialog(
                         Text("Parent Container", style = MaterialTheme.typography.labelLarge)
                         Text("Canvas means this object sits directly on the page.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FilterChip(selected = edited.parentContainerId == null, onClick = { edited = edited.copy(parentContainerId = null) }, label = { Text("Canvas") })
-                        state.homeElements.filter { it.type == "CONTAINER" && it.elementId != edited.elementId && !isDescendantOf(it.elementId, edited.elementId) }.forEach { container ->
+                        state.homeElements.filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.type == "CONTAINER" && it.elementId != edited.elementId && !isDescendantOf(it.elementId, edited.elementId) }.forEach { container ->
                             FilterChip(
                                 selected = edited.parentContainerId == container.elementId,
                                 onClick = { edited = edited.copy(parentContainerId = container.elementId) },
@@ -2459,7 +2459,7 @@ fun ElementInspectorDialog(
                             val orderedStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
                             val selectedStackIds = orderedStackIds.toSet()
                             state.homeElements
-                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }
+                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }
                                 .sortedBy { it.zIndex }
                                 .forEach { candidate ->
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -2641,7 +2641,7 @@ fun ElementInspectorDialog(
                             Text("Choose existing objects on this page to place behind tabs.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             val selectedTabIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
                             state.homeElements
-                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }
+                                .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }
                                 .sortedBy { it.zIndex }
                                 .forEach { candidate ->
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -2661,7 +2661,7 @@ fun ElementInspectorDialog(
                             Text("Widget Stack Items", style = MaterialTheme.typography.titleSmall)
                             Text("Choose which existing home objects belong to this stack. Removing an item returns it to the canvas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             val stackItemIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toMutableList()
-                            state.homeElements.filter { it.elementId != edited.elementId && it.type !in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && it.parentContainerId == edited.parentContainerId }.forEach { candidate ->
+                            state.homeElements.filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type !in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && it.parentContainerId == edited.parentContainerId }.forEach { candidate ->
                                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Checkbox(checked = candidate.elementId in stackItemIds, onCheckedChange = { checked ->
                                         val updatedIds = stackItemIds.toMutableList()
