@@ -697,7 +697,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                         }
                         val elements = remember(state.homeElements, page.pageId) {
                             state.homeElements
-                                .filter { it.ownerType == "PAGE" && it.pageId == page.pageId && it.visible }
+                                .filter { it.ownerType == "PAGE" && (it.pageId == page.pageId || it.pinnedToAllPages) && it.visible }
                                 .filter { element ->
                                     element.type != "TAG_SHORTCUT" ||
                                         state.allTags.find { it.tagId == element.targetTagId }?.showOnHome != false
@@ -1010,7 +1010,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                     }
                 }
 
-                if (!state.isEditMode && state.settings.showDockBar) {
+                if (!state.isEditMode && (page.showDockOverride ?: state.settings.showDockBar)) {
                     val dockRadius = state.settings.globalCornerRadiusDp.coerceIn(12f, 32f).dp
                     val dockAlpha = state.settings.surfaceOpacity.coerceIn(0.42f, 0.96f)
                     val dockBorderWidth = state.settings.globalBorderWidthDp
@@ -1234,7 +1234,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
 
     if (showLayerManager) {
         LayerManagerDialog(
-            elements = state.homeElements.filter { it.ownerType == "PAGE" && (it.pageId == currentPage.pageId || it.pinnedToViewport) },
+            elements = state.homeElements.filter { it.ownerType == "PAGE" && (it.pageId == currentPage.pageId || it.pinnedToViewport || it.pinnedToAllPages) },
             onSelect = { id ->
                 onSelectElement(id)
                 inspectingElement = state.homeElements.firstOrNull { it.elementId == id }
@@ -1758,8 +1758,10 @@ private fun FreeformPageCanvas(
                 val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
                 var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
                 var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
-                var widthDp by remember(elem.elementId, elem.widthDp) { mutableFloatStateOf(elem.widthDp) }
-                var heightDp by remember(elem.elementId, elem.heightDp) { mutableFloatStateOf(elem.heightDp) }
+                val baseWidthDp = if (isLandscape && elem.landscapeWidthDp != null) elem.landscapeWidthDp else elem.widthDp
+                val baseHeightDp = if (isLandscape && elem.landscapeHeightDp != null) elem.landscapeHeightDp else elem.heightDp
+                var widthDp by remember(elem.elementId, baseWidthDp) { mutableFloatStateOf(baseWidthDp) }
+                var heightDp by remember(elem.elementId, baseHeightDp) { mutableFloatStateOf(baseHeightDp) }
 
                 val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
                 val dragModifier = if (canMove) {
