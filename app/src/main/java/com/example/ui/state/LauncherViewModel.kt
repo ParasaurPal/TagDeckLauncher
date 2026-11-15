@@ -1013,6 +1013,28 @@ class LauncherViewModel(
         viewModelScope.launch { repository.deleteBackgroundPreset(presetId) }
     }
 
+    fun saveCustomFont(font: CustomFontEntity) {
+        viewModelScope.launch {
+            repository.saveCustomFont(font)
+            showMessage("Added font " + font.displayName)
+        }
+    }
+
+    fun deleteCustomFont(fontId: Long) {
+        viewModelScope.launch { repository.deleteCustomFont(fontId) }
+    }
+
+    fun saveThemeProfile(profile: ThemeProfileEntity) {
+        viewModelScope.launch {
+            repository.saveThemeProfile(profile)
+            showMessage("Saved theme " + profile.name)
+        }
+    }
+
+    fun deleteThemeProfile(profileId: Long) {
+        viewModelScope.launch { repository.deleteThemeProfile(profileId) }
+    }
+
     // --- BACKUP & RESTORE ---
     suspend fun exportFullBackupJson(): String = repository.exportFullBackupJson()
 
