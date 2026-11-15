@@ -42,7 +42,23 @@ fun WallpaperBackground(
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val parallaxOffsetPx = with(LocalDensity.current) { (currentPage?.pageOrder ?: 0).coerceIn(-4, 4) * settings.wallpaperParallaxIntensity.coerceIn(0f, 1f) * 28.dp.toPx() }
-    val wallpaperColorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(settings.wallpaperSaturation.coerceIn(0f, 2f)) })
+    val saturation = settings.wallpaperSaturation.coerceIn(0f, 2f)
+    val contrast = settings.wallpaperContrast.coerceIn(0f, 2f)
+    val brightnessOffset = settings.wallpaperBrightness.coerceIn(-1f, 1f) * 255f + 128f * (1f - contrast)
+    val inverseSaturation = 1f - saturation
+    val redLuma = 0.213f * inverseSaturation
+    val greenLuma = 0.715f * inverseSaturation
+    val blueLuma = 0.072f * inverseSaturation
+    val wallpaperColorFilter = ColorFilter.colorMatrix(
+        ColorMatrix(
+            floatArrayOf(
+                (redLuma + saturation) * contrast, greenLuma * contrast, blueLuma * contrast, 0f, brightnessOffset,
+                redLuma * contrast, (greenLuma + saturation) * contrast, blueLuma * contrast, 0f, brightnessOffset,
+                redLuma * contrast, greenLuma * contrast, (blueLuma + saturation) * contrast, 0f, brightnessOffset,
+                0f, 0f, 0f, 1f, 0f,
+            )
+        )
+    )
     val ambientTransition = rememberInfiniteTransition(label = "wallpaper_ambient")
     val ambientPhase by ambientTransition.animateFloat(0f, 1f, infiniteRepeatable(tween(9000), RepeatMode.Reverse), label = "wallpaper_ambient_phase")
     val ambientStrength = if (settings.wallpaperAmbientMotion) ambientPhase else 0f
