@@ -106,7 +106,7 @@ data class LauncherSettings(
     val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE, ZOOM, CUBE, FLIP, ROTATE, PARALLAX, STACK, ACCORDION, WINDMILL
     val widgetFeedEnabled: Boolean = true,
     val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
-    val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
+    val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, PROGRESS, TABS, HIDDEN
     val pageIndicatorColorHex: Long = 0xFF38BDF8L,
     val pageIndicatorSizeDp: Float = 7f,
     val pageIndicatorActiveWidthDp: Float = 22f,
