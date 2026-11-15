@@ -135,6 +135,7 @@ object BackupManager {
                 put("sidebarColumns", tag.sidebarColumns)
                 put("showCountInSidebar", tag.showCountInSidebar)
                 put("showOnHome", tag.showOnHome)
+                put("createdAt", tag.createdAt)
             })
         }
         root.put("tags", tagsArr)
@@ -537,6 +538,7 @@ object BackupManager {
                     sidebarColumns = o.optInt("sidebarColumns", 3),
                     showCountInSidebar = o.optBoolean("showCountInSidebar", true),
                     showOnHome = o.optBoolean("showOnHome", true),
+                    createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                 )
             )
         }
