@@ -170,7 +170,7 @@ private data class MacroStepDraft(
     val targetUrl: String? = null,
 )
 
-private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "OPEN_APP_MANAGER", "OPEN_SETTINGS", "OPEN_TAG", "OPEN_CATEGORY", "OPEN_SIDEBAR", "OPEN_WINDOW", "OPEN_RULE", "OPEN_APP", "OPEN_WEBSITE", "OPEN_SYSTEM_SETTING", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS")
+private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "OPEN_APP_MANAGER", "OPEN_SETTINGS", "OPEN_TAG", "OPEN_CATEGORY", "OPEN_SIDEBAR", "OPEN_WINDOW", "OPEN_RULE", "OPEN_APP", "OPEN_WEBSITE", "OPEN_SYSTEM_SETTING", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS")
 
 private val ActionOptions = listOf(
     "NONE" to "None",
@@ -190,6 +190,9 @@ private val ActionOptions = listOf(
     "SHOW_OBJECT" to "Show Home Object",
     "HIDE_OBJECT" to "Hide Home Object",
     "TOGGLE_OBJECT" to "Toggle Home Object Visibility",
+    "SHOW_GROUP" to "Show Visibility Group",
+    "HIDE_GROUP" to "Hide Visibility Group",
+    "TOGGLE_GROUP" to "Toggle Visibility Group",
     "NEXT_STACK_ITEM" to "Next Widget Stack Item",
     "PREVIOUS_STACK_ITEM" to "Previous Widget Stack Item",
     "OPEN_WIFI_PANEL" to "Open Wi-Fi Controls",
@@ -2548,10 +2551,13 @@ private fun GestureBindingDialog(
                                 }
                                 TextButton(onClick = { macroSteps.removeAt(index) }) { Text("Remove") }
                             }
-                            if (step.actionType in setOf("SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM")) {
+                            if (step.actionType in setOf("SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM")) {
                                 val candidates = state.homeElements.filter { element ->
-                                    if (step.actionType == "NEXT_STACK_ITEM" || step.actionType == "PREVIOUS_STACK_ITEM") element.type == "WIDGET_STACK"
-                                    else element.type != "WIDGET_STACK"
+                                    when (step.actionType) {
+                                        "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM" -> element.type == "WIDGET_STACK"
+                                        "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP" -> !element.groupId.isNullOrBlank()
+                                        else -> element.type != "WIDGET_STACK"
+                                    }
                                 }
                                 LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
                                     items(candidates, key = { it.elementId }) { element ->
