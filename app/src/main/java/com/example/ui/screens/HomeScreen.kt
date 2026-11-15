@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import android.content.Context
 import android.content.res.Configuration
+import android.os.BatteryManager
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
@@ -92,6 +94,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -115,7 +118,11 @@ import com.example.ui.components.WallpaperBackground
 import com.example.ui.components.WidgetPickerDialog
 import com.example.ui.state.LauncherRoute
 import com.example.ui.state.LauncherUiState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -170,6 +177,21 @@ fun HomeScreen(
     onStartSystemWidgetBind: (InstalledWidgetProvider, Long, String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var statusStripNow by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(state.settings.statusStripEnabled) {
+        if (state.settings.statusStripEnabled) {
+            while (true) {
+                delay(30_000L)
+                statusStripNow = System.currentTimeMillis()
+            }
+        }
+    }
+    val statusStripBattery = if (state.settings.statusStripShowBattery) runCatching {
+        (context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager)
+            ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            ?.takeIf { it in 0..100 }
+    }.getOrNull() else null
     val visiblePages = remember(state.homePages, state.isEditMode) {
         val list = if (state.isEditMode) state.homePages else state.homePages.filter { !it.isHidden }
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
@@ -815,6 +837,30 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                     }
                 }
 
+                if (state.settings.statusStripEnabled) {
+                    val accent = Color(state.settings.statusStripAccentColorHex)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.Black.copy(alpha = 0.34f))
+                            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(statusStripNow)), color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (state.settings.statusStripShowDate) {
+                            Text(SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date(statusStripNow)), color = Color.White.copy(alpha = 0.82f), fontSize = 11.sp)
+                        }
+                        if (statusStripBattery != null) {
+                            Text("Battery ${statusStripBattery}%", color = Color.White.copy(alpha = 0.82f), fontSize = 11.sp)
+                        }
+                    }
+                }
+
                 if (visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
                     val indicatorColor = Color(state.settings.pageIndicatorColorHex)
                     Row(
@@ -832,8 +878,8 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 3.dp)
-                                            .width(if (active) 22.dp else 7.dp)
-                                            .height(7.dp)
+                                            .width(if (active) state.settings.pageIndicatorActiveWidthDp.coerceIn(10f, 48f).dp else state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
+                                            .height(state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
                                             .clip(RoundedCornerShape(50))
                                             .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
                                     )
@@ -860,7 +906,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 4.dp)
-                                            .size(if (active) 10.dp else 6.dp)
+                                            .size(if (active) (state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f) * 1.35f).dp else state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
                                             .clip(CircleShape)
                                             .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
                                     )
