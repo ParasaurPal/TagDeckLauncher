@@ -241,7 +241,7 @@ fun CategoryBadgeIcon(
             blue = 1f - accent.blue,
             alpha = accent.alpha,
         )
-    } else iconAccent
+    } else accent
 
     Box(
         modifier = Modifier
@@ -286,7 +286,7 @@ fun CategoryBadgeIcon(
                 )
             }
             iconStyle.enabled && (isColorDark(iconAccent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
-                val fill = if (isColorDark(accent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else accent
+                val fill = if (isColorDark(iconAccent, iconStyle.darknessThreshold)) Color(iconStyle.fillColorHex) else iconAccent
                 OutlinedVectorIcon(
                     imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
