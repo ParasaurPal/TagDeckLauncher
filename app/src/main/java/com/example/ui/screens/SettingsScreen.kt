@@ -69,6 +69,7 @@ import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -91,6 +92,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -107,6 +112,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -263,6 +269,12 @@ fun SettingsScreen(
     }
     val hasNotificationAccess = remember(permissionRefresh) { NotificationAccess.isEnabled(context) }
     val scope = rememberCoroutineScope()
+    val settingsDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var selectedSectionId by remember { mutableStateOf<String?>(null) }
+    val visibleSections = remember(matchingSections, selectedSectionId) {
+        if (selectedSectionId == null) matchingSections
+        else matchingSections.filterKeys { it == selectedSectionId }
+    }
     val s = state.settings
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
     LaunchedEffect(initialSearchQuery) {
@@ -392,6 +404,44 @@ fun SettingsScreen(
         }
     }
 
+    ModalNavigationDrawer(
+        drawerState = settingsDrawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet(modifier = Modifier.width(304.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp)) {
+                    Text("Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Browse by function", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider()
+                LazyColumn(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 8.dp)) {
+                    items(LauncherSettingsCatalog.sections, key = { it.id }) { section ->
+                        val available = section.id in matchingSections &&
+                            (section.id != LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS || s.blackIconStyleEnabled)
+                        if (available) {
+                            NavigationDrawerItem(
+                                label = { Text(section.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                                selected = selectedSectionId == section.id,
+                                onClick = {
+                                    selectedSectionId = section.id
+                                    scope.launch { settingsDrawerState.close() }
+                                },
+                                modifier = Modifier.padding(horizontal = 10.dp).testTag("settings_nav_${section.id}"),
+                            )
+                        }
+                    }
+                    item {
+                        NavigationDrawerItem(
+                            label = { Text("All settings") },
+                            selected = selectedSectionId == null,
+                            onClick = { selectedSectionId = null; scope.launch { settingsDrawerState.close() } },
+                            modifier = Modifier.padding(horizontal = 10.dp).testTag("settings_nav_all"),
+                        )
+                    }
+                }
+            }
+        },
+    ) {
     Scaffold(
         modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
         topBar = {
@@ -408,11 +458,14 @@ fun SettingsScreen(
                     IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back_button")) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
+                    IconButton(onClick = { scope.launch { settingsDrawerState.open() } }, modifier = Modifier.testTag("settings_sidebar_toggle")) {
+                        Icon(Icons.Rounded.Menu, contentDescription = "Open settings sections")
+                    }
                     Text("Launcher Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                 }
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { searchQuery = it; selectedSectionId = null },
                     placeholder = { Text("Search settings (theme, grid, icon outline, drawer...)") },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
@@ -452,12 +505,12 @@ fun SettingsScreen(
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
             // Direct access to every editable launcher manager.
-            if (LauncherSettingsCatalog.SECTION_MANAGE in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_MANAGE in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_MANAGE) {
                     SettingsCard(
                         title = "Manage Your Launcher",
                         icon = Icons.Rounded.Tune,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_MANAGE].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_MANAGE].orEmpty() else emptyList(),
                     ) {
                     Text(
                         "Open the editors for your tags, app icons and visibility, and independent sidebars.",
@@ -482,12 +535,12 @@ fun SettingsScreen(
                 }
             }
 
-            if (LauncherSettingsCatalog.SECTION_CATEGORY_ICONS in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_CATEGORY_ICONS in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_CATEGORY_ICONS) {
                     SettingsCard(
                         title = "Category Icons & Open States",
                         icon = Icons.Rounded.Category,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
                     ) {
                         Text("Customize each category's closed and open-state badge, including custom images, emoji, and accent colors.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Drawer / sidebar icon fill contrast", style = MaterialTheme.typography.labelMedium)
@@ -516,12 +569,12 @@ fun SettingsScreen(
             }
 
             // Default Home Launcher Card            // Default Home Launcher Card
-            if (LauncherSettingsCatalog.SECTION_DEFAULT_HOME in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_DEFAULT_HOME in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_DEFAULT_HOME) {
                     SettingsCard(
                         title = "Default Home Application",
                         icon = Icons.Rounded.Home,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_DEFAULT_HOME].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_DEFAULT_HOME].orEmpty() else emptyList(),
                     ) {
                     if (state.isDefaultLauncher) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -545,12 +598,12 @@ fun SettingsScreen(
             }
 
             // Image Library & Background Presets
-            if (LauncherSettingsCatalog.SECTION_MEDIA in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_MEDIA in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_MEDIA) {
                     SettingsCard(
                         title = "Media Library & Background Presets",
                         icon = Icons.Rounded.Image,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_MEDIA].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_MEDIA].orEmpty() else emptyList(),
                     ) {
                     Text(
                         "Centralized non-destructive library (${state.imageResources.size} images, ${state.backgroundPresets.size} presets). Originals stay intact.",
@@ -576,12 +629,12 @@ fun SettingsScreen(
             }
 
             // Theme & Typography
-            if (LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY) {
                     SettingsCard(
                         title = "Theme & Typography",
                         icon = Icons.Rounded.TextFields,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY].orEmpty() else emptyList(),
                     ) {
                     Text("Theme Mode", style = MaterialTheme.typography.labelLarge)
                     @OptIn(ExperimentalLayoutApi::class)
@@ -953,12 +1006,12 @@ fun SettingsScreen(
             }
 
             // Palette, Surfaces & Motion
-            if (LauncherSettingsCatalog.SECTION_PALETTE_SURFACES in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_PALETTE_SURFACES in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_PALETTE_SURFACES) {
                     SettingsCard(
                         title = "Palette, Surfaces & Motion",
                         icon = Icons.Rounded.Palette,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_PALETTE_SURFACES].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_PALETTE_SURFACES].orEmpty() else emptyList(),
                     ) {
                     Text("Primary Accent Color", style = MaterialTheme.typography.labelLarge)
                     ColorSwatchRow(
@@ -1027,7 +1080,7 @@ fun SettingsScreen(
             }
 
             // Icon Packs & Loading Hierarchy
-            if (LauncherSettingsCatalog.SECTION_ICON_PACKS in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_ICON_PACKS in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_ICON_PACKS) {
                     val activePackOrder = remember(s.iconPackOrderCsv) { s.iconPackOrder() }
                     val packLookup = remember(state.installedIconPacks) {
@@ -1039,7 +1092,7 @@ fun SettingsScreen(
                     SettingsCard(
                         title = "Icon Packs & Loading Hierarchy",
                         icon = Icons.Rounded.Apps,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_ICON_PACKS].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_ICON_PACKS].orEmpty() else emptyList(),
                     ) {
                     Text(
                         text = "Icons resolve in priority order:\n1. Per-App Custom Icon  ->  2. Active Icon Packs (top to bottom)  ->  3. System Icon",
@@ -1251,12 +1304,12 @@ fun SettingsScreen(
             }
 
             // Global Arcticons-style Line Icon Generation
-            if (LauncherSettingsCatalog.SECTION_LINE_ICONS in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_LINE_ICONS in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_LINE_ICONS) {
                     SettingsCard(
                         title = "Arcticons-Style Line Icons",
                         icon = Icons.Rounded.Contrast,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_LINE_ICONS].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_LINE_ICONS].orEmpty() else emptyList(),
                     ) {
                         Text(
                             "Automatically turn every installed app icon into transparent black or white line art. Individual icons can be refined by drawing over detected edges in App Icons.",
@@ -1319,8 +1372,8 @@ fun SettingsScreen(
             }
 
             // Black Launcher Icon Contrast & Outline Styling
-            if (LauncherSettingsCatalog.SECTION_BLACK_ICONS in matchingSections ||
-                (!s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections)
+            if (LauncherSettingsCatalog.SECTION_BLACK_ICONS in visibleSections ||
+                (!s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in visibleSections)
             ) {
                 item(key = LauncherSettingsCatalog.SECTION_BLACK_ICONS) {
                     val iconStyle = remember(
@@ -1345,7 +1398,7 @@ fun SettingsScreen(
                         title = "Black Icon Contrast & Outline",
                         icon = Icons.Rounded.Contrast,
                         matchedEntries = if (searchQuery.isNotBlank()) {
-                            matchingSections[LauncherSettingsCatalog.SECTION_BLACK_ICONS].orEmpty()
+                            visibleSections[LauncherSettingsCatalog.SECTION_BLACK_ICONS].orEmpty()
                         } else emptyList(),
                     ) {
                     Text(
@@ -1457,12 +1510,12 @@ fun SettingsScreen(
                 }
             }
 
-            if (s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections) {
+            if (s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS) {
                     SettingsCard(
                         title = "Black Icon Outline & Colors",
                         icon = Icons.Rounded.Contrast,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS].orEmpty() else emptyList(),
                     ) {
                         Text("Outline Thickness: ${"%.1f".format(s.blackIconOutlineWidthDp)}dp")
                         Slider(
@@ -1557,12 +1610,12 @@ fun SettingsScreen(
             }
 
             // Wallpaper & Atmosphere
-            if (LauncherSettingsCatalog.SECTION_WALLPAPER in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_WALLPAPER in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_WALLPAPER) {
                     SettingsCard(
                         title = "Wallpaper & Atmosphere",
                         icon = Icons.Rounded.Wallpaper,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_WALLPAPER].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_WALLPAPER].orEmpty() else emptyList(),
                     ) {
                     @OptIn(ExperimentalLayoutApi::class)
                     FlowRow(
@@ -1691,12 +1744,12 @@ fun SettingsScreen(
             }
 
             // Universal All-Apps Sidebar
-            if (LauncherSettingsCatalog.SECTION_DRAWER in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_DRAWER in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_DRAWER) {
                     SettingsCard(
                         title = "Universal All-Apps Drawer",
                         icon = Icons.Rounded.Apps,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_DRAWER].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_DRAWER].orEmpty() else emptyList(),
                     ) {
                     Text("Opening Side", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1847,12 +1900,12 @@ fun SettingsScreen(
             }
 
             // Niagara Wave Alphabet Navigation
-            if (LauncherSettingsCatalog.SECTION_NIAGARA in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_NIAGARA in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_NIAGARA) {
                     SettingsCard(
                         title = "Niagara Wave Alphabet Index",
                         icon = Icons.Rounded.SortByAlpha,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_NIAGARA].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_NIAGARA].orEmpty() else emptyList(),
                     ) {
                     ToggleRow("Show Alphabet Index Rail", s.niagaraIndexVisible) { v ->
                         onUpdateSettings { it.copy(niagaraIndexVisible = v) }
@@ -1909,12 +1962,12 @@ fun SettingsScreen(
             }
 
             // Home Canvas, Grid, Page Indicators & Edge Handles
-            if (LauncherSettingsCatalog.SECTION_HOME_CANVAS in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_HOME_CANVAS in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_HOME_CANVAS) {
                     SettingsCard(
                         title = "Home Canvas, Grid & Indicators",
                         icon = Icons.Rounded.ViewCarousel,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_HOME_CANVAS].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_HOME_CANVAS].orEmpty() else emptyList(),
                     ) {
                     ToggleRow("Show Bottom Dock Bar", s.showDockBar) { v ->
                         onUpdateSettings { it.copy(showDockBar = v) }
@@ -1981,12 +2034,12 @@ fun SettingsScreen(
             }
 
             // Page Transitions, Indicators & Edge Handles
-            if (LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES) {
                     SettingsCard(
                         title = "Page Indicators & Edge Handles",
                         icon = Icons.Rounded.ViewCarousel,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_INDICATORS_HANDLES].orEmpty() else emptyList(),
                     ) {
                     Text("Page Transition Style", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2102,12 +2155,12 @@ fun SettingsScreen(
             }
 
             // System Bars & Notifications
-            if (LauncherSettingsCatalog.SECTION_SYSTEM_UI in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_SYSTEM_UI in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_SYSTEM_UI) {
                     SettingsCard(
                         title = "System UI & Feedback",
                         icon = Icons.Rounded.GridOn,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_SYSTEM_UI].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_SYSTEM_UI].orEmpty() else emptyList(),
                     ) {
                     ToggleRow("Show Android Status Bar", s.showStatusBar) { v ->
                         onUpdateSettings { it.copy(showStatusBar = v) }
@@ -2233,12 +2286,12 @@ fun SettingsScreen(
             }
 
             // Gestures
-            if (LauncherSettingsCatalog.SECTION_GESTURES in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_GESTURES in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_GESTURES) {
                     SettingsCard(
                         title = "Gestures & Shortcuts",
                         icon = Icons.Rounded.Gesture,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_GESTURES].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_GESTURES].orEmpty() else emptyList(),
                     ) {
                     GestureLabels.forEach { (key, label) ->
                         val binding = state.gestures[key] ?: GestureBindingEntity(key, "NONE")
@@ -2265,12 +2318,12 @@ fun SettingsScreen(
             }
 
             // Backup & Restore
-            if (LauncherSettingsCatalog.SECTION_BACKUP in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_BACKUP in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_BACKUP) {
                     SettingsCard(
                         title = "Portable Local Backup & Restore",
                         icon = Icons.Rounded.Backup,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_BACKUP].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_BACKUP].orEmpty() else emptyList(),
                     ) {
                     Text(
                         "Export or restore all layouts, windows, tags, categories, manual overrides, images, sidebars, widgets, and preferences.",
@@ -2327,12 +2380,12 @@ fun SettingsScreen(
             }
 
             // Reset All Preferences
-            if (LauncherSettingsCatalog.SECTION_RESET in matchingSections) {
+            if (LauncherSettingsCatalog.SECTION_RESET in visibleSections) {
                 item(key = LauncherSettingsCatalog.SECTION_RESET) {
                     SettingsCard(
                         title = "Reset Preferences",
                         icon = Icons.Rounded.RestartAlt,
-                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_RESET].orEmpty() else emptyList(),
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_RESET].orEmpty() else emptyList(),
                     ) {
                         Text(
                             "Restore theme, colors, fonts, wallpaper, grid, indicators, drawer, and icon outline preferences to defaults without removing your pages or apps.",
@@ -2351,7 +2404,7 @@ fun SettingsScreen(
                 }
             }
 
-            if (searchQuery.isNotBlank() && matchingSections.isEmpty()) {
+            if (searchQuery.isNotBlank() && visibleSections.isEmpty()) {
                 item(key = "settings_search_empty") {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
@@ -2391,6 +2444,7 @@ fun SettingsScreen(
                 }
             }
         }
+    }
     }
 
     if (showImageLibrary) {
