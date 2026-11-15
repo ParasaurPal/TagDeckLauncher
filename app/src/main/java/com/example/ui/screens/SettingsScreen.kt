@@ -663,7 +663,7 @@ fun SettingsScreen(
                                     pageTransitionStyle = json.optString("pageTransitionStyle", current.pageTransitionStyle),
                                     pageIndicatorStyle = json.optString("pageIndicatorStyle", current.pageIndicatorStyle),
                                     widgetFeedEnabled = json.optBoolean("widgetFeedEnabled", current.widgetFeedEnabled),
-                                    widgetFeedTitleColor = json.optLong("widgetFeedTitleColor", current.widgetFeedTitleColor),
+                                    widgetFeedTitleColor = json.optString("widgetFeedTitleColor", current.widgetFeedTitleColor),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
                             }) { Text("Apply") }
