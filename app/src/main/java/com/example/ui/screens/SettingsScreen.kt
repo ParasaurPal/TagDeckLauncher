@@ -628,6 +628,40 @@ fun SettingsScreen(
                             ) {
                                 Text("Aa  Readable text preview • Clear labels over busy wallpapers", modifier = Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 0.2.sp)
                             }
+                            HorizontalDivider()
+                            Text("Global Readability Defaults", style = MaterialTheme.typography.titleSmall)
+                            ToggleRow("Bold label boost", s.boldLabelsEnabled) { value -> onUpdateSettings { it.copy(boldLabelsEnabled = value) } }
+                            ToggleRow("Text outline / halo", s.textOutlineEnabled) { value -> onUpdateSettings { it.copy(textOutlineEnabled = value) } }
+                            if (s.textOutlineEnabled) {
+                                Text("Outline width: ${"%.1f".format(s.textOutlineWidthDp)}dp")
+                                Slider(value = s.textOutlineWidthDp, onValueChange = { value -> onUpdateSettings { it.copy(textOutlineWidthDp = value) } }, valueRange = 0.1f..3f)
+                                ColorSwatchRow(selectedColorHex = s.textOutlineColorHex, colors = StudioNeutralAndAccentSwatches, onSelect = { color -> onUpdateSettings { it.copy(textOutlineColorHex = color) } }, tagPrefix = "readability_outline")
+                            }
+                            ToggleRow("Text drop shadow", s.textShadowEnabled) { value -> onUpdateSettings { it.copy(textShadowEnabled = value) } }
+                            if (s.textShadowEnabled) {
+                                Text("Shadow radius: ${"%.1f".format(s.textShadowRadiusDp)}dp")
+                                Slider(value = s.textShadowRadiusDp, onValueChange = { value -> onUpdateSettings { it.copy(textShadowRadiusDp = value) } }, valueRange = 0f..18f)
+                            }
+                            ToggleRow("Label backdrop pill", s.labelBackdropEnabled) { value -> onUpdateSettings { it.copy(labelBackdropEnabled = value) } }
+                            if (s.labelBackdropEnabled) {
+                                ColorSwatchRow(selectedColorHex = s.labelBackdropColorHex, colors = StudioNeutralAndAccentSwatches, onSelect = { color -> onUpdateSettings { it.copy(labelBackdropColorHex = color) } }, tagPrefix = "readability_backdrop")
+                                Text("Backdrop opacity: ${(s.labelBackdropAlpha * 100).roundToInt()}%")
+                                Slider(value = s.labelBackdropAlpha, onValueChange = { value -> onUpdateSettings { it.copy(labelBackdropAlpha = value) } }, valueRange = 0.05f..1f)
+                            }
+                            ToggleRow("Automatic text contrast", s.autoContrastText) { value -> onUpdateSettings { it.copy(autoContrastText = value) } }
+                            Text("Minimum label size: ${s.minLabelFontSp.roundToInt()}sp")
+                            Slider(value = s.minLabelFontSp, onValueChange = { value -> onUpdateSettings { it.copy(minLabelFontSp = value) } }, valueRange = 8f..24f)
+                            Text("Letter spacing: ${"%.2f".format(s.letterSpacingEm)}em")
+                            Slider(value = s.letterSpacingEm, onValueChange = { value -> onUpdateSettings { it.copy(letterSpacingEm = value) } }, valueRange = -0.05f..0.25f)
+                            Text("Line height: ${"%.2f".format(s.lineHeightMultiplier)}x")
+                            Slider(value = s.lineHeightMultiplier, onValueChange = { value -> onUpdateSettings { it.copy(lineHeightMultiplier = value) } }, valueRange = 0.8f..2f)
+                            Text("Maximum label lines")
+                            @OptIn(ExperimentalLayoutApi::class)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(1, 2, 3).forEach { count ->
+                                    FilterChip(selected = s.labelMaxLines == count, onClick = { onUpdateSettings { it.copy(labelMaxLines = count) } }, label = { Text(count.toString()) })
+                                }
+                            }
                             Text("Custom Font Library", style = MaterialTheme.typography.titleSmall)
                             Text("Import TTF or OTF files. Fonts stay in app storage.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
