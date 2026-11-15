@@ -636,6 +636,7 @@ object BackupManager {
         }
 
         val customFonts = mutableListOf<CustomFontEntity>()
+        val embeddedFonts = mutableMapOf<String, String>()
         val fontsArr = root.optJSONArray("customFonts") ?: JSONArray()
         for (i in 0 until fontsArr.length()) {
             val o = fontsArr.getJSONObject(i)
@@ -649,9 +650,10 @@ object BackupManager {
                 isFavorite = o.optBoolean("isFavorite", false),
                 createdAt = o.optLong("createdAt", System.currentTimeMillis()),
             ))
+            o.optNullableString("base64")?.let { embeddedFonts[o.optString("localPath", "")] = it }
         }
 
-        val embeddedFonts = mutableMapOf<String, String>()
+        
         val themeProfiles = mutableListOf<ThemeProfileEntity>()
         val themesArr = root.optJSONArray("themeProfiles") ?: JSONArray()
         for (i in 0 until themesArr.length()) {
