@@ -2279,7 +2279,8 @@ fun ElementInspectorDialog(
                             Slider(value = autoRotateSeconds.toFloat(), onValueChange = { updateStyleExtra("autoRotateSeconds", it.roundToInt().toDouble()) }, valueRange = 0f..120f, steps = 23)
                             Text("Stack contents", style = MaterialTheme.typography.labelMedium)
                             Text("Choose existing objects on this page. Items in a stack are hidden from the main canvas and remain editable in the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            val selectedStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
+                            val orderedStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
+                            val selectedStackIds = orderedStackIds.toSet()
                             state.homeElements
                                 .filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.parentContainerId == null }
                                 .sortedBy { it.zIndex }
@@ -2288,11 +2289,30 @@ fun ElementInspectorDialog(
                                         Checkbox(
                                             checked = candidate.elementId in selectedStackIds,
                                             onCheckedChange = { checked ->
-                                                val nextIds = if (checked) selectedStackIds + candidate.elementId else selectedStackIds - candidate.elementId
+                                                val nextIds = if (checked) orderedStackIds + candidate.elementId else orderedStackIds.filterNot { it == candidate.elementId }
                                                 edited = edited.copy(widgetStackItemsJson = nextIds.joinToString(","), widgetStackIndex = 0)
                                             },
                                         )
                                         Text(candidate.label.ifBlank { candidate.type.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } }, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        if (candidate.elementId in selectedStackIds) {
+                                            val itemIndex = orderedStackIds.indexOf(candidate.elementId)
+                                            TextButton(onClick = {
+                                                if (itemIndex > 0) {
+                                                    val nextIds = orderedStackIds.toMutableList()
+                                                    val moved = nextIds.removeAt(itemIndex)
+                                                    nextIds.add(itemIndex - 1, moved)
+                                                    edited = edited.copy(widgetStackItemsJson = nextIds.joinToString(","))
+                                                }
+                                            }, enabled = itemIndex > 0) { Text("↑") }
+                                            TextButton(onClick = {
+                                                if (itemIndex in 0 until orderedStackIds.lastIndex) {
+                                                    val nextIds = orderedStackIds.toMutableList()
+                                                    val moved = nextIds.removeAt(itemIndex)
+                                                    nextIds.add(itemIndex + 1, moved)
+                                                    edited = edited.copy(widgetStackItemsJson = nextIds.joinToString(","))
+                                                }
+                                            }, enabled = itemIndex in 0 until orderedStackIds.lastIndex) { Text("↓") }
+                                        }
                                     }
                                 }
                         }
