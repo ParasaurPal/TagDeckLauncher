@@ -211,6 +211,7 @@ data class HomePageEntity(
     val transitionDurationMs: Int = 320,
     val loopNavigation: Boolean = false,
     val parallaxEnabled: Boolean = false,
+    val showDockOverride: Boolean? = null,
 )
 
 @Entity(tableName = "launcher_windows")
@@ -296,6 +297,10 @@ data class HomeElementEntity(
     val widgetStackIndex: Int = 0,
     val widgetStackSwipeEnabled: Boolean = true,
     val pinnedToViewport: Boolean = false,
+    val pinnedToAllPages: Boolean = false,
+    val visibilityGroupId: String? = null,
+    val landscapeWidthDp: Float? = null,
+    val landscapeHeightDp: Float? = null,
     val pinEdge: String = "NONE",
     val pinOffsetDp: Float = 0f,
 ) {
