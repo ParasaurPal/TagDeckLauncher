@@ -332,13 +332,17 @@ fun HomeElementBody(
         }
     } else Modifier
     val idleAnimation = styleExtras.optString("idleAnimation", "NONE")
-    val idleTransition = rememberInfiniteTransition(label = "element_idle")
-    val idleProgress by idleTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (idleAnimation == "NONE") 0f else 1f,
-        animationSpec = infiniteRepeatable(tween(styleExtras.optInt("idleDurationMs", 1800).coerceIn(700, 5000)), RepeatMode.Reverse),
-        label = "element_idle_progress",
-    )
+    val idleProgressState = if (idleAnimation == "NONE") {
+        remember(element.elementId) { mutableStateOf(0f) }
+    } else {
+        rememberInfiniteTransition(label = "element_idle").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(styleExtras.optInt("idleDurationMs", 1800).coerceIn(700, 5000)), RepeatMode.Reverse),
+            label = "element_idle_progress",
+        )
+    }
+    val idleProgress by idleProgressState
     val entranceAnimation = styleExtras.optString("entranceAnimation", "NONE")
     var entranceVisible by remember(element.elementId) { mutableStateOf(false) }
     LaunchedEffect(element.elementId, entranceAnimation) {
