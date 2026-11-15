@@ -833,6 +833,7 @@ fun SettingsScreen(
                                     wallpaperParallaxIntensity = json.optDouble("wallpaperParallaxIntensity", current.wallpaperParallaxIntensity.toDouble()).toFloat(),
                                     wallpaperTintHex = if (!json.has("wallpaperTintHex") || json.isNull("wallpaperTintHex")) null else json.optLong("wallpaperTintHex", 0L),
                                     wallpaperAmbientMotion = json.optBoolean("wallpaperAmbientMotion", current.wallpaperAmbientMotion),
+                                    wallpaperAmbientEffectType = json.optString("wallpaperAmbientEffectType", current.wallpaperAmbientEffectType),
                                     sidebarTextColorMode = json.optString("sidebarTextColorMode", current.sidebarTextColorMode),
                                     sidebarCategoryIconStyle = json.optString("sidebarCategoryIconStyle", current.sidebarCategoryIconStyle),
                                     showHomeAppLabels = json.optBoolean("showHomeAppLabels", current.showHomeAppLabels),
