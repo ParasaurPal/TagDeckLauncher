@@ -1005,6 +1005,8 @@ class LauncherViewModel(
             "OPEN_INTERNET_PANEL" -> appDiscovery.openSystemSettings(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
             "OPEN_VOLUME_PANEL" -> appDiscovery.openSystemSettings(Settings.Panel.ACTION_VOLUME)
             "OPEN_BLUETOOTH_SETTINGS" -> appDiscovery.openSystemSettings(Settings.ACTION_BLUETOOTH_SETTINGS)
+            "TOGGLE_FLASHLIGHT" -> if (!appDiscovery.toggleFlashlight()) showMessage("Flashlight unavailable or currently in use")
+            "TOGGLE_RINGER" -> if (!appDiscovery.toggleRingerMode()) showMessage("Allow notification policy access to toggle Ring/Vibrate mode")
             "MACRO" -> {
                 if (!macroStepsJson.isNullOrBlank()) {
                     viewModelScope.launch {
