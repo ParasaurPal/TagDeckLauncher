@@ -63,6 +63,7 @@ fun WallpaperBackground(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().then(blurMod),
+                    colorFilter = wallpaperColorFilter,
                 )
             }
             "CUSTOM_IMAGE" -> {
@@ -73,6 +74,7 @@ fun WallpaperBackground(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().then(blurMod),
+                    colorFilter = wallpaperColorFilter,
                     )
                 } else {
                     Image(
@@ -80,6 +82,7 @@ fun WallpaperBackground(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().then(blurMod),
+                    colorFilter = wallpaperColorFilter,
                     )
                 }
             }
@@ -113,6 +116,7 @@ fun WallpaperBackground(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().then(blurMod),
+                    colorFilter = wallpaperColorFilter,
                 )
             }
         }
@@ -155,6 +159,7 @@ fun WallpaperBackground(
                         contentScale = ContentScale.Crop,
                         alpha = resolvedAlpha,
                         modifier = Modifier.fillMaxSize().then(pageBlur),
+                        colorFilter = wallpaperColorFilter,
                     )
                 }
             }
@@ -185,6 +190,7 @@ fun WallpaperBackground(
                         contentScale = ContentScale.Crop,
                         alpha = resolvedAlpha,
                         modifier = Modifier.fillMaxSize().then(pageBlur),
+                        colorFilter = wallpaperColorFilter,
                     )
                 } else if (resolvedColor != null) {
                     Box(
@@ -194,6 +200,28 @@ fun WallpaperBackground(
                     )
                 }
             }
+        }
+
+        if (settings.wallpaperTintHex != null) {
+            Box(modifier = Modifier.fillMaxSize().background(Color(settings.wallpaperTintHex).copy(alpha = 0.14f)))
+        }
+        if (settings.wallpaperVignette > 0.01f) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.radialGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = settings.wallpaperVignette.coerceIn(0f, 1f))),
+                    )
+                )
+            )
+        }
+        if (settings.wallpaperAmbientMotion && ambientStrength > 0.01f) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.radialGradient(
+                        colors = listOf(Color.Transparent, Color(settings.accentColorHex).copy(alpha = ambientStrength * 0.075f)),
+                    )
+                )
+            )
         }
     }
 }
@@ -237,6 +265,7 @@ fun SurfaceBackgroundLayer(
                         contentScale = ContentScale.Crop,
                         alpha = opacity,
                         modifier = Modifier.fillMaxSize().then(blurMod),
+                    colorFilter = wallpaperColorFilter,
                     )
                     Box(
                         modifier = Modifier
