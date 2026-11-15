@@ -950,6 +950,35 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                                     )
                                 }
                             }
+                            "PROGRESS" -> {
+                                val progress = (logicalPageIndex(pagerState.currentPage) + 1f) / visiblePages.size.coerceAtLeast(1)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Box(modifier = Modifier.fillMaxWidth(0.42f).height(state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.24f))) {
+                                        Box(modifier = Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(indicatorColor, RoundedCornerShape(50)))
+                                    }
+                                    Text("${logicalPageIndex(pagerState.currentPage) + 1} / ${visiblePages.size}", color = indicatorColor, fontSize = 10.sp)
+                                }
+                            }
+                            "TABS" -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    visiblePages.forEachIndexed { idx, page ->
+                                        val active = idx == logicalPageIndex(pagerState.currentPage)
+                                        Surface(
+                                            onClick = { scope.launch { pagerState.animateScrollToPage(idx + pagerPageOffset, animationSpec = tween(durationMillis = activeTransitionDurationMs)) } },
+                                            shape = RoundedCornerShape(50),
+                                            color = if (active) indicatorColor.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.18f),
+                                            border = BorderStroke(1.dp, indicatorColor.copy(alpha = if (active) 0.9f else 0.28f)),
+                                            modifier = Modifier.padding(horizontal = 3.dp),
+                                        ) {
+                                            Text(page.title.ifBlank { "Page ${idx + 1}" }, color = if (active) indicatorColor else Color.White.copy(alpha = 0.78f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), maxLines = 1)
+                                        }
+                                    }
+                                }
+                            }
                             "NUMBERS" -> {
                                 Surface(
                                     shape = RoundedCornerShape(50),
