@@ -8,6 +8,7 @@ import android.os.Process
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -145,6 +146,10 @@ private val GestureLabels = listOf(
     "TWO_FINGER_SWIPE_DOWN" to "Two-Finger Swipe Down",
 )
 
+private data class MacroStepDraft(val actionType: String = "OPEN_DRAWER", val delayMs: Long = 0L)
+
+private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS")
+
 private val ActionOptions = listOf(
     "NONE" to "None",
     "OPEN_DRAWER" to "Open App Drawer",
@@ -160,6 +165,7 @@ private val ActionOptions = listOf(
     "PREV_PAGE" to "Previous Home Page",
     "TOGGLE_EDIT_MODE" to "Toggle Layout Studio",
     "OPEN_SETTINGS" to "Open Settings",
+    "MACRO" to "Run Action Macro",
 )
 
 @Composable
@@ -2176,6 +2182,18 @@ private fun GestureBindingDialog(
     var targetWindowId by remember { mutableStateOf(binding.targetWindowId) }
     var targetRuleId by remember { mutableStateOf(binding.targetRuleId) }
     var expanded by remember { mutableStateOf(false) }
+    val macroSteps = remember(binding.gestureType) {
+        mutableStateListOf<MacroStepDraft>().apply {
+            runCatching {
+                val arr = JSONArray(binding.macroStepsJson ?: "[]")
+                for (i in 0 until arr.length()) {
+                    val step = arr.getJSONObject(i)
+                    add(MacroStepDraft(step.optString("actionType", "OPEN_DRAWER"), step.optLong("delayMs", 0L)))
+                }
+            }
+        }
+    }
+    var expandedMacroStep by remember { mutableIntStateOf(-1) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
