@@ -2264,6 +2264,9 @@ fun ElementInspectorDialog(
                                         edited = edited.copy(
                                             backgroundColorHex = source.backgroundColorHex,
                                             backgroundGradientEndHex = source.backgroundGradientEndHex,
+                                            rotationXDeg = source.rotationXDeg,
+                                            rotationYDeg = source.rotationYDeg,
+                                            perspective = source.perspective,
                                             alpha = source.alpha,
                                             textColorHex = source.textColorHex,
                                             borderColorHex = source.borderColorHex,
