@@ -1810,7 +1810,7 @@ private fun FreeformPageCanvas(
                             rotationX = elem.rotationXDeg
                             rotationY = elem.rotationYDeg
                             rotationZ = elem.rotationDeg
-                            cameraDistance = with(LocalDensity.current) { (8f + (1f - elem.perspective.toFloat().coerceIn(0f, 1f)) * 24f).dp.toPx() }
+                            cameraDistance = (8f + (1f - elem.perspective.toFloat().coerceIn(0f, 1f)) * 24f) * density.density
                             scaleX = elem.scaleX.toFloat() * (if (elem.flipHorizontal) -1f else 1f)
                             scaleY = elem.scaleY.toFloat() * (if (elem.flipVertical) -1f else 1f)
                         }
