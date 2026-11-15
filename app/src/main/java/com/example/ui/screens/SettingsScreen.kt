@@ -2557,7 +2557,7 @@ private fun GestureBindingDialog(
                                 val candidates = state.homeElements.filter { element ->
                                     when (step.actionType) {
                                         "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM" -> element.type == "WIDGET_STACK"
-                                        "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP" -> !element.groupId.isNullOrBlank()
+                                        "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP" -> !element.visibilityGroupId.isNullOrBlank()
                                         else -> element.type != "WIDGET_STACK"
                                     }
                                 }
