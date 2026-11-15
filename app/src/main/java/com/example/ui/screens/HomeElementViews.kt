@@ -2740,6 +2740,21 @@ fun PagesAndSnapshotsDialog(
                         Text("Vertically Scrollable Canvas")
                         Switch(checked = working.verticallyScrollable, onCheckedChange = { working = working.copy(verticallyScrollable = it) })
                     }
+                    Text("Dock Visibility", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("INHERIT", "SHOW", "HIDE").forEach { option ->
+                            FilterChip(
+                                selected = when (option) {
+                                    "SHOW" -> working.showDockOverride == true
+                                    "HIDE" -> working.showDockOverride == false
+                                    else -> working.showDockOverride == null
+                                },
+                                onClick = { working = working.copy(showDockOverride = when (option) { "SHOW" -> true; "HIDE" -> false; else -> null }) },
+                                label = { Text(option) },
+                            )
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         Text("Loop Home Page Navigation")
                         Switch(checked = working.loopNavigation, onCheckedChange = { working = working.copy(loopNavigation = it) })
