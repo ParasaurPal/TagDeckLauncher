@@ -1388,6 +1388,24 @@ fun ElementInspectorDialog(
                             Text("Visible on Canvas")
                             Switch(checked = edited.visible, onCheckedChange = { edited = edited.copy(visible = it) })
                         }
+                        HorizontalDivider()
+                        Text("Widget Stack", style = MaterialTheme.typography.labelLarge)
+                        Text("Choose existing objects to place inside this stack. Selected objects are hidden from the page outside the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val currentStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
+                        state.homeElements.filter { it.pageId == edited.pageId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" }.forEach { child ->
+                            FilterChip(
+                                selected = child.elementId in currentStackIds,
+                                onClick = {
+                                    val nextIds = if (child.elementId in currentStackIds) currentStackIds - child.elementId else currentStackIds + child.elementId
+                                    edited = edited.copy(type = "WIDGET_STACK", widgetStackItemsJson = nextIds.joinToString(","))
+                                },
+                                label = { Text(child.label.ifBlank { child.type }, maxLines = 1) },
+                            )
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Show stack navigation")
+                            Switch(checked = edited.widgetStackSwipeEnabled, onCheckedChange = { edited = edited.copy(widgetStackSwipeEnabled = it) })
+                        }
                     }
 
                     "STYLE" -> {
