@@ -1537,6 +1537,22 @@ private fun FreeformPageCanvas(
                                     cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
                                 }
                                 onSaveElement(updated, true)
+                                if (!cur.groupId.isNullOrBlank()) {
+                                    val oldX = if (latestIsLandscape) cur.landscapeXFraction ?: cur.xFraction else cur.xFraction
+                                    val oldY = if (latestIsLandscape) cur.landscapeYFraction ?: cur.yFraction else cur.yFraction
+                                    val deltaX = fx - oldX
+                                    val deltaY = fy - oldY
+                                    latestElements.filter { it.groupId == cur.groupId && it.elementId != cur.elementId }.forEach { sibling ->
+                                        val siblingX = if (latestIsLandscape) sibling.landscapeXFraction ?: sibling.xFraction else sibling.xFraction
+                                        val siblingY = if (latestIsLandscape) sibling.landscapeYFraction ?: sibling.yFraction else sibling.yFraction
+                                        val moved = if (latestIsLandscape) {
+                                            sibling.copy(landscapeXFraction = (siblingX + deltaX).coerceIn(0f, 0.92f), landscapeYFraction = (siblingY + deltaY).coerceIn(0f, 0.92f))
+                                        } else {
+                                            sibling.copy(xFraction = (siblingX + deltaX).coerceIn(0f, 0.92f), yFraction = (siblingY + deltaY).coerceIn(0f, 0.92f))
+                                        }
+                                        onSaveElement(moved, true)
+                                    }
+                                }
                             },
                         )
                     }
