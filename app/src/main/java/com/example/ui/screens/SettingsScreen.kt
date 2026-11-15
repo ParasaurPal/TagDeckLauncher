@@ -483,6 +483,17 @@ fun SettingsScreen(
                         matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
                     ) {
                         Text("Customize each category's closed and open-state badge, including custom images, emoji, and accent colors.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Drawer / sidebar icon fill contrast", style = MaterialTheme.typography.labelMedium)
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf("BLACK_WHITE" to "Dark fill / light outline", "WHITE_BLACK" to "Light fill / dark outline").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = s.sidebarCategoryIconStyle == key,
+                                    onClick = { onUpdateSettings { it.copy(sidebarCategoryIconStyle = key) } },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
                         LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
                             items(state.categories, key = { it.categoryId }) { category ->
                                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
