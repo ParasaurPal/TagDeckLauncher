@@ -69,6 +69,8 @@ fun NiagaraWaveAlphabetBar(
     baseFontSp: Float,
     selectedFontSp: Float,
     accentColorHex: Long,
+    indexWidthDp: Float = 28f,
+    indexColorHex: Long = accentColorHex,
     isLeftEdge: Boolean,
     hapticsEnabled: Boolean,
     onSelectLetter: (String) -> Unit,
@@ -81,6 +83,7 @@ fun NiagaraWaveAlphabetBar(
     var activeLetter by remember { mutableStateOf<String?>(null) }
 
     val accent = Color(accentColorHex)
+    val indexColor = Color(indexColorHex)
 
     fun handlePointerY(y: Float) {
         touchY = y.coerceIn(0f, containerHeightPx.toFloat())
@@ -118,7 +121,7 @@ fun NiagaraWaveAlphabetBar(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(30.dp)
+                .width(indexWidthDp.coerceIn(18f, 48f).dp)
                 .onSizeChanged { containerHeightPx = it.height.coerceAtLeast(1) }
                 .pointerInput(activeLetters) {
                     awaitEachGesture {
@@ -179,7 +182,7 @@ fun NiagaraWaveAlphabetBar(
                         fontWeight = if (isCurrent || waveFactor > 0.35f) FontWeight.ExtraBold else FontWeight.SemiBold,
                         color = when {
                             isCurrent -> accent
-                            isPresent -> MaterialTheme.colorScheme.onSurface
+                            isPresent -> indexColor
                             else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f)
                         },
                         modifier = Modifier
