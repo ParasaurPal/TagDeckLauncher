@@ -730,6 +730,7 @@ fun SettingsScreen(
                                     tertiaryColorHex = json.optLong("tertiaryColorHex", current.tertiaryColorHex),
                                     fontStyle = json.optString("fontStyle", current.fontStyle),
                                     fontScale = json.optDouble("fontScale", current.fontScale.toDouble()).toFloat(),
+                                    highReadabilityMode = json.optBoolean("highReadabilityMode", current.highReadabilityMode),
                                     surfaceOpacity = json.optDouble("surfaceOpacity", current.surfaceOpacity.toDouble()).toFloat(),
                                     globalBorderWidthDp = json.optDouble("globalBorderWidthDp", current.globalBorderWidthDp.toDouble()).toFloat(),
                                     globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
