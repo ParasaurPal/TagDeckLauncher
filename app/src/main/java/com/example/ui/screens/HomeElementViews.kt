@@ -387,7 +387,7 @@ fun HomeElementBody(
                             else Modifier.size(minOf(element.widthDp, element.heightDp).dp * 0.72f),
                         ) {
                             val track = Color(element.borderColorHex)
-                            val progress = Color(element.textColorHex)
+                            val progress = elementTextColor
                             when (gaugeStyle) {
                                 "LINEAR" -> {
                                     val barHeight = size.height * 0.42f
@@ -676,7 +676,7 @@ fun HomeElementBody(
                         }
                     } else if (styleExtras.optBoolean("containerScrollable", false)) {
                         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            if (children.isEmpty()) Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex))
+                            if (children.isEmpty()) Text("Assign objects to this container in Layout settings", color = elementTextColor)
                             children.forEach { child ->
                                 Box(modifier = Modifier.fillMaxWidth().height(child.heightDp.dp)) {
                                     HomeElementBody(
@@ -700,7 +700,7 @@ fun HomeElementBody(
                     } else {
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                             if (children.isEmpty()) {
-                                Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex), modifier = Modifier.align(Alignment.Center))
+                                Text("Assign objects to this container in Layout settings", color = elementTextColor, modifier = Modifier.align(Alignment.Center))
                             }
                             children.forEach { child ->
                                 Box(
@@ -788,7 +788,7 @@ fun HomeElementBody(
                                 onUpdateElement = onUpdateElement,
                             )
                         } else {
-                            Text("Add items to this widget stack", color = Color(element.textColorHex), modifier = Modifier.align(Alignment.Center))
+                            Text("Add items to this widget stack", color = elementTextColor, modifier = Modifier.align(Alignment.Center))
                         }
                         if (stackItems.size > 1 && element.widgetStackSwipeEnabled) {
                             Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.58f)), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -857,7 +857,7 @@ fun HomeElementBody(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        Icon(Icons.Rounded.TouchApp, null, tint = Color(element.textColorHex), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.TouchApp, null, tint = elementTextColor, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         OutlinedLabelText(
                             text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
@@ -936,7 +936,7 @@ fun HomeElementBody(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
-                                    modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                    modifier = labelReadabilityModifier,
                                     outlineEnabled = state.settings.appLabelOutlineEnabled || textOutlineEnabled,
                                     outlineColor = textOutlineColor,
                                     outlineWidth = textOutlineWidth,
@@ -1032,11 +1032,11 @@ fun HomeElementBody(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = win?.title ?: element.label.ifBlank { "Window" },
-                            color = Color(element.textColorHex),
+                            color = elementTextColor,
                             style = elementTextStyle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
+                            modifier = labelReadabilityModifier,
                         )
                     }
                 }
@@ -1057,12 +1057,12 @@ fun HomeElementBody(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = rule?.name ?: element.label.ifBlank { "Rule" },
-                            color = Color(element.textColorHex),
+                            color = elementTextColor,
                             fontSize = element.fontSizeSp.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
+                            modifier = labelReadabilityModifier,
                         )
                     }
                 }
@@ -1083,11 +1083,11 @@ fun HomeElementBody(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = sb?.title ?: element.label.ifBlank { "Sidebar" },
-                            color = Color(element.textColorHex),
+                            color = elementTextColor,
                             fontSize = element.fontSizeSp.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = contrastLabelModifier(Color(element.textColorHex)),
+                            modifier = labelReadabilityModifier,
                         )
                     }
                 }
@@ -1108,7 +1108,7 @@ fun HomeElementBody(
                                 previewApps.take(3).forEach { app ->
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         AppIconView(app, appDiscovery, 18.dp, state.settings.globalIconShape)
-                                        Text(app.displayName, color = Color(element.textColorHex), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(app.displayName, color = elementTextColor, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                             }
@@ -1149,7 +1149,7 @@ fun HomeElementBody(
                         val nestedFolders = state.homeElements.filter { it.elementId in element.nestedFolderIds() }
                         if (nestedFolders.isNotEmpty()) {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                nestedFolders.take(3).forEach { Icon(Icons.Rounded.Folder, contentDescription = null, tint = Color(element.textColorHex), modifier = Modifier.size(16.dp)) }
+                                nestedFolders.take(3).forEach { Icon(Icons.Rounded.Folder, contentDescription = null, tint = elementTextColor, modifier = Modifier.size(16.dp)) }
                             }
                         }
                         if (previewApps.isEmpty() && nestedFolders.isEmpty()) {
@@ -1159,11 +1159,11 @@ fun HomeElementBody(
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 text = element.label.ifBlank { "Folder" },
-                                color = Color(element.textColorHex),
+                                color = elementTextColor,
                                 style = elementTextStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                modifier = labelReadabilityModifier,
                             )
                         }
                     }
@@ -1189,10 +1189,10 @@ fun HomeElementBody(
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = tag.name,
-                                    color = Color(element.textColorHex),
+                                    color = elementTextColor,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f).then(contrastLabelModifier(Color(element.textColorHex))),
+                                    modifier = Modifier.weight(1f).then(contrastLabelModifier(elementTextColor)),
                                 )
                                 Text(
                                     text = "${apps.size} apps",
@@ -1222,7 +1222,7 @@ fun HomeElementBody(
                                         text = app.displayName,
                                         color = Color.White,
                                         fontSize = 11.sp,
-                                        modifier = contrastLabelModifier(Color(element.textColorHex)),
+                                        modifier = labelReadabilityModifier,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
