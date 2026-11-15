@@ -378,6 +378,7 @@ object BackupManager {
             put("layoutLocked", s.layoutLocked)
             put("pageTransitionStyle", s.pageTransitionStyle)
             put("pageIndicatorStyle", s.pageIndicatorStyle)
+            put("pageIndicatorPlacement", s.pageIndicatorPlacement)
             put("pageIndicatorColorHex", s.pageIndicatorColorHex)
             put("pageIndicatorSizeDp", s.pageIndicatorSizeDp.toDouble())
             put("pageIndicatorActiveWidthDp", s.pageIndicatorActiveWidthDp.toDouble())
@@ -787,6 +788,7 @@ object BackupManager {
             layoutLocked = so.optBoolean("layoutLocked", false),
             pageTransitionStyle = so.optString("pageTransitionStyle", "SLIDE"),
             pageIndicatorStyle = so.optString("pageIndicatorStyle", "DOTS"),
+            pageIndicatorPlacement = so.optString("pageIndicatorPlacement", "BOTTOM"),
             pageIndicatorColorHex = so.optLong("pageIndicatorColorHex", 0xFF38BDF8L),
             pageIndicatorSizeDp = so.optDouble("pageIndicatorSizeDp", 7.0).toFloat(),
             pageIndicatorActiveWidthDp = so.optDouble("pageIndicatorActiveWidthDp", 22.0).toFloat(),
