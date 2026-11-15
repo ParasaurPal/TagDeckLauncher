@@ -103,6 +103,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.json.JSONObject
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.db.AppEntity
 import com.example.data.db.CategoryEntity
@@ -1855,6 +1857,13 @@ private fun FolderPopupModal(
     onLaunchApp: (AppEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val popupExtras = remember(folder.styleExtrasJson) { runCatching { JSONObject(folder.styleExtrasJson) }.getOrElse { JSONObject() } }
+    val popupMaxHeightDp = popupExtras.optDouble("folderPopupMaxHeightDp", 320.0).toFloat().coerceIn(180f, 620f)
+    val popupColumns = popupExtras.optInt("folderPopupColumns", if (folder.folderLayoutMode == "GRID_3X3") 3 else 2).coerceIn(2, 4)
+    val popupIconSizeDp = popupExtras.optDouble("folderPopupIconSizeDp", folder.iconSizeDp.toDouble()).toFloat().coerceIn(24f, 88f)
+    val popupLabelMaxLines = popupExtras.optInt("folderPopupLabelMaxLines", 2).coerceIn(1, 3)
+    val popupGapDp = popupExtras.optDouble("folderPopupGapDp", 10.0).toFloat().coerceIn(2f, 24f)
+    val popupHeaderVisible = popupExtras.optBoolean("folderPopupHeaderVisible", true)
     val shape = RoundedCornerShape(folder.cornerRadiusDp.coerceIn(8f, 48f).dp)
     val startColor = Color(folder.backgroundColorHex).takeIf { it.alpha > 0.02f } ?: MaterialTheme.colorScheme.surface
     val endColor = folder.backgroundGradientEndHex?.let { Color(it) }
@@ -1880,15 +1889,17 @@ private fun FolderPopupModal(
                     .background(popupBrush, shape)
                     .padding(folder.paddingDp.coerceIn(8f, 28f).dp + 12.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.FolderOpen, contentDescription = null, tint = appTextColor)
-                    Spacer(Modifier.width(10.dp))
-                    Text(text = folder.label.ifBlank { "Folder" }, style = MaterialTheme.typography.titleLarge, color = appTextColor, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Close folder", tint = appTextColor)
+                if (popupHeaderVisible) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null, tint = appTextColor)
+                        Spacer(Modifier.width(10.dp))
+                        Text(text = folder.label.ifBlank { "Folder" }, style = MaterialTheme.typography.titleLarge, fontSize = folder.fontSizeSp.coerceIn(14f, 30f).sp, color = appTextColor, modifier = Modifier.weight(1f))
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Close folder", tint = appTextColor)
+                        }
                     }
                 }
                 if (nestedFolders.isNotEmpty()) {
@@ -1921,13 +1932,13 @@ private fun FolderPopupModal(
                         color = appTextColor.copy(alpha = 0.75f),
                     )
                 } else if (folder.folderLayoutMode == "LIST") {
-                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LazyColumn(modifier = Modifier.heightIn(max = popupMaxHeightDp.dp), verticalArrangement = Arrangement.spacedBy(popupGapDp.dp)) {
                         items(apps, key = { it.packageName }) { app ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onLaunchApp(app) }.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                AppIconView(app, appDiscovery, folder.iconSizeDp.coerceIn(28f, 64f).dp, iconShapeKey)
+                                AppIconView(app, appDiscovery, popupIconSizeDp, iconShapeKey)
                                 Spacer(Modifier.width(12.dp))
                                 Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -1935,10 +1946,10 @@ private fun FolderPopupModal(
                     }
                 } else {
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(if (folder.folderLayoutMode == "GRID_3X3") 3 else 2),
-                        modifier = Modifier.heightIn(max = 320.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        columns = GridCells.Fixed(popupColumns),
+                        modifier = Modifier.heightIn(max = popupMaxHeightDp.dp),
+                        verticalArrangement = Arrangement.spacedBy(popupGapDp.dp),
+                        horizontalArrangement = Arrangement.spacedBy(popupGapDp.dp),
                     ) {
                         items(apps, key = { it.packageName }) { app ->
                             Column(
@@ -1947,7 +1958,7 @@ private fun FolderPopupModal(
                             ) {
                                 AppIconView(app, appDiscovery, folder.iconSizeDp.coerceIn(28f, 64f).dp, iconShapeKey)
                                 Spacer(Modifier.height(6.dp))
-                                Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                                Text(app.displayName, color = appTextColor, style = MaterialTheme.typography.bodyMedium, maxLines = popupLabelMaxLines, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                             }
                         }
                     }
