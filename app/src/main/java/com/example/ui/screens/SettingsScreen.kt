@@ -549,6 +549,69 @@ fun SettingsScreen(
                         }
                     }
 
+                                        HorizontalDivider()
+                    Text("Theme Profiles", style = MaterialTheme.typography.titleSmall)
+                    Text("Save and reapply your visual setup.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(value = newThemeProfileName, onValueChange = { newThemeProfileName = it.take(40) }, label = { Text("New theme profile name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Button(enabled = newThemeProfileName.isNotBlank(), onClick = {
+                        val json = JSONObject()
+                            .put("themeMode", s.themeMode)
+                            .put("accentColorHex", s.accentColorHex)
+                            .put("secondaryColorHex", s.secondaryColorHex)
+                            .put("tertiaryColorHex", s.tertiaryColorHex)
+                            .put("fontStyle", s.fontStyle)
+                            .put("fontScale", s.fontScale.toDouble())
+                            .put("surfaceOpacity", s.surfaceOpacity.toDouble())
+                            .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
+                            .put("globalTextColorHex", s.globalTextColorHex)
+                            .put("globalCornerRadiusDp", s.globalCornerRadiusDp.toDouble())
+                            .put("globalIconShape", s.globalIconShape)
+                            .put("wallpaperType", s.wallpaperType)
+                            .put("wallpaperCustomPath", s.wallpaperCustomPath)
+                            .put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
+                            .put("wallpaperGradientEndHex", s.wallpaperGradientEndHex)
+                            .put("wallpaperGradientDirection", s.wallpaperGradientDirection)
+                            .put("wallpaperSolidHex", s.wallpaperSolidHex)
+                            .put("wallpaperBlurDp", s.wallpaperBlurDp.toDouble())
+                            .put("wallpaperDimAlpha", s.wallpaperDimAlpha.toDouble())
+                            .put("wallpaperDimColorHex", s.wallpaperDimColorHex)
+                        onSaveThemeProfile(ThemeProfileEntity(name = newThemeProfileName.trim(), settingsJson = json.toString()))
+                        newThemeProfileName = ""
+                    }) { Text("Save Current Theme") }
+                    if (state.themeProfiles.isEmpty()) Text("No saved theme profiles.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    state.themeProfiles.forEach { profile ->
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(profile.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = {
+                                val json = JSONObject(profile.settingsJson)
+                                onUpdateSettings { current -> current.copy(
+                                    themeMode = json.optString("themeMode", current.themeMode),
+                                    accentColorHex = json.optLong("accentColorHex", current.accentColorHex),
+                                    secondaryColorHex = json.optLong("secondaryColorHex", current.secondaryColorHex),
+                                    tertiaryColorHex = json.optLong("tertiaryColorHex", current.tertiaryColorHex),
+                                    fontStyle = json.optString("fontStyle", current.fontStyle),
+                                    fontScale = json.optDouble("fontScale", current.fontScale.toDouble()).toFloat(),
+                                    surfaceOpacity = json.optDouble("surfaceOpacity", current.surfaceOpacity.toDouble()).toFloat(),
+                                    globalBorderWidthDp = json.optDouble("globalBorderWidthDp", current.globalBorderWidthDp.toDouble()).toFloat(),
+                                    globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
+                                    globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
+                                    globalIconShape = json.optString("globalIconShape", current.globalIconShape),
+                                    wallpaperType = json.optString("wallpaperType", current.wallpaperType),
+                                    wallpaperCustomPath = json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } ?: current.wallpaperCustomPath,
+                                    wallpaperGradientStartHex = json.optLong("wallpaperGradientStartHex", current.wallpaperGradientStartHex),
+                                    wallpaperGradientEndHex = json.optLong("wallpaperGradientEndHex", current.wallpaperGradientEndHex),
+                                    wallpaperGradientDirection = json.optString("wallpaperGradientDirection", current.wallpaperGradientDirection),
+                                    wallpaperSolidHex = json.optLong("wallpaperSolidHex", current.wallpaperSolidHex),
+                                    wallpaperBlurDp = json.optDouble("wallpaperBlurDp", current.wallpaperBlurDp.toDouble()).toFloat(),
+                                    wallpaperDimAlpha = json.optDouble("wallpaperDimAlpha", current.wallpaperDimAlpha.toDouble()).toFloat(),
+                                    wallpaperDimColorHex = json.optLong("wallpaperDimColorHex", current.wallpaperDimColorHex),
+                                ) }
+                                onShowMessage("Applied theme " + profile.name)
+                            }) { Text("Apply") }
+                            TextButton(onClick = { onDeleteThemeProfile(profile.profileId) }) { Text("Delete") }
+                        }
+                    }
+
                                         Text("Home Element Default Text Color", style = MaterialTheme.typography.labelLarge)
                     ColorSwatchRow(
                         selectedColorHex = s.globalTextColorHex,
