@@ -423,15 +423,17 @@ fun HomeElementBody(
                         modifier = Modifier.fillMaxSize().padding(element.paddingDp.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
+                        OutlinedLabelText(
                             text = resolvedText,
                             color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.SemiBold),
                             textAlign = TextAlign.Center,
                             modifier = contrastLabelModifier(Color(element.textColorHex)),
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
+                            outlineEnabled = textOutlineEnabled,
+                            outlineColor = textOutlineColor,
+                            outlineWidth = textOutlineWidth,
                         )
                     }
                 }
@@ -463,14 +465,16 @@ fun HomeElementBody(
                     ) {
                         Icon(Icons.Rounded.TouchApp, null, tint = Color(element.textColorHex), modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(
+                        OutlinedLabelText(
                             text = resolveDynamicTokens(element.label.ifBlank { "Action" }, context),
                             color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.Bold),
                             modifier = contrastLabelModifier(Color(element.textColorHex)),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            outlineEnabled = textOutlineEnabled,
+                            outlineColor = textOutlineColor,
+                            outlineWidth = textOutlineWidth,
                         )
                     }
                 }
@@ -1753,6 +1757,21 @@ fun ElementInspectorDialog(
                         }
                         Text("Glow Radius: ${styleExtras.optDouble("glowRadiusDp", 0.0).roundToInt()}dp")
                         Slider(value = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f), onValueChange = { updateStyleExtra("glowRadiusDp", it.toDouble()) }, valueRange = 0f..40f)
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Text Outline")
+                            Switch(checked = styleExtras.optBoolean("textOutlineEnabled", false), onCheckedChange = { updateStyleExtraBoolean("textOutlineEnabled", it) })
+                        }
+                        if (styleExtras.optBoolean("textOutlineEnabled", false)) {
+                            Text("Outline Width: ${styleExtras.optDouble("textOutlineWidth", 0.5).roundToInt()}px")
+                            Slider(value = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat().coerceIn(0.1f, 3f), onValueChange = { updateStyleExtra("textOutlineWidth", it.toDouble()) }, valueRange = 0.1f..3f)
+                            Text("Outline Color")
+                            ColorSwatchRow(
+                                selectedColorHex = styleExtras.optLong("textOutlineColorHex", 0xFF000000L),
+                                colors = StudioNeutralAndAccentSwatches,
+                                onSelect = { color -> updateStyleExtraLong("textOutlineColorHex", color) },
+                                tagPrefix = "inspector_text_outline",
+                            )
+                        }
                         Text("Glow Color", style = MaterialTheme.typography.labelLarge)
                         ColorSwatchRow(
                             selectedColorHex = styleExtras.optLong("glowColorHex", edited.borderColorHex),
