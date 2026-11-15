@@ -203,6 +203,9 @@ fun HomeElementBody(
     val styleExtras = remember(element.styleExtrasJson) { runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() } }
     val glowRadiusDp = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f)
     val glowColor = Color(styleExtras.optLong("glowColorHex", element.borderColorHex))
+    val textOutlineEnabled = styleExtras.optBoolean("textOutlineEnabled", false)
+    val textOutlineColor = Color(styleExtras.optLong("textOutlineColorHex", 0xFF000000L))
+    val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", 0.5).toFloat()
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
     val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(element.backgroundColorHex)
@@ -536,7 +539,9 @@ fun HomeElementBody(
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = TextAlign.Center,
                                     modifier = contrastLabelModifier(Color(element.textColorHex)),
-                                    outlineEnabled = state.settings.appLabelOutlineEnabled,
+                                    outlineEnabled = state.settings.appLabelOutlineEnabled || textOutlineEnabled,
+                                    outlineColor = textOutlineColor,
+                                    outlineWidth = textOutlineWidth,
                                 )
                             }
                         } else {
