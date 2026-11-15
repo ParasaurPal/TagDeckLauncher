@@ -154,9 +154,9 @@ private val GestureLabels = listOf(
     "TWO_FINGER_SWIPE_DOWN" to "Two-Finger Swipe Down",
 )
 
-private data class MacroStepDraft(val actionType: String = "OPEN_DRAWER", val delayMs: Long = 0L)
+private data class MacroStepDraft(val actionType: String = "OPEN_DRAWER", val delayMs: Long = 0L, val targetElementId: Long? = null)
 
-private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS")
+private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS", "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS")
 
 private val ActionOptions = listOf(
     "NONE" to "None",
@@ -173,6 +173,15 @@ private val ActionOptions = listOf(
     "PREV_PAGE" to "Previous Home Page",
     "TOGGLE_EDIT_MODE" to "Toggle Layout Studio",
     "OPEN_SETTINGS" to "Open Settings",
+    "SHOW_OBJECT" to "Show Home Object",
+    "HIDE_OBJECT" to "Hide Home Object",
+    "TOGGLE_OBJECT" to "Toggle Home Object Visibility",
+    "NEXT_STACK_ITEM" to "Next Widget Stack Item",
+    "PREVIOUS_STACK_ITEM" to "Previous Widget Stack Item",
+    "OPEN_WIFI_PANEL" to "Open Wi-Fi Controls",
+    "OPEN_INTERNET_PANEL" to "Open Internet Controls",
+    "OPEN_VOLUME_PANEL" to "Open Volume Controls",
+    "OPEN_BLUETOOTH_SETTINGS" to "Open Bluetooth Settings",
     "MACRO" to "Run Action Macro",
 )
 
@@ -2311,7 +2320,7 @@ private fun GestureBindingDialog(
                 val arr = JSONArray(binding.macroStepsJson ?: "[]")
                 for (i in 0 until arr.length()) {
                     val step = arr.getJSONObject(i)
-                    add(MacroStepDraft(step.optString("actionType", "OPEN_DRAWER"), step.optLong("delayMs", 0L)))
+                    add(MacroStepDraft(step.optString("actionType", "OPEN_DRAWER"), step.optLong("delayMs", 0L), if (step.has("targetElementId") && !step.isNull("targetElementId")) step.optLong("targetElementId") else null))
                 }
             }
         }
@@ -2420,7 +2429,13 @@ private fun GestureBindingDialog(
                                         MacroStepActionOptions.forEach { action ->
                                             DropdownMenuItem(
                                                 text = { Text(action.replace('_', ' ')) },
-                                                onClick = { macroSteps[index] = step.copy(actionType = action); expandedMacroStep = -1 },
+                                                onClick = {
+                                                    macroSteps[index] = step.copy(
+                                                        actionType = action,
+                                                        targetElementId = if (action in setOf("SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM")) step.targetElementId else null,
+                                                    )
+                                                    expandedMacroStep = -1
+                                                },
                                             )
                                         }
                                     }
@@ -2430,6 +2445,21 @@ private fun GestureBindingDialog(
                                     Slider(value = step.delayMs.toFloat(), onValueChange = { macroSteps[index] = step.copy(delayMs = it.toLong()) }, valueRange = 0f..5000f, steps = 9)
                                 }
                                 TextButton(onClick = { macroSteps.removeAt(index) }) { Text("Remove") }
+                            }
+                            if (step.actionType in setOf("SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM")) {
+                                val candidates = state.homeElements.filter { element ->
+                                    if (step.actionType == "NEXT_STACK_ITEM" || step.actionType == "PREVIOUS_STACK_ITEM") element.type == "WIDGET_STACK"
+                                    else element.type != "WIDGET_STACK"
+                                }
+                                LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(candidates, key = { it.elementId }) { element ->
+                                        Text(
+                                            text = (if (step.targetElementId == element.elementId) "● " else "○ ") + element.label.ifBlank { element.type.replace('_', ' ') },
+                                            modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetElementId = element.elementId) }.padding(8.dp),
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -2450,7 +2480,7 @@ private fun GestureBindingDialog(
                         targetRuleId = targetRuleId,
                         macroStepsJson = if (actionType == "MACRO") JSONArray().apply {
                             macroSteps.forEach { step ->
-                                put(JSONObject().put("actionType", step.actionType).put("delayMs", step.delayMs))
+                                put(JSONObject().put("actionType", step.actionType).put("delayMs", step.delayMs).put("targetElementId", step.targetElementId ?: JSONObject.NULL))
                             }
                         }.toString() else null,
                     )
