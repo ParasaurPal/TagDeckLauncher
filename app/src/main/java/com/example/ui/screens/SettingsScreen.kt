@@ -1329,6 +1329,23 @@ fun SettingsScreen(
                         onSelect = { c -> onUpdateSettings { it.copy(wallpaperDimColorHex = c) } },
                         tagPrefix = "settings_wp_dim",
                     )
+                    HorizontalDivider()
+                    Text("Vignette: ${(s.wallpaperVignette * 100).roundToInt()}%")
+                    Slider(value = s.wallpaperVignette, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperVignette = v) } }, valueRange = 0f..0.9f)
+                    Text("Color Saturation: ${(s.wallpaperSaturation * 100).roundToInt()}%")
+                    Slider(value = s.wallpaperSaturation, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperSaturation = v) } }, valueRange = 0f..2f)
+                    Text("Wallpaper Parallax: ${(s.wallpaperParallaxIntensity * 100).roundToInt()}%")
+                    Slider(value = s.wallpaperParallaxIntensity, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperParallaxIntensity = v) } }, valueRange = 0f..1f)
+                    ToggleRow("Ambient Wallpaper Motion", s.wallpaperAmbientMotion) { v -> onUpdateSettings { it.copy(wallpaperAmbientMotion = v) } }
+                    Text("Color Grading Tint", style = MaterialTheme.typography.labelLarge)
+                    ColorSwatchRow(
+                        selectedColorHex = s.wallpaperTintHex ?: 0x00000000L,
+                        colors = StudioNeutralAndAccentSwatches,
+                        allowClear = true,
+                        onClear = { onUpdateSettings { it.copy(wallpaperTintHex = null) } },
+                        onSelect = { color -> onUpdateSettings { it.copy(wallpaperTintHex = color) } },
+                        tagPrefix = "settings_wp_grade",
+                    )
                     }
                 }
             }
