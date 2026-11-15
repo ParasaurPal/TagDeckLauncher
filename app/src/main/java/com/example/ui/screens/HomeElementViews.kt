@@ -435,6 +435,168 @@ fun HomeElementBody(
                         }
                     }
                 }
+                "APP_GROUP_WIDGET" -> {
+                    val mode = styleExtras.optString("appGroupMode", "FAVORITES")
+                    val groupApps = when (mode) {
+                        "RECENT" -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }.sortedByDescending { it.app.lastLaunchedAt }
+                        "MOST_USED" -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }.sortedByDescending { it.app.launchCount }
+                        "ALL" -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }.sortedBy { it.app.displayName.lowercase() }
+                        "CATEGORY" -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden && it.app.primaryCategoryId == element.targetCategoryId }
+                        "TAG" -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden && it.tags.any { tag -> tag.tagId == element.targetTagId } }
+                        else -> state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden && it.app.favorite }.sortedBy { it.app.displayName.lowercase() }
+                    }
+                    LazyVerticalGrid(columns = GridCells.Fixed(styleExtras.optInt("appGroupColumns", 4).coerceIn(2, 6)), modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                        items(groupApps, key = { it.app.packageName }) { item ->
+                            Column(modifier = Modifier.clickable { onLaunchApp(item.app) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                AppIconView(item.app, appDiscovery, 34.dp, state.settings.globalIconShape)
+                                Text(item.app.displayName, color = elementTextColor, style = elementTextStyle.copy(fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+
+                "QUICK_NOTE_WIDGET" -> {
+                    OutlinedTextField(
+                        value = styleExtras.optString("noteText", ""),
+                        onValueChange = { updateElementExtra("noteText", it) },
+                        modifier = Modifier.fillMaxSize().padding(6.dp),
+                        label = { Text(element.label.ifBlank { "Quick Note" }) },
+                        placeholder = { Text("Write a note or checklist…") },
+                    )
+                }
+
+                "FOCUS_TIMER_WIDGET" -> {
+                    val durationMinutes = styleExtras.optInt("focusDurationMinutes", 25).coerceIn(1, 120)
+                    val running = styleExtras.optBoolean("timerRunning", false)
+                    val endAt = styleExtras.optLong("timerEndAtMillis", 0L)
+                    var timerNow by remember(element.elementId) { mutableStateOf(System.currentTimeMillis()) }
+                    LaunchedEffect(element.elementId, running, endAt) {
+                        while (running && endAt > 0L && timerNow < endAt) {
+                            delay(1000L)
+                            timerNow = System.currentTimeMillis()
+                        }
+                        if (running && endAt > 0L && timerNow >= endAt) {
+                            val updated = runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() }
+                            updated.put("timerRunning", false)
+                            updated.put("timerRemainingSeconds", 0)
+                            updated.put("timerEndAtMillis", 0L)
+                            onUpdateElement(element.copy(styleExtrasJson = updated.toString()))
+                        }
+                    }
+                    val remainingSeconds = if (running && endAt > 0L) ((endAt - timerNow).coerceAtLeast(0L) / 1000L).toInt()
+                    else styleExtras.optInt("timerRemainingSeconds", durationMinutes * 60).coerceAtLeast(0)
+                    fun updateTimer(isRunning: Boolean, remaining: Int, end: Long) {
+                        val updated = runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() }
+                        updated.put("timerRunning", isRunning)
+                        updated.put("timerRemainingSeconds", remaining)
+                        updated.put("timerEndAtMillis", end)
+                        onUpdateElement(element.copy(styleExtrasJson = updated.toString()))
+                    }
+                    Column(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text("%02d:%02d".format(remainingSeconds / 60, remainingSeconds % 60), color = elementTextColor, style = elementTextStyle.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold))
+                        Text("Focus timer • $durationMinutes min", color = elementTextColor, style = elementTextStyle.copy(fontSize = 10.sp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Button(onClick = {
+                                if (running) updateTimer(false, remainingSeconds, 0L)
+                                else updateTimer(true, remainingSeconds, System.currentTimeMillis() + remainingSeconds * 1000L)
+                            }) { Text(if (running) "Pause" else "Start") }
+                            TextButton(onClick = { updateTimer(false, durationMinutes * 60, 0L) }) { Text("Reset") }
+                        }
+                        if (!running) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { updateElementExtra("focusDurationMinutes", (durationMinutes - 5).coerceAtLeast(1)) }) { Text("−5") }
+                                TextButton(onClick = { updateElementExtra("focusDurationMinutes", (durationMinutes + 5).coerceAtMost(120)) }) { Text("+5 min") }
+                            }
+                        }
+                    }
+                }
+
+                "CALCULATOR_WIDGET" -> {
+                    val expression = styleExtras.optString("calculatorExpression", "0")
+                    Column(modifier = Modifier.fillMaxSize().padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(expression, modifier = Modifier.fillMaxWidth().weight(1f), color = elementTextColor, style = elementTextStyle.copy(fontSize = 22.sp), textAlign = TextAlign.End, maxLines = 2)
+                        listOf(listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"), listOf("1", "2", "3", "−"), listOf("C", "0", ".", "+", "=")).forEach { row ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                row.forEach { key ->
+                                    Button(modifier = Modifier.weight(1f), onClick = {
+                                        val next = when (key) {
+                                            "C" -> "0"
+                                            "=" -> evaluateSimpleCalculator(expression)
+                                            else -> if (expression == "0") key else expression + key
+                                        }
+                                        updateElementExtra("calculatorExpression", next)
+                                    }) { Text(key) }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                "SEARCH_BAR_WIDGET" -> {
+                    var query by remember(element.elementId) { mutableStateOf("") }
+                    val matches = state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden && (query.isBlank() || it.app.displayName.contains(query, ignoreCase = true)) }.take(40)
+                    Column(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                        OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search apps") })
+                        LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxSize()) {
+                            items(matches, key = { it.app.packageName }) { item ->
+                                Column(modifier = Modifier.clickable { onLaunchApp(item.app) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    AppIconView(item.app, appDiscovery, 32.dp, state.settings.globalIconShape)
+                                    Text(item.app.displayName, color = elementTextColor, style = elementTextStyle.copy(fontSize = 9.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                "DEVICE_CONTROLS_WIDGET" -> {
+                    fun openPanel(action: String) {
+                        runCatching { context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }
+                    Column(modifier = Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Device Controls", color = elementTextColor, style = elementTextStyle)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(
+                                "Wi-Fi" to Settings.Panel.ACTION_WIFI,
+                                "Internet" to Settings.Panel.ACTION_INTERNET_CONNECTIVITY,
+                                "Volume" to Settings.Panel.ACTION_VOLUME,
+                                "Bluetooth" to Settings.ACTION_BLUETOOTH_SETTINGS,
+                            ).forEach { (label, action) -> Button(onClick = { openPanel(action) }) { Text(label) } }
+                        }
+                    }
+                }
+
+                "TAB_SWITCHER_WIDGET" -> {
+                    val tabIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
+                    val tabItems = tabIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible } }
+                    val selectedTab = element.widgetStackIndex.coerceIn(0, (tabItems.size - 1).coerceAtLeast(0))
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            tabItems.forEachIndexed { index, item ->
+                                TextButton(onClick = { onUpdateElement(element.copy(widgetStackIndex = index)) }) {
+                                    Text(item.label.ifBlank { "Tab ${index + 1}" }, maxLines = 1)
+                                }
+                            }
+                        }
+                        tabItems.getOrNull(selectedTab)?.let { active ->
+                            HomeElementBody(
+                                element = active.copy(widthDp = element.widthDp, heightDp = (element.heightDp - 36f).coerceAtLeast(40f)),
+                                state = state,
+                                appDiscovery = appDiscovery,
+                                widgetHost = widgetHost,
+                                onLaunchApp = onLaunchApp,
+                                onOpenTagSidebar = onOpenTagSidebar,
+                                onOpenCategorySidebar = onOpenCategorySidebar,
+                                onOpenRuleSidebar = onOpenRuleSidebar,
+                                onOpenSidebar = onOpenSidebar,
+                                onOpenWindow = onOpenWindow,
+                                onOpenFolder = onOpenFolder,
+                                onElementTrigger = onElementTrigger,
+                                onUpdateElement = onUpdateElement,
+                            )
+                        } ?: Text("Add objects to this tab switcher", color = elementTextColor)
+                    }
+                }
+
                 "CONTAINER" -> {
                     val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }.sortedBy { it.zIndex }
                     if (styleExtras.optBoolean("containerScrollable", false)) {
