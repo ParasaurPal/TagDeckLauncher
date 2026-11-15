@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,6 +102,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -281,6 +283,33 @@ fun HomeElementBody(
                 "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
                 "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
+                "GAUGE_WIDGET" -> {
+                    val gaugeValue = styleExtras.optDouble("gaugeValue", 0.72).toFloat().coerceIn(0f, 1f)
+                    val gaugeLabel = styleExtras.optString("gaugeLabel", element.label.ifBlank { "Progress" })
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Canvas(modifier = Modifier.size(minOf(element.widthDp, element.heightDp).dp * 0.72f)) {
+                            val stroke = size.minDimension * 0.10f
+                            drawArc(
+                                color = Color(element.borderColorHex),
+                                startAngle = -90f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                style = Stroke(width = stroke),
+                            )
+                            drawArc(
+                                color = Color(element.textColorHex),
+                                startAngle = -90f,
+                                sweepAngle = 360f * gaugeValue,
+                                useCenter = false,
+                                style = Stroke(width = stroke),
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text("${(gaugeValue * 100).roundToInt()}%", color = Color(element.textColorHex), fontSize = element.fontSizeSp.sp, fontWeight = FontWeight.Bold)
+                            Text(gaugeLabel, color = Color(element.textColorHex), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
                 "CONTAINER" -> {
                     val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }.sortedBy { it.zIndex }
                     if (styleExtras.optBoolean("containerScrollable", false)) {
@@ -902,6 +931,23 @@ fun AddHomeElementDialog(
                         AddTypeRow(Icons.AutoMirrored.Rounded.ViewSidebar, "Sidebar Trigger", "Button that opens a configured drawer") { step = "SIDEBAR" }
                         AddTypeRow(Icons.Rounded.SmartButton, "Custom Interactive Button", "Multi-gesture / macro button") { step = "BUTTON" }
                         AddTypeRow(Icons.Rounded.TextFields, "Dynamic Text Label", "Supports {TIME}, {DATE}, {RAM}, {STORAGE}") { step = "TEXT" }
+                        AddTypeRow(Icons.Rounded.AutoAwesome, "Graphic Gauge", "Add an editable circular progress gauge") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    ownerType = ownerType,
+                                    ownerWindowId = ownerWindowId,
+                                    type = "GAUGE_WIDGET",
+                                    xFraction = 0.18f,
+                                    yFraction = 0.24f,
+                                    widthDp = 140f,
+                                    heightDp = 140f,
+                                    label = "Progress",
+                                    styleExtrasJson = "{\"gaugeValue\":0.72,\"gaugeLabel\":\"Progress\"}",
+                                )
+                            )
+                            onDismiss()
+                        }
                         AddTypeRow(Icons.Rounded.Layers, "Nested Container", "Create a parent panel that can hold positioned objects") {
                             onAddElement(
                                 HomeElementEntity(
