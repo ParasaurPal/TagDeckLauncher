@@ -1280,6 +1280,26 @@ fun ElementInspectorDialog(
                             onValueChange = { edited = edited.copy(rotationDeg = it) },
                             valueRange = -180f..180f,
                         )
+                        Text("3D Rotation X: ${edited.rotationXDeg.roundToInt()}°")
+                        Slider(value = edited.rotationXDeg, onValueChange = { edited = edited.copy(rotationXDeg = it) }, valueRange = -180f..180f)
+                        Text("3D Rotation Y: ${edited.rotationYDeg.roundToInt()}°")
+                        Slider(value = edited.rotationYDeg, onValueChange = { edited = edited.copy(rotationYDeg = it) }, valueRange = -180f..180f)
+                        Text("Perspective Depth: ${(edited.perspective * 100).roundToInt()}%")
+                        Slider(value = edited.perspective, onValueChange = { edited = edited.copy(perspective = it) }, valueRange = 0f..1f)
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Pin to Viewport")
+                            Switch(checked = edited.pinnedToViewport, onCheckedChange = { edited = edited.copy(pinnedToViewport = it) })
+                        }
+                        if (edited.pinnedToViewport) {
+                            Text("Pinned Edge")
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("NONE", "TOP", "BOTTOM", "LEFT", "RIGHT").forEach { edge ->
+                                    FilterChip(selected = edited.pinEdge == edge, onClick = { edited = edited.copy(pinEdge = edge) }, label = { Text(edge) })
+                                }
+                            }
+                            Text("Pin Offset: ${edited.pinOffsetDp.roundToInt()}dp")
+                            Slider(value = edited.pinOffsetDp, onValueChange = { edited = edited.copy(pinOffsetDp = it) }, valueRange = 0f..80f)
+                        }
                         Text("Scale X: ${"%.2f".format(edited.scaleX)}x")
                         Slider(
                             value = edited.scaleX,
