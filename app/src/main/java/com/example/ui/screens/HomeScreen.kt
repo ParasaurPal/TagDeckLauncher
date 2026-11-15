@@ -174,23 +174,36 @@ fun HomeScreen(
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
     }
     val feedEnabled = state.settings.widgetFeedEnabled
+    val loopPagerEnabled = visiblePages.size > 1 && visiblePages.any { it.loopNavigation }
+    val pagerPageOffset = if (loopPagerEnabled) 1 else 0
+    val feedPagerIndex = visiblePages.size + pagerPageOffset + if (loopPagerEnabled) 1 else 0
+    val pagerPageCount = visiblePages.size + (if (loopPagerEnabled) 2 else 0) + (if (feedEnabled) 1 else 0)
+    fun logicalPageIndex(pagerIndex: Int): Int = if (loopPagerEnabled) {
+        when (pagerIndex) {
+            0 -> visiblePages.lastIndex
+            visiblePages.size + 1 -> 0
+            else -> (pagerIndex - 1).coerceIn(0, visiblePages.lastIndex)
+        }
+    } else pagerIndex.coerceIn(0, visiblePages.lastIndex)
     val pagerState = rememberPagerState(
-        initialPage = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
-    ) {
-        visiblePages.size + if (feedEnabled) 1 else 0
-    }
+        initialPage = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex) + pagerPageOffset
+    ) { pagerPageCount }
 
-    val activeTransitionDurationMs = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }.transitionDurationMs
+    val activeTransitionDurationMs = visiblePages[logicalPageIndex(pagerState.currentPage)].transitionDurationMs
 
-    LaunchedEffect(pagerState.currentPage, visiblePages.size) {
-        if (pagerState.currentPage < visiblePages.size) {
-            onPageChanged(pagerState.currentPage)
+    LaunchedEffect(pagerState.currentPage, visiblePages.size, loopPagerEnabled) {
+        if (loopPagerEnabled && pagerState.currentPage == 0) {
+            pagerState.scrollToPage(if (visiblePages.first().loopNavigation) visiblePages.size else 1)
+        } else if (loopPagerEnabled && pagerState.currentPage == feedPagerIndex + 1) {
+            pagerState.scrollToPage(if (visiblePages.last().loopNavigation) 1 else visiblePages.size)
+        } else if (pagerState.currentPage < feedPagerIndex) {
+            onPageChanged(logicalPageIndex(pagerState.currentPage))
         }
     }
 
-    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled) {
-        val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
-        if (!feedEnabled || pagerState.currentPage < visiblePages.size) {
+    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled, loopPagerEnabled) {
+        val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex) + pagerPageOffset
+        if (!feedEnabled || pagerState.currentPage < feedPagerIndex) {
             if (pagerState.currentPage != target) {
                 pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs))
             }
@@ -212,14 +225,14 @@ fun HomeScreen(
         onToggleEditMode(false)
     }
 
-    val currentPage = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }
+    val currentPage = visiblePages[logicalPageIndex(pagerState.currentPage)]
     val deviceConfiguration = LocalConfiguration.current
     fun resolvePageTarget(target: Int): Int {
         if (currentPage.loopNavigation && visiblePages.isNotEmpty()) {
             if (target < 0) return visiblePages.lastIndex
             if (target >= visiblePages.size) return 0
         }
-        return target.coerceIn(0, visiblePages.lastIndex)
+        return target.coerceIn(0, visiblePages.lastIndex) + pagerPageOffset
     }
     fun executePageGesture(trigger: String): Boolean {
         val actions = currentPage.pageGesturesJson?.takeIf { it.isNotBlank() } ?: return false
@@ -387,11 +400,11 @@ fun HomeScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
-                        key = { idx -> if (idx == visiblePages.size) "WIDGET_FEED" else visiblePages[idx].pageId },
+                        key = { idx -> if (feedEnabled && idx == feedPagerIndex) "WIDGET_FEED" else visiblePages[logicalPageIndex(idx)].pageId },
                         userScrollEnabled = !state.isEditMode,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIdx ->
-                                                    if (feedEnabled && pageIdx == visiblePages.size) {
+                                                    if (feedEnabled && pageIdx == feedPagerIndex) {
                                 val feedElements = state.homeElements
                                     .filter { it.ownerType == "FEED" && it.visible }
                                     .sortedBy { it.zIndex }
@@ -483,7 +496,8 @@ fun HomeScreen(
                                     }
                                 }
                             } else {
-val page = visiblePages[pageIdx]
+val logicalPageIdx = logicalPageIndex(pageIdx)
+                        val page = visiblePages[logicalPageIdx]
                         val pageOffset = ((pagerState.currentPage - pageIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
                         val transitionStyle = if (page.parallaxEnabled) "PARALLAX" else (page.transitionOverride ?: state.settings.pageTransitionStyle)
                         val pageTransitionMod = when (transitionStyle) {
@@ -745,7 +759,7 @@ val page = visiblePages[pageIdx]
                         when (state.settings.pageIndicatorStyle) {
                             "PILL" -> {
                                 visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == pagerState.currentPage
+                                    val active = idx == logicalPageIndex(pagerState.currentPage)
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 3.dp)
@@ -763,7 +777,7 @@ val page = visiblePages[pageIdx]
                                     border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
                                 ) {
                                     Text(
-                                        text = "${pagerState.currentPage + 1} / ${visiblePages.size}",
+                                        text = "${logicalPageIndex(pagerState.currentPage) + 1} / ${visiblePages.size}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = indicatorColor,
@@ -1031,7 +1045,7 @@ val page = visiblePages[pageIdx]
                 val idx = visiblePages.indexOfFirst { it.pageId == pageId }
                 if (idx >= 0) {
                     onPageChanged(idx)
-                    scope.launch { pagerState.animateScrollToPage(idx, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                    scope.launch { pagerState.animateScrollToPage(idx + pagerPageOffset, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                 }
             },
             onImportImage = onImportImage,
