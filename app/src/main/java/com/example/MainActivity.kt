@@ -141,6 +141,7 @@ class MainActivity : ComponentActivity() {
                 tertiaryColorHex = state.settings.tertiaryColorHex,
                 fontStyle = state.settings.fontStyle,
                 fontScale = state.settings.fontScale,
+                customFontPath = state.customFonts.firstOrNull { state.settings.fontStyle == "CUSTOM_" + it.fontId }?.localPath,
                 cornerRadiusDp = state.settings.globalCornerRadiusDp,
             ) {
                 TagDeckRoot(
