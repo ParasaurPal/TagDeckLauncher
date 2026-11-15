@@ -198,6 +198,7 @@ fun HomeScreen(
 
     var showAddElementDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
+    var showLayerManager by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
     var showFeedWidgetPicker by remember { mutableStateOf(false) }
     var showStyleDialog by remember { mutableStateOf(false) }
@@ -289,6 +290,7 @@ fun HomeScreen(
                         onAddElement = { showAddElementDialog = true },
                         onOpenWidgets = { showWidgetPicker = true },
                         onOpenPages = { showPagesDialog = true },
+                        onOpenLayers = { showLayerManager = true },
                         onOpenStyleStudio = { showStyleDialog = true },
                         onOpenSettings = { onNavigate(LauncherRoute.Settings) },
                         onUnlockPage = { onSavePage(currentPage.copy(isLocked = false)) },
@@ -943,6 +945,15 @@ val page = visiblePages[pageIdx]
         )
     }
 
+    if (showLayerManager) {
+        LayerManagerDialog(
+            elements = state.homeElements.filter { it.ownerType == "PAGE" && it.pageId == currentPage.pageId },
+            onSelect = { id -> onSelectElement(id) },
+            onUpdate = { onSaveElement(it, true) },
+            onDismiss = { showLayerManager = false },
+        )
+    }
+
     if (showPagesDialog) {
         PagesAndSnapshotsDialog(
             pages = state.homePages,
@@ -1033,6 +1044,7 @@ private fun StudioEditToolbar(
     onAddElement: () -> Unit,
     onOpenWidgets: () -> Unit,
     onOpenPages: () -> Unit,
+    onOpenLayers: () -> Unit = {},
     onOpenStyleStudio: () -> Unit = {},
     onOpenSettings: () -> Unit,
     onUnlockPage: () -> Unit,
@@ -1144,6 +1156,16 @@ private fun StudioEditToolbar(
                     EditToolbarOutlinedIcon(
                         imageVector = Icons.Rounded.Layers,
                         contentDescription = "Pages",
+                        iconSize = 22.dp,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenLayers,
+                    modifier = Modifier.size(48.dp).testTag("studio_layers_button"),
+                ) {
+                    EditToolbarOutlinedIcon(
+                        imageVector = Icons.Rounded.Layers,
+                        contentDescription = "Layer Manager",
                         iconSize = 22.dp,
                     )
                 }
