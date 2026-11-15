@@ -163,6 +163,11 @@ fun ActiveOverlayHost(
     }
 
     val overlay = state.activeOverlay
+    val folderPopupBackdropAlpha = (overlay as? ActiveOverlay.FolderOverlay)?.let { active ->
+        state.homeElements.firstOrNull { it.elementId == active.elementId }?.let { folder ->
+            runCatching { JSONObject(folder.styleExtrasJson).optDouble("folderPopupBackdropAlpha", 0.54).toFloat() }.getOrDefault(0.54f)
+        }
+    }?.coerceIn(0f, 0.9f) ?: 0.54f
     val animDuration = (240 * state.settings.animationSpeedScale.coerceIn(0.05f, 2f)).toInt()
 
     val configuredSide = when (overlay) {
@@ -194,7 +199,7 @@ fun ActiveOverlayHost(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = if (isPinned) 0.18f else 0.54f))
+                    .background(Color.Black.copy(alpha = if (isPinned) 0.18f else folderPopupBackdropAlpha))
                     .clickable(enabled = !isPinned) { onDismiss() }
             )
         }
