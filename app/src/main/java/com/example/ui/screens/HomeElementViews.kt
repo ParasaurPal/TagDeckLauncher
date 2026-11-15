@@ -2051,7 +2051,7 @@ fun ElementInspectorDialog(
                             Text("Folder Studio", style = MaterialTheme.typography.titleSmall)
                             Text("Folder Layout", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("GRID_2X2", "GRID_3X3", "LIST", "STACK", "FAN").forEach { mode ->
+                                listOf("GRID", "GRID_3X3", "LIST", "STACK", "FAN").forEach { mode ->
                                     FilterChip(selected = edited.folderLayoutMode == mode, onClick = { edited = edited.copy(folderLayoutMode = mode) }, label = { Text(mode) })
                                 }
                             }
