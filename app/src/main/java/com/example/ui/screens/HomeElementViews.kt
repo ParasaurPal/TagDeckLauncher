@@ -1883,6 +1883,47 @@ fun ElementInspectorDialog(
                                 },
                             ) { Text("Paste Style") }
                         }
+                        if (edited.type == "GAUGE_WIDGET") {
+                            HorizontalDivider()
+                            Text("Graphic Gauge", style = MaterialTheme.typography.titleSmall)
+                            Text("Gauge style", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("ARC", "RING", "SEGMENTED", "LINEAR", "SPARKLINE").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("gaugeStyle", "RING") == mode, onClick = { updateStyleExtraString("gaugeStyle", mode) }, label = { Text(mode) })
+                                }
+                            }
+                            Text("Data source", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("MANUAL", "BATTERY", "RAM", "STORAGE", "DAY_PROGRESS").forEach { source ->
+                                    FilterChip(selected = styleExtras.optString("gaugeSource", "MANUAL") == source, onClick = { updateStyleExtraString("gaugeSource", source) }, label = { Text(source.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }) })
+                                }
+                            }
+                            if (styleExtras.optString("gaugeSource", "MANUAL") == "MANUAL") {
+                                Text("Manual value: ${(styleExtras.optDouble("gaugeValue", 0.72) * 100).roundToInt()}%")
+                                Slider(value = styleExtras.optDouble("gaugeValue", 0.72).toFloat().coerceIn(0f, 1f), onValueChange = { updateStyleExtra("gaugeValue", it.toDouble()) }, valueRange = 0f..1f)
+                            }
+                            OutlinedTextField(
+                                value = styleExtras.optString("gaugeLabel", edited.label.ifBlank { "Progress" }),
+                                onValueChange = { updateStyleExtraString("gaugeLabel", it.take(32)) },
+                                label = { Text("Gauge label") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (styleExtras.optString("gaugeStyle", "RING") == "SPARKLINE") {
+                                OutlinedTextField(
+                                    value = runCatching {
+                                        val arr = JSONArray(styleExtras.optString("gaugeHistoryJson", "[]"))
+                                        (0 until arr.length()).joinToString(",") { (arr.optDouble(it, 0.5) * 100).roundToInt().toString() }
+                                    }.getOrDefault("18,32,26,48,41,62,72"),
+                                    onValueChange = { raw ->
+                                        val values = raw.split(',').mapNotNull { it.trim().toFloatOrNull()?.coerceIn(0f, 100f) }
+                                        updateStyleExtraString("gaugeHistoryJson", JSONArray(values.map { (it / 100f).toDouble() }).toString())
+                                    },
+                                    label = { Text("Sparkline values (comma-separated %, 0–100)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
                         if (edited.type == "WIDGET_STACK") {
                             HorizontalDivider()
                             Text("Widget Stack", style = MaterialTheme.typography.titleSmall)
