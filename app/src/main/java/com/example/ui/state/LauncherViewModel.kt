@@ -635,7 +635,6 @@ class LauncherViewModel(
     fun createStarterTemplate(templateName: String) {
         viewModelScope.launch {
             recordUndoCheckpoint()
-            repository.saveCurrentLayoutSnapshot("Before $templateName template")
             val currentCount = if (uiState.value.isEditMode) uiState.value.homePages.size else uiState.value.homePages.count { !it.isHidden }
             repository.createStarterTemplate(templateName)
             transientState.update { it.copy(currentPageIndex = currentCount) }
