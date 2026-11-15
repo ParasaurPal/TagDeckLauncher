@@ -2154,6 +2154,31 @@ fun ElementInspectorDialog(
                                     FilterChip(selected = edited.folderLayoutMode == mode, onClick = { edited = edited.copy(folderLayoutMode = mode) }, label = { Text(mode) })
                                 }
                             }
+                            Text("Folder Popup Styling", style = MaterialTheme.typography.labelMedium)
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Show popup header")
+                                Switch(checked = styleExtras.optBoolean("folderPopupHeaderVisible", true), onCheckedChange = { updateStyleExtraBoolean("folderPopupHeaderVisible", it) })
+                            }
+                            Text("Popup height: ${styleExtras.optDouble("folderPopupMaxHeightDp", 320.0).roundToInt()}dp")
+                            Slider(value = styleExtras.optDouble("folderPopupMaxHeightDp", 320.0).toFloat().coerceIn(180f, 620f), onValueChange = { updateStyleExtra("folderPopupMaxHeightDp", it.toDouble()) }, valueRange = 180f..620f)
+                            Text("Popup grid columns")
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(2, 3, 4).forEach { columns ->
+                                    FilterChip(selected = styleExtras.optInt("folderPopupColumns", if (edited.folderLayoutMode == "GRID_3X3") 3 else 2) == columns, onClick = { updateStyleExtra("folderPopupColumns", columns.toDouble()) }, label = { Text(columns.toString()) })
+                                }
+                            }
+                            Text("Popup icon size: ${styleExtras.optDouble("folderPopupIconSizeDp", edited.iconSizeDp.toDouble()).roundToInt()}dp")
+                            Slider(value = styleExtras.optDouble("folderPopupIconSizeDp", edited.iconSizeDp.toDouble()).toFloat().coerceIn(24f, 88f), onValueChange = { updateStyleExtra("folderPopupIconSizeDp", it.toDouble()) }, valueRange = 24f..88f)
+                            Text("Popup label lines")
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(1, 2, 3).forEach { lines ->
+                                    FilterChip(selected = styleExtras.optInt("folderPopupLabelMaxLines", 2) == lines, onClick = { updateStyleExtra("folderPopupLabelMaxLines", lines.toDouble()) }, label = { Text(lines.toString()) })
+                                }
+                            }
+                            Text("Popup spacing: ${styleExtras.optDouble("folderPopupGapDp", 10.0).roundToInt()}dp")
+                            Slider(value = styleExtras.optDouble("folderPopupGapDp", 10.0).toFloat().coerceIn(2f, 24f), onValueChange = { updateStyleExtra("folderPopupGapDp", it.toDouble()) }, valueRange = 2f..24f)
+                            Text("Backdrop dim: ${(styleExtras.optDouble("folderPopupBackdropAlpha", 0.54) * 100).roundToInt()}%")
+                            Slider(value = styleExtras.optDouble("folderPopupBackdropAlpha", 0.54).toFloat().coerceIn(0f, 0.9f), onValueChange = { updateStyleExtra("folderPopupBackdropAlpha", it.toDouble()) }, valueRange = 0f..0.9f)
                             Text("Apps in Folder", style = MaterialTheme.typography.labelMedium)
                             val folderPackages = edited.folderPackages().toSet()
                             LazyColumn(modifier = Modifier.height(160.dp)) {
