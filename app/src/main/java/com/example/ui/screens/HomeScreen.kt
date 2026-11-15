@@ -1496,7 +1496,6 @@ private fun StudioEditToolbar(
                         AssistChip(onClick = onGroupMulti, label = { Text("Group") })
                         AssistChip(onClick = onUngroupMulti, label = { Text("Ungroup") })
                         AssistChip(onClick = onStackMulti, label = { Text("Stack Selected") })
-                        AssistChip(onClick = onUnstackMulti, label = { Text("Unstack") })
                         AssistChip(onClick = { onAlignMulti("LEFT") }, label = { Text("Align Left") })
                         AssistChip(onClick = { onAlignMulti("CENTER_X") }, label = { Text("Center X") })
                         AssistChip(onClick = { onAlignMulti("RIGHT") }, label = { Text("Align Right") })
@@ -1504,6 +1503,7 @@ private fun StudioEditToolbar(
                         AssistChip(onClick = { onAlignMulti("CENTER_Y") }, label = { Text("Center Y") })
                         AssistChip(onClick = { onAlignMulti("BOTTOM") }, label = { Text("Align Bottom") })
                     }
+                    if (multiSelectCount > 0) AssistChip(onClick = onUnstackMulti, label = { Text("Unstack") })
                     AssistChip(onClick = onLockMulti, leadingIcon = { Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp)) }, label = { Text("Lock") })
                     AssistChip(onClick = onDeleteMulti, leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(16.dp)) }, label = { Text("Delete") })
                 }
