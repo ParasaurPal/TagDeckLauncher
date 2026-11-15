@@ -2238,7 +2238,7 @@ fun ElementInspectorDialog(
                         Text("Widget Stack", style = MaterialTheme.typography.labelLarge)
                         Text("Choose existing objects to place inside this stack. Selected objects are hidden from the page outside the stack.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val currentStackIds = edited.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.toSet()
-                        state.homeElements.filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }.forEach { child ->
+                        state.homeElements.filter { it.pageId == edited.pageId && it.ownerType == edited.ownerType && it.ownerWindowId == edited.ownerWindowId && it.elementId != edited.elementId && it.type != "WIDGET_STACK" && it.type != "TAB_SWITCHER_WIDGET" && it.parentContainerId == null }.filter { child -> child.elementId in currentStackIds || state.homeElements.none { owner -> owner.elementId != edited.elementId && owner.type in setOf("WIDGET_STACK", "TAB_SWITCHER_WIDGET") && child.elementId in owner.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() } } }.forEach { child ->
                             FilterChip(
                                 selected = child.elementId in currentStackIds,
                                 onClick = {
