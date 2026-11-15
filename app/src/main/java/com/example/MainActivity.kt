@@ -521,6 +521,7 @@ private fun TagDeckRoot(
                     onSaveThemeProfile = { profile -> viewModel.saveThemeProfile(profile) },
                     onDeleteThemeProfile = { id -> viewModel.deleteThemeProfile(id) },
                     onSaveCategory = { category -> viewModel.saveCategory(category) },
+                    onCreateSafetySnapshot = { name -> viewModel.saveLayoutSnapshot(name) },
                     onExportBackupJson = { viewModel.exportFullBackupJson() },
                     onImportBackupJson = { viewModel.importFullBackupJson(it) },
                     onShowMessage = { viewModel.showMessage(it) },
