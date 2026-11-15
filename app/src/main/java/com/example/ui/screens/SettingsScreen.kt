@@ -157,9 +157,20 @@ private val GestureLabels = listOf(
     "PINCH_OUT" to "Pinch Out",
 )
 
-private data class MacroStepDraft(val actionType: String = "OPEN_DRAWER", val delayMs: Long = 0L, val targetElementId: Long? = null)
+private data class MacroStepDraft(
+    val actionType: String = "OPEN_DRAWER",
+    val delayMs: Long = 0L,
+    val targetElementId: Long? = null,
+    val targetPackageName: String? = null,
+    val targetTagId: Long? = null,
+    val targetCategoryId: Long? = null,
+    val targetSidebarId: Long? = null,
+    val targetWindowId: Long? = null,
+    val targetRuleId: Long? = null,
+    val targetUrl: String? = null,
+)
 
-private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS", "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS")
+private val MacroStepActionOptions = listOf("OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "OPEN_APP_MANAGER", "OPEN_SETTINGS", "OPEN_TAG", "OPEN_CATEGORY", "OPEN_SIDEBAR", "OPEN_WINDOW", "OPEN_RULE", "OPEN_APP", "OPEN_WEBSITE", "OPEN_SYSTEM_SETTING", "NEXT_PAGE", "PREV_PAGE", "TOGGLE_EDIT_MODE", "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS")
 
 private val ActionOptions = listOf(
     "NONE" to "None",
@@ -185,6 +196,9 @@ private val ActionOptions = listOf(
     "OPEN_INTERNET_PANEL" to "Open Internet Controls",
     "OPEN_VOLUME_PANEL" to "Open Volume Controls",
     "OPEN_BLUETOOTH_SETTINGS" to "Open Bluetooth Settings",
+    "OPEN_WEBSITE" to "Open Website",
+    "OPEN_SYSTEM_SETTING" to "Open System Setting",
+    "OPEN_APP_MANAGER" to "Open App Manager",
     "MACRO" to "Run Action Macro",
 )
 
@@ -2383,7 +2397,18 @@ private fun GestureBindingDialog(
                 val arr = JSONArray(binding.macroStepsJson ?: "[]")
                 for (i in 0 until arr.length()) {
                     val step = arr.getJSONObject(i)
-                    add(MacroStepDraft(step.optString("actionType", "OPEN_DRAWER"), step.optLong("delayMs", 0L), if (step.has("targetElementId") && !step.isNull("targetElementId")) step.optLong("targetElementId") else null))
+                    add(MacroStepDraft(
+                        actionType = step.optString("actionType", "OPEN_DRAWER"),
+                        delayMs = step.optLong("delayMs", 0L),
+                        targetElementId = if (step.has("targetElementId") && !step.isNull("targetElementId")) step.optLong("targetElementId") else null,
+                        targetPackageName = step.optString("targetPackage").takeIf { it.isNotBlank() },
+                        targetTagId = if (step.has("targetTagId") && !step.isNull("targetTagId")) step.optLong("targetTagId") else null,
+                        targetCategoryId = if (step.has("targetCategoryId") && !step.isNull("targetCategoryId")) step.optLong("targetCategoryId") else null,
+                        targetSidebarId = if (step.has("targetSidebarId") && !step.isNull("targetSidebarId")) step.optLong("targetSidebarId") else null,
+                        targetWindowId = if (step.has("targetWindowId") && !step.isNull("targetWindowId")) step.optLong("targetWindowId") else null,
+                        targetRuleId = if (step.has("targetRuleId") && !step.isNull("targetRuleId")) step.optLong("targetRuleId") else null,
+                        targetUrl = step.optString("targetUrl").takeIf { it.isNotBlank() },
+                    ))
                 }
             }
         }
