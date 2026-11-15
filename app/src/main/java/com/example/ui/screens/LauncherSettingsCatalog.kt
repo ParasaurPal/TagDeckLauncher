@@ -81,10 +81,11 @@ object LauncherSettingsCatalog {
             entries = listOf(
                 entry("theme_mode", SECTION_THEME_TYPOGRAPHY, "Theme Mode", "Switch between Dark, Light, System, or Dynamic color", listOf("dark", "light", "system", "dynamic", "material you")),
                 entry("font_family", SECTION_THEME_TYPOGRAPHY, "Font Family", "Choose Space Grotesk, Plus Jakarta, JetBrains Mono, or System", listOf("font", "typography", "monospace", "grotesk", "jakarta")),
-                entry("font_library", SECTION_THEME_TYPOGRAPHY, "Custom Font Library", "Import TTF, OTF, and TTC font files and use them throughout the launcher", listOf("custom font", "upload font", "import font", "typeface")),
+                entry("font_library", SECTION_THEME_TYPOGRAPHY, "Custom Font Library", "Import and validate TTF or OTF font files and use them on home objects", listOf("custom font", "upload font", "import font", "typeface")),
                 entry("theme_profiles", SECTION_THEME_TYPOGRAPHY, "Theme Profiles", "Save, apply, and remove reusable appearance profiles", listOf("theme preset", "save theme", "appearance profile")),
-                entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.40x", listOf("text size", "font size", "zoom", "scale")),
+                entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.80x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
+                entry("readability", SECTION_THEME_TYPOGRAPHY, "Per-Object Readability Controls", "Choose custom fonts, minimum label size, bold boost, spacing, wrapping, contrast, shadows, and label backdrops", listOf("readability", "text outline", "auto contrast", "drop shadow", "backdrop", "letter spacing", "line height", "two line wrap")),
             ),
         ),
         section(
@@ -152,8 +153,8 @@ object LauncherSettingsCatalog {
             entries = listOf(
                 entry("drawer_edge_size", SECTION_DRAWER, "Drawer Opening Side & Width", "Open from Right, Left, or Bottom and adjust drawer width", listOf("edge", "side", "width", "drawer")),
                 entry("drawer_layout_sort", SECTION_DRAWER, "Drawer Layout Mode & App Sort", "Switch Grid vs List and sort A-Z, Most Used, Recent, Manual", listOf("grid", "list", "sort", "alphabetical", "most used", "recent", "manual")),
-                entry("drawer_search_toggle", SECTION_DRAWER, "Show Search Bar in Drawer", "Toggle the search field inside the All-Apps drawer", listOf("drawer search", "search bar")),
-                entry("drawer_appearance", SECTION_DRAWER, "Drawer Background, Columns, Icon & Label Size", "Customize drawer background, blur, card opacity, columns, icon size", listOf("columns", "icon size", "label size", "card opacity", "corner radius", "blur")),
+                entry("drawer_search_toggle", SECTION_DRAWER, "Search Bar Visibility & Position", "Show or hide the drawer search field and place it at the top or bottom", listOf("drawer search", "search bar", "search placement", "top search", "bottom search")),
+                entry("drawer_appearance", SECTION_DRAWER, "Drawer Background, Cards, Columns & Icon Size", "Customize drawer background, blur, card opacity, shadow, border, columns, icon size, and label size", listOf("columns", "icon size", "label size", "card opacity", "card shadow", "card border", "corner radius", "blur")),
             ),
         ),
         section(
@@ -162,7 +163,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("alphabet", "a-z", "rail", "wave", "scrubber"),
             entries = listOf(
                 entry("niagara_toggle", SECTION_NIAGARA, "Alphabet Index Rail & Wave", "Show A-Z rail, wave magnification, and scrub haptics", listOf("niagara", "alphabet", "index", "wave", "haptic")),
-                entry("niagara_style", SECTION_NIAGARA, "Rail Edge, Intensity & Letter Sizes", "Pick Left/Right edge, wave intensity, font sizes, and accent color", listOf("rail", "letter size", "intensity", "accent")),
+                entry("niagara_style", SECTION_NIAGARA, "Rail Edge, Width, Color, Intensity & Letter Sizes", "Pick Left/Right edge, rail width, letter color, wave intensity, font sizes, and accent color", listOf("rail", "rail width", "letter color", "letter size", "intensity", "accent")),
             ),
         ),
         section(
@@ -173,7 +174,7 @@ object LauncherSettingsCatalog {
                 entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Labels & Home Banner", "Show bottom dock search bar, quick tag strip, shortcut labels, banner", listOf("dock", "search bar", "tag strip", "labels", "banner")),
                 entry("layout_lock", SECTION_HOME_CANVAS, "Lock Entire Home Layout", "Prevent accidental moves or edits across all home pages", listOf("lock", "freeze", "protect")),
                 entry("grid_snap", SECTION_HOME_CANVAS, "Grid Snap, Edit Grid Lines & Alignment Guides", "Toggle grid snap, snap step (dp), edit grid overlay, magnetic guides", listOf("grid", "snap", "step", "guidelines", "magnetic", "alignment")),
-                entry("object_layers", SECTION_HOME_CANVAS, "Layer Manager & Format Painter", "Reorder, hide, lock, and inspect objects; copy visual styling between objects", listOf("layers", "z index", "visibility", "format painter", "copy style", "paste style")),
+                entry("object_layers", SECTION_HOME_CANVAS, "Layer Manager & Format Painter", "Rename, reorder, hide, lock, and inspect objects; copy visual styling and transforms between objects", listOf("layers", "rename layer", "z index", "visibility", "lock", "format painter", "copy style", "paste style")),
                 entry("object_transforms", SECTION_HOME_CANVAS, "3D Object Transforms & Pinning", "Control X/Y/Z rotation, perspective, independent corner radii, glow, and viewport pinning", listOf("3d", "perspective", "rotation", "glow", "corner radius", "pin", "sticky")),
                 entry("nested_objects", SECTION_HOME_CANVAS, "Widget Stacks & Nested Containers", "Combine existing objects into swipeable stacks and place objects inside nested containers", listOf("widget stack", "stack", "container", "nested", "group", "scrollable container")),
                 entry("folder_studio", SECTION_HOME_CANVAS, "Folder Studio", "Choose folder grid, list, or stack previews, edit app membership, and nest folders", listOf("folder", "nested folders", "folder layout", "folder apps")),
@@ -186,8 +187,9 @@ object LauncherSettingsCatalog {
             title = "Page Indicators & Edge Handles",
             keywords = listOf("pages", "transitions", "dots", "handles"),
             entries = listOf(
-                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition & Indicator Style", "Slide, Depth, Fade, Zoom, Cube, Flip, Rotate, and Parallax transitions; per-page timing and loop options", listOf("transition", "depth", "fade", "slide", "zoom", "cube", "flip", "rotate", "parallax", "loop", "indicator", "dots", "pill", "numbers")),
+                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition, Indicator & Loop Style", "Slide, Depth, Fade, Zoom, Cube, Flip, Rotate, Parallax, Stack, Accordion, and Windmill transitions; customize indicator size, timing, and page looping", listOf("transition", "depth", "fade", "slide", "zoom", "cube", "flip", "rotate", "parallax", "stack", "accordion", "windmill", "loop", "indicator", "dots", "pill", "numbers", "size")),
                 entry("edge_handles", SECTION_INDICATORS_HANDLES, "Edge Sidebar Handles", "Toggle edge handles and customize opacity, thickness, and length", listOf("edge handle", "sidebar handle", "thickness", "length")),
+                entry("status_strip", SECTION_INDICATORS_HANDLES, "Custom Home Status Strip", "Show time, date, and battery status with a custom accent color", listOf("status strip", "hud", "clock strip", "battery strip", "date strip")),
             ),
         ),
         section(
