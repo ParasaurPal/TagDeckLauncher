@@ -730,7 +730,7 @@ fun HomeElementBody(
 
                 "TAB_SWITCHER_WIDGET" -> {
                     val tabIds = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    val tabItems = tabIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.visible } }
+                    val tabItems = tabIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.pageId == element.pageId && it.ownerType == element.ownerType && it.ownerWindowId == element.ownerWindowId && it.visible } }
                     val selectedTab = element.widgetStackIndex.coerceIn(0, (tabItems.size - 1).coerceAtLeast(0))
                     Column(modifier = Modifier.fillMaxSize()) {
                         Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
