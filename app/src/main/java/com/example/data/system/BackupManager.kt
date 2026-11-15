@@ -86,6 +86,8 @@ object BackupManager {
                 put("backgroundGradientEndHex", c.backgroundGradientEndHex ?: JSONObject.NULL)
                 put("backgroundImagePath", c.backgroundImagePath ?: JSONObject.NULL)
                 put("backgroundBlurDp", c.backgroundBlurDp.toDouble())
+                put("backgroundAlpha", c.backgroundAlpha.toDouble())
+                put("showInMainBar", c.showInMainBar)
                 put("iconSizeDp", c.iconSizeDp)
                 put("iconOpenStateEnabled", c.iconOpenStateEnabled)
                 put("openIconKey", c.openIconKey ?: JSONObject.NULL)
@@ -475,6 +477,8 @@ object BackupManager {
                     backgroundGradientEndHex = o.optNullableLong("backgroundGradientEndHex"),
                     backgroundImagePath = o.optNullableString("backgroundImagePath"),
                     backgroundBlurDp = o.optDouble("backgroundBlurDp", 0.0).toFloat(),
+                    backgroundAlpha = o.optDouble("backgroundAlpha", 1.0).toFloat(),
+                    showInMainBar = o.optBoolean("showInMainBar", true),
                     iconSizeDp = o.optInt("iconSizeDp", 24),
                     iconOpenStateEnabled = o.optBoolean("iconOpenStateEnabled", false),
                     openIconKey = o.optNullableString("openIconKey"),
