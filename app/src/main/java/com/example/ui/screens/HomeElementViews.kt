@@ -3079,6 +3079,16 @@ fun LayerManagerDialog(
                             TextButton(onClick = { onUpdate(element.copy(locked = !element.locked)) }) { Text(if (element.locked) "Unlock" else "Lock") }
                             Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
                         }
+                        if (element.groupId != null) {
+                            val groupMembers = elements.filter { it.groupId == element.groupId }
+                            val showGroup = groupMembers.any { !it.visible }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Visibility group • ${groupMembers.size} layers", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                TextButton(onClick = { groupMembers.forEach { onUpdate(it.copy(visible = showGroup)) } }) {
+                                    Text(if (showGroup) "Show Group" else "Hide Group")
+                                }
+                            }
+                        }
                         if (renamingElementId == element.elementId) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedTextField(value = renameValue, onValueChange = { renameValue = it.take(48) }, singleLine = true, label = { Text("Layer name") }, modifier = Modifier.weight(1f))
