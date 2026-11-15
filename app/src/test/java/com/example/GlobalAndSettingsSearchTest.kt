@@ -247,6 +247,7 @@ class GlobalAndSettingsSearchTest {
                     onDeleteElement = {},
                     onExecuteElementAction = { _, _, _ -> false },
                     onAddPage = {},
+                    onCreateStarterTemplate = {},
                     onSavePage = {},
                     onDuplicatePage = {},
                     onReorderPages = {},
