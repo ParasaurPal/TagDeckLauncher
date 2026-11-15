@@ -152,6 +152,9 @@ private val GestureLabels = listOf(
     "SWIPE_RIGHT" to "Swipe Right",
     "TWO_FINGER_SWIPE_UP" to "Two-Finger Swipe Up",
     "TWO_FINGER_SWIPE_DOWN" to "Two-Finger Swipe Down",
+    "TWO_FINGER_TAP" to "Two-Finger Tap",
+    "PINCH_IN" to "Pinch In",
+    "PINCH_OUT" to "Pinch Out",
 )
 
 private data class MacroStepDraft(val actionType: String = "OPEN_DRAWER", val delayMs: Long = 0L, val targetElementId: Long? = null)
