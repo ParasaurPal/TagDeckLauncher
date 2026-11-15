@@ -85,7 +85,7 @@ object LauncherSettingsCatalog {
                 entry("theme_profiles", SECTION_THEME_TYPOGRAPHY, "Theme Profiles", "Save, apply, and remove reusable appearance profiles", listOf("theme preset", "save theme", "appearance profile")),
                 entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.80x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
-                entry("readability", SECTION_THEME_TYPOGRAPHY, "Per-Object Readability Controls", "Choose custom fonts, minimum label size, bold boost, spacing, wrapping, contrast, shadows, and label backdrops", listOf("readability", "text outline", "auto contrast", "drop shadow", "backdrop", "letter spacing", "line height", "two line wrap")),
+                entry("readability", SECTION_THEME_TYPOGRAPHY, "Global & Per-Object Readability", "Set global high-readability defaults and override fonts, minimum label size, bold boost, spacing, wrapping, contrast, outlines, shadows, and backdrops per object", listOf("readability", "high readability", "minimum label size", "text outline", "auto contrast", "drop shadow", "backdrop", "letter spacing", "line height", "two line wrap")),
             ),
         ),
         section(
@@ -143,7 +143,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("background", "prism", "topo", "gradient"),
             entries = listOf(
                 entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Android system/live wallpaper, Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "live wallpaper", "system wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
-                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Tint", "Adjust background blur radius, dim opacity, and overlay tint", listOf("blur", "dim", "darken", "tint")),
+                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Color Grading", "Adjust blur, dim opacity, vignette, saturation, contrast, brightness, parallax, ambient motion, and tint", listOf("blur", "dim", "darken", "tint", "vignette", "saturation", "contrast", "brightness", "parallax", "ambient motion", "color grading")),
             ),
         ),
         section(
