@@ -428,7 +428,34 @@ fun HomeScreen(
                         },
                         onAlignMulti = { mode ->
                             val selected = state.homeElements.filter { it.elementId in state.multiSelectedIds }
-                            if (selected.size > 1) {
+                            if (selected.size > 1 && mode == "DISTRIBUTE_X") {
+                                val ordered = selected.sortedBy { it.xFraction }
+                                val start = ordered.first().xFraction
+                                val end = ordered.last().xFraction
+                                ordered.forEachIndexed { index, element ->
+                                    val x = if (ordered.size <= 2) element.xFraction else start + (end - start) * index / (ordered.size - 1)
+                                    onSaveElement(element.copy(xFraction = x.coerceIn(0f, 0.92f)), true)
+                                }
+                            } else if (selected.size > 1 && mode == "DISTRIBUTE_Y") {
+                                val ordered = selected.sortedBy { it.yFraction }
+                                val start = ordered.first().yFraction
+                                val end = ordered.last().yFraction
+                                ordered.forEachIndexed { index, element ->
+                                    val y = if (ordered.size <= 2) element.yFraction else start + (end - start) * index / (ordered.size - 1)
+                                    onSaveElement(element.copy(yFraction = y.coerceIn(0f, 0.92f)), true)
+                                }
+                            } else if (selected.size > 1 && mode in setOf("MATCH_WIDTH", "MATCH_HEIGHT", "MATCH_SIZE")) {
+                                val reference = selected.first()
+                                selected.forEach { element ->
+                                    onSaveElement(
+                                        element.copy(
+                                            widthDp = if (mode == "MATCH_WIDTH" || mode == "MATCH_SIZE") reference.widthDp else element.widthDp,
+                                            heightDp = if (mode == "MATCH_HEIGHT" || mode == "MATCH_SIZE") reference.heightDp else element.heightDp,
+                                        ),
+                                        true,
+                                    )
+                                }
+                            } else if (selected.size > 1) {
                                 val screenWidth = deviceConfiguration.screenWidthDp.coerceAtLeast(1).toFloat()
                                 val screenHeight = deviceConfiguration.screenHeightDp.coerceAtLeast(1).toFloat()
                                 val horizontal = mode == "LEFT" || mode == "RIGHT" || mode == "CENTER_X"
@@ -1502,6 +1529,11 @@ private fun StudioEditToolbar(
                         AssistChip(onClick = { onAlignMulti("TOP") }, label = { Text("Align Top") })
                         AssistChip(onClick = { onAlignMulti("CENTER_Y") }, label = { Text("Center Y") })
                         AssistChip(onClick = { onAlignMulti("BOTTOM") }, label = { Text("Align Bottom") })
+                        AssistChip(onClick = { onAlignMulti("DISTRIBUTE_X") }, label = { Text("Distribute X") })
+                        AssistChip(onClick = { onAlignMulti("DISTRIBUTE_Y") }, label = { Text("Distribute Y") })
+                        AssistChip(onClick = { onAlignMulti("MATCH_WIDTH") }, label = { Text("Match W") })
+                        AssistChip(onClick = { onAlignMulti("MATCH_HEIGHT") }, label = { Text("Match H") })
+                        AssistChip(onClick = { onAlignMulti("MATCH_SIZE") }, label = { Text("Match Size") })
                     }
                     if (multiSelectCount > 0) AssistChip(onClick = onUnstackMulti, label = { Text("Unstack") })
                     AssistChip(onClick = onLockMulti, leadingIcon = { Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp)) }, label = { Text("Lock") })
