@@ -63,6 +63,7 @@ data class LauncherSettings(
     val wallpaperParallaxIntensity: Float = 0f,
     val wallpaperTintHex: Long? = null,
     val wallpaperAmbientMotion: Boolean = false,
+    val wallpaperAmbientEffectType: String = "RADIAL", // RADIAL, AURORA, GLOW, PULSE
     // Universal All-Apps Sidebar & Drawer
     val allAppsSidebarEdge: String = "RIGHT", // LEFT, RIGHT, BOTTOM
     val allAppsSidebarWidthFraction: Float = 0.90f,
@@ -222,6 +223,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         val WALLPAPER_PARALLAX = floatPreferencesKey("wallpaper_parallax")
         val WALLPAPER_TINT = longPreferencesKey("wallpaper_tint")
         val WALLPAPER_AMBIENT = booleanPreferencesKey("wallpaper_ambient")
+        val WALLPAPER_AMBIENT_TYPE = stringPreferencesKey("wallpaper_ambient_type")
 
         val ALL_APPS_SIDEBAR_EDGE = stringPreferencesKey("all_apps_sidebar_edge")
         val ALL_APPS_SIDEBAR_WIDTH = floatPreferencesKey("all_apps_sidebar_width")
@@ -356,6 +358,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         wallpaperParallaxIntensity = prefs[Keys.WALLPAPER_PARALLAX] ?: 0f,
         wallpaperTintHex = prefs[Keys.WALLPAPER_TINT],
         wallpaperAmbientMotion = prefs[Keys.WALLPAPER_AMBIENT] ?: false,
+        wallpaperAmbientEffectType = prefs[Keys.WALLPAPER_AMBIENT_TYPE] ?: "RADIAL",
         allAppsSidebarEdge = prefs[Keys.ALL_APPS_SIDEBAR_EDGE] ?: "RIGHT",
         allAppsSidebarWidthFraction = prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] ?: 0.90f,
         allAppsBgType = prefs[Keys.ALL_APPS_BG_TYPE] ?: "SOLID",
@@ -492,6 +495,7 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WALLPAPER_PARALLAX] = updated.wallpaperParallaxIntensity
             if (updated.wallpaperTintHex != null) prefs[Keys.WALLPAPER_TINT] = updated.wallpaperTintHex else prefs.remove(Keys.WALLPAPER_TINT)
             prefs[Keys.WALLPAPER_AMBIENT] = updated.wallpaperAmbientMotion
+            prefs[Keys.WALLPAPER_AMBIENT_TYPE] = updated.wallpaperAmbientEffectType
 
             prefs[Keys.ALL_APPS_SIDEBAR_EDGE] = updated.allAppsSidebarEdge
             prefs[Keys.ALL_APPS_SIDEBAR_WIDTH] = updated.allAppsSidebarWidthFraction
