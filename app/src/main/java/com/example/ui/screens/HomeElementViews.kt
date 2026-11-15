@@ -325,6 +325,18 @@ fun HomeElementBody(
             )
         }
     } else Modifier
+    val entranceAnimation = styleExtras.optString("entranceAnimation", "NONE")
+    var entranceVisible by remember(element.elementId) { mutableStateOf(false) }
+    LaunchedEffect(element.elementId, entranceAnimation) {
+        entranceVisible = false
+        delay(24L)
+        entranceVisible = true
+    }
+    val entranceProgress by animateFloatAsState(
+        targetValue = if (entranceVisible) 1f else 0f,
+        animationSpec = tween(styleExtras.optInt("entranceDurationMs", 260).coerceIn(100, 900)),
+        label = "element_entrance",
+    )
     val pressedState = remember(element.elementId) { mutableStateOf(false) }
     val pressedStateEnabled = styleExtras.optBoolean("pressedStateEnabled", false)
     val pressedScale by animateFloatAsState(
@@ -377,7 +389,13 @@ fun HomeElementBody(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer { scaleX = pressedScale; scaleY = pressedScale }
+            .graphicsLayer {
+                val entranceScale = if (entranceAnimation == "ZOOM") 0.88f + 0.12f * entranceProgress else 1f
+                scaleX = pressedScale * entranceScale
+                scaleY = pressedScale * entranceScale
+                alpha = if (entranceAnimation == "FADE" || entranceAnimation == "ZOOM" || entranceAnimation == "SLIDE_UP") entranceProgress else 1f
+                translationY = if (entranceAnimation == "SLIDE_UP") (1f - entranceProgress) * 20.dp.toPx() else 0f
+            }
             .then(pressedStateModifier)
             .then(if (glowRadiusDp > 0.1f) Modifier.shadow(glowRadiusDp.dp, shape, ambientColor = glowColor, spotColor = glowColor) else Modifier)
             .then(customBorderModifier)
@@ -2733,6 +2751,14 @@ fun ElementInspectorDialog(
                             modifier = Modifier.testTag("inspector_border_width_slider"),
                         )
 
+                        Text("Entrance animation", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("NONE", "FADE", "ZOOM", "SLIDE_UP").forEach { mode ->
+                                FilterChip(selected = styleExtras.optString("entranceAnimation", "NONE") == mode, onClick = { updateStyleExtra("entranceAnimation", mode) }, label = { Text(mode.replace('_', ' ')) })
+                            }
+                        }
+                        Text("Entrance duration: ${styleExtras.optInt("entranceDurationMs", 260)}ms", style = MaterialTheme.typography.labelMedium)
+                        Slider(value = styleExtras.optInt("entranceDurationMs", 260).toFloat().coerceIn(100f, 900f), onValueChange = { updateStyleExtra("entranceDurationMs", it.roundToInt()) }, valueRange = 100f..900f)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Pressed-state feedback")
                             Switch(checked = styleExtras.optBoolean("pressedStateEnabled", false), onCheckedChange = { updateStyleExtraBoolean("pressedStateEnabled", it) })
