@@ -655,7 +655,7 @@ fun HomeElementBody(
                                     }
                                 }
                             }
-                            "STACK" -> Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+                            "STACK" -> Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                 previewApps.take(4).forEach { app -> AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape) }
                             }
                             else -> {
@@ -1555,6 +1555,47 @@ fun ElementInspectorDialog(
                                 onClick = { edited = edited.copy(parentContainerId = container.elementId) },
                                 label = { Text(container.label.ifBlank { "Container " + container.elementId }) },
                             )
+                        }
+                        if (edited.type == "FOLDER") {
+                            HorizontalDivider()
+                            Text("Folder Studio", style = MaterialTheme.typography.titleSmall)
+                            Text("Folder Layout", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("GRID", "LIST", "STACK").forEach { mode ->
+                                    FilterChip(selected = edited.folderLayoutMode == mode, onClick = { edited = edited.copy(folderLayoutMode = mode) }, label = { Text(mode) })
+                                }
+                            }
+                            Text("Apps in Folder", style = MaterialTheme.typography.labelMedium)
+                            val folderPackages = edited.folderPackages().toSet()
+                            LazyColumn(modifier = Modifier.height(160.dp)) {
+                                items(state.appsWithTags, key = { it.app.packageName }) { item ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().clickable {
+                                            val next = if (item.app.packageName in folderPackages) folderPackages - item.app.packageName else folderPackages + item.app.packageName
+                                            edited = edited.copy(folderAppPackagesCsv = next.joinToString(","))
+                                        }.padding(vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Checkbox(checked = item.app.packageName in folderPackages, onCheckedChange = {
+                                            val next = if (it) folderPackages + item.app.packageName else folderPackages - item.app.packageName
+                                            edited = edited.copy(folderAppPackagesCsv = next.joinToString(","))
+                                        })
+                                        Text(item.app.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                            }
+                            Text("Nested Folders", style = MaterialTheme.typography.labelMedium)
+                            val nestedIds = edited.nestedFolderIds().toSet()
+                            state.homeElements.filter { it.type == "FOLDER" && it.elementId != edited.elementId }.forEach { folder ->
+                                FilterChip(
+                                    selected = folder.elementId in nestedIds,
+                                    onClick = {
+                                        val next = if (folder.elementId in nestedIds) nestedIds - folder.elementId else nestedIds + folder.elementId
+                                        edited = edited.copy(nestedFolderIdsCsv = next.joinToString(","))
+                                    },
+                                    label = { Text(folder.label.ifBlank { "Folder " + folder.elementId }) },
+                                )
+                            }
                         }
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Show stack navigation")
