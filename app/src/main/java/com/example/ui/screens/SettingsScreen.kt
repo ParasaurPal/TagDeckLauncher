@@ -64,6 +64,7 @@ import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -85,6 +86,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -302,6 +308,7 @@ fun SettingsScreen(
     }
     val hasNotificationAccess = remember(permissionRefresh) { NotificationAccess.isEnabled(context) }
     val scope = rememberCoroutineScope()
+    val settingsDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val s = state.settings
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
     LaunchedEffect(initialSearchQuery) {
@@ -397,6 +404,35 @@ fun SettingsScreen(
         }
     }
 
+    ModalNavigationDrawer(
+        drawerState = settingsDrawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("SETTINGS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                    NavigationDrawerItem(
+                        label = { Text("All settings") },
+                        selected = searchQuery.isBlank(),
+                        onClick = { scope.launch { searchQuery = ""; settingsDrawerState.close() } },
+                        modifier = Modifier.testTag("settings_nav_all"),
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    LauncherSettingsCatalog.sections.forEach { section ->
+                        NavigationDrawerItem(
+                            label = { Text(section.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            selected = searchQuery == section.title,
+                            onClick = { scope.launch { searchQuery = section.title; settingsDrawerState.close() } },
+                            modifier = Modifier.testTag("settings_nav_${section.id}"),
+                        )
+                    }
+                }
+            }
+        },
+    ) {
     Scaffold(
         modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
         topBar = {
@@ -410,6 +446,12 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconButton(
+                        onClick = { scope.launch { settingsDrawerState.open() } },
+                        modifier = Modifier.testTag("settings_sidebar_toggle"),
+                    ) {
+                        Icon(Icons.Rounded.Menu, contentDescription = "Open settings sections")
+                    }
                     IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back_button")) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
@@ -2090,6 +2132,7 @@ fun SettingsScreen(
                 }
             }
         }
+    }
     }
 
     if (showImageLibrary) {
