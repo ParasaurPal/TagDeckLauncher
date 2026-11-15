@@ -526,6 +526,21 @@ fun HomeScreen(
                     }
                 }
 
+                if (state.settings.pageIndicatorPlacement == "TOP") {
+                    HomePageIndicator(
+                        visiblePages = visiblePages,
+                        currentPageIndex = logicalPageIndex(pagerState.currentPage),
+                        style = state.settings.pageIndicatorStyle,
+                        colorHex = state.settings.pageIndicatorColorHex,
+                        sizeDp = state.settings.pageIndicatorSizeDp,
+                        activeWidthDp = state.settings.pageIndicatorActiveWidthDp,
+                        onSelectPage = { index ->
+                            scope.launch {
+                                pagerState.animateScrollToPage(index + pagerPageOffset, animationSpec = tween(durationMillis = activeTransitionDurationMs))
+                            }
+                        },
+                    )
+                }
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
@@ -926,88 +941,20 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                     }
                 }
 
-                if (visiblePages.size > 1 && state.settings.pageIndicatorStyle != "HIDDEN") {
-                    val indicatorColor = Color(state.settings.pageIndicatorColorHex)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .testTag("home_page_indicator"),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        when (state.settings.pageIndicatorStyle) {
-                            "PILL" -> {
-                                visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == logicalPageIndex(pagerState.currentPage)
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(horizontal = 3.dp)
-                                            .width(if (active) state.settings.pageIndicatorActiveWidthDp.coerceIn(10f, 48f).dp else state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
-                                            .height(state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
-                                            .clip(RoundedCornerShape(50))
-                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
-                                    )
-                                }
+                if (state.settings.pageIndicatorPlacement != "TOP") {
+                    HomePageIndicator(
+                        visiblePages = visiblePages,
+                        currentPageIndex = logicalPageIndex(pagerState.currentPage),
+                        style = state.settings.pageIndicatorStyle,
+                        colorHex = state.settings.pageIndicatorColorHex,
+                        sizeDp = state.settings.pageIndicatorSizeDp,
+                        activeWidthDp = state.settings.pageIndicatorActiveWidthDp,
+                        onSelectPage = { index ->
+                            scope.launch {
+                                pagerState.animateScrollToPage(index + pagerPageOffset, animationSpec = tween(durationMillis = activeTransitionDurationMs))
                             }
-                            "PROGRESS" -> {
-                                val progress = (logicalPageIndex(pagerState.currentPage) + 1f) / visiblePages.size.coerceAtLeast(1)
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Box(modifier = Modifier.fillMaxWidth(0.42f).height(state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.24f))) {
-                                        Box(modifier = Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(indicatorColor, RoundedCornerShape(50)))
-                                    }
-                                    Text("${logicalPageIndex(pagerState.currentPage) + 1} / ${visiblePages.size}", color = indicatorColor, fontSize = 10.sp)
-                                }
-                            }
-                            "TABS" -> {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    visiblePages.forEachIndexed { idx, page ->
-                                        val active = idx == logicalPageIndex(pagerState.currentPage)
-                                        Surface(
-                                            onClick = { scope.launch { pagerState.animateScrollToPage(idx + pagerPageOffset, animationSpec = tween(durationMillis = activeTransitionDurationMs)) } },
-                                            shape = RoundedCornerShape(50),
-                                            color = if (active) indicatorColor.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.18f),
-                                            border = BorderStroke(1.dp, indicatorColor.copy(alpha = if (active) 0.9f else 0.28f)),
-                                            modifier = Modifier.padding(horizontal = 3.dp),
-                                        ) {
-                                            Text(page.title.ifBlank { "Page ${idx + 1}" }, color = if (active) indicatorColor else Color.White.copy(alpha = 0.78f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), maxLines = 1)
-                                        }
-                                    }
-                                }
-                            }
-                            "NUMBERS" -> {
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = Color.Black.copy(alpha = 0.45f),
-                                    border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
-                                ) {
-                                    Text(
-                                        text = "${logicalPageIndex(pagerState.currentPage) + 1} / ${visiblePages.size}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = indicatorColor,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                                    )
-                                }
-                            }
-                            else -> {
-                                visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == logicalPageIndex(pagerState.currentPage)
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(horizontal = 4.dp)
-                                            .size(if (active) (state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f) * 1.35f).dp else state.settings.pageIndicatorSizeDp.coerceIn(3f, 16f).dp)
-                                            .clip(CircleShape)
-                                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
-                                    )
-                                }
-                            }
-                        }
-                    }
+                        },
+                    )
                 }
 
                 if (!state.isEditMode && (page.showDockOverride ?: state.settings.showDockBar)) {
@@ -1980,6 +1927,101 @@ private fun FreeformPageCanvas(
                 }
             }
         }
+        }
+    }
+}
+
+
+@Composable
+private fun HomePageIndicator(
+    visiblePages: List<HomePageEntity>,
+    currentPageIndex: Int,
+    style: String,
+    colorHex: Long,
+    sizeDp: Float,
+    activeWidthDp: Float,
+    onSelectPage: (Int) -> Unit,
+) {
+    if (visiblePages.size <= 1 || style == "HIDDEN") return
+    val indicatorColor = Color(colorHex)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("home_page_indicator"),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (style) {
+            "PILL" -> {
+                visiblePages.forEachIndexed { index, _ ->
+                    val active = index == currentPageIndex
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .width(if (active) activeWidthDp.coerceIn(10f, 48f).dp else sizeDp.coerceIn(3f, 16f).dp)
+                            .height(sizeDp.coerceIn(3f, 16f).dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.35f))
+                    )
+                }
+            }
+            "PROGRESS" -> {
+                val progress = (currentPageIndex + 1f) / visiblePages.size.coerceAtLeast(1)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth(0.42f).height(sizeDp.coerceIn(3f, 16f).dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.24f))) {
+                        Box(modifier = Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(indicatorColor, RoundedCornerShape(50)))
+                    }
+                    Text("${currentPageIndex + 1} / ${visiblePages.size}", color = indicatorColor, fontSize = 10.sp)
+                }
+            }
+            "TABS" -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    visiblePages.forEachIndexed { index, page ->
+                        val active = index == currentPageIndex
+                        Surface(
+                            onClick = { onSelectPage(index) },
+                            shape = RoundedCornerShape(50),
+                            color = if (active) indicatorColor.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.18f),
+                            border = BorderStroke(1.dp, indicatorColor.copy(alpha = if (active) 0.9f else 0.28f)),
+                            modifier = Modifier.padding(horizontal = 3.dp),
+                        ) {
+                            Text(page.title.ifBlank { "Page ${index + 1}" }, color = if (active) indicatorColor else Color.White.copy(alpha = 0.78f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), maxLines = 1)
+                        }
+                    }
+                }
+            }
+            "NUMBERS" -> {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.Black.copy(alpha = 0.45f),
+                    border = BorderStroke(1.dp, indicatorColor.copy(alpha = 0.6f)),
+                ) {
+                    Text(
+                        text = "${currentPageIndex + 1} / ${visiblePages.size}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = indicatorColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            else -> {
+                visiblePages.forEachIndexed { index, _ ->
+                    val active = index == currentPageIndex
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(if (active) (sizeDp.coerceIn(3f, 16f) * 1.35f).dp else sizeDp.coerceIn(3f, 16f).dp)
+                            .clip(CircleShape)
+                            .background(if (active) indicatorColor else Color.White.copy(alpha = 0.4f))
+                    )
+                }
+            }
         }
     }
 }
