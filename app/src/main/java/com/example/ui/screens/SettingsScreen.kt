@@ -220,6 +220,7 @@ fun SettingsScreen(
     onSaveThemeProfile: (ThemeProfileEntity) -> Unit = {},
     onDeleteThemeProfile: (Long) -> Unit = {},
     onSaveCategory: (CategoryEntity) -> Unit = {},
+    onCreateSafetySnapshot: (String) -> Unit = {},
     onExportBackupJson: suspend () -> String,
     onImportBackupJson: (String) -> Unit,
     onShowMessage: (String) -> Unit,
@@ -722,6 +723,7 @@ fun SettingsScreen(
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(profile.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                             TextButton(onClick = {
+                                onCreateSafetySnapshot("Before theme ${profile.name}")
                                 val json = JSONObject(profile.settingsJson)
                                 onUpdateSettings { current -> current.copy(
                                     themeMode = json.optString("themeMode", current.themeMode),
