@@ -958,7 +958,7 @@ fun SettingsScreen(
 
                     Text("Icon Shape", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("SQUIRCLE", "CIRCLE", "ROUNDED_SQUARE").forEach { shp ->
+                        listOf("SQUIRCLE", "CIRCLE", "ROUNDED_SQUARE", "PILL", "DIAMOND", "TRIANGLE", "PENTAGON", "HEXAGON", "OCTAGON", "STAR", "ARCH", "CUT_CORNER").forEach { shp ->
                             FilterChip(
                                 selected = s.globalIconShape == shp,
                                 onClick = { onUpdateSettings { it.copy(globalIconShape = shp) } },
