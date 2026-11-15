@@ -429,7 +429,29 @@ fun SettingsScreen(
                 }
             }
 
-            // Default Home Launcher Card
+            if (LauncherSettingsCatalog.SECTION_CATEGORY_ICONS in matchingSections) {
+                item(key = LauncherSettingsCatalog.SECTION_CATEGORY_ICONS) {
+                    SettingsCard(
+                        title = "Category Icons & Open States",
+                        icon = Icons.Rounded.Category,
+                        matchedEntries = if (searchQuery.isNotBlank()) matchingSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
+                    ) {
+                        Text("Customize each category's closed and open-state badge, including custom images, emoji, and accent colors.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                            items(state.categories, key = { it.categoryId }) { category ->
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    CategoryBadgeIcon(category, size = 28.dp)
+                                    CategoryBadgeIcon(category, size = 28.dp, isOpen = true)
+                                    Text(category.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    TextButton(onClick = { editingCategory = category }) { Text("Edit") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Default Home Launcher Card            // Default Home Launcher Card
             if (LauncherSettingsCatalog.SECTION_DEFAULT_HOME in matchingSections) {
                 item(key = LauncherSettingsCatalog.SECTION_DEFAULT_HOME) {
                     SettingsCard(
