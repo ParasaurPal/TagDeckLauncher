@@ -567,7 +567,7 @@ fun SettingsScreen(
                             .put("globalCornerRadiusDp", s.globalCornerRadiusDp.toDouble())
                             .put("globalIconShape", s.globalIconShape)
                             .put("wallpaperType", s.wallpaperType)
-                            .put("wallpaperCustomPath", s.wallpaperCustomPath)
+                            .put("wallpaperCustomPath", s.wallpaperCustomPath ?: "")
                             .put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
                             .put("wallpaperGradientEndHex", s.wallpaperGradientEndHex)
                             .put("wallpaperGradientDirection", s.wallpaperGradientDirection)
@@ -575,6 +575,11 @@ fun SettingsScreen(
                             .put("wallpaperBlurDp", s.wallpaperBlurDp.toDouble())
                             .put("wallpaperDimAlpha", s.wallpaperDimAlpha.toDouble())
                             .put("wallpaperDimColorHex", s.wallpaperDimColorHex)
+                            .put("wallpaperVignette", s.wallpaperVignette.toDouble())
+                            .put("wallpaperSaturation", s.wallpaperSaturation.toDouble())
+                            .put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
+                            .put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
+                            .put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
                         onSaveThemeProfile(ThemeProfileEntity(name = newThemeProfileName.trim(), settingsJson = json.toString()))
                         newThemeProfileName = ""
                     }) { Text("Save Current Theme") }
@@ -605,6 +610,11 @@ fun SettingsScreen(
                                     wallpaperBlurDp = json.optDouble("wallpaperBlurDp", current.wallpaperBlurDp.toDouble()).toFloat(),
                                     wallpaperDimAlpha = json.optDouble("wallpaperDimAlpha", current.wallpaperDimAlpha.toDouble()).toFloat(),
                                     wallpaperDimColorHex = json.optLong("wallpaperDimColorHex", current.wallpaperDimColorHex),
+                                    wallpaperVignette = json.optDouble("wallpaperVignette", current.wallpaperVignette.toDouble()).toFloat(),
+                                    wallpaperSaturation = json.optDouble("wallpaperSaturation", current.wallpaperSaturation.toDouble()).toFloat(),
+                                    wallpaperParallaxIntensity = json.optDouble("wallpaperParallaxIntensity", current.wallpaperParallaxIntensity.toDouble()).toFloat(),
+                                    wallpaperTintHex = if (json.isNull("wallpaperTintHex")) current.wallpaperTintHex else json.optLong("wallpaperTintHex", current.wallpaperTintHex ?: 0L),
+                                    wallpaperAmbientMotion = json.optBoolean("wallpaperAmbientMotion", current.wallpaperAmbientMotion),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
                             }) { Text("Apply") }
