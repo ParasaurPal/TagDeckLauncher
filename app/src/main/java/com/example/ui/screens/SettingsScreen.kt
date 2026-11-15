@@ -691,6 +691,20 @@ fun SettingsScreen(
                             .put("fontStyle", s.fontStyle)
                             .put("fontScale", s.fontScale.toDouble())
                             .put("highReadabilityMode", s.highReadabilityMode)
+                            .put("boldLabelsEnabled", s.boldLabelsEnabled)
+                            .put("labelBackdropEnabled", s.labelBackdropEnabled)
+                            .put("labelBackdropColorHex", s.labelBackdropColorHex)
+                            .put("labelBackdropAlpha", s.labelBackdropAlpha.toDouble())
+                            .put("textOutlineEnabled", s.textOutlineEnabled)
+                            .put("textOutlineColorHex", s.textOutlineColorHex)
+                            .put("textOutlineWidthDp", s.textOutlineWidthDp.toDouble())
+                            .put("textShadowEnabled", s.textShadowEnabled)
+                            .put("textShadowRadiusDp", s.textShadowRadiusDp.toDouble())
+                            .put("letterSpacingEm", s.letterSpacingEm.toDouble())
+                            .put("lineHeightMultiplier", s.lineHeightMultiplier.toDouble())
+                            .put("minLabelFontSp", s.minLabelFontSp.toDouble())
+                            .put("labelMaxLines", s.labelMaxLines)
+                            .put("autoContrastText", s.autoContrastText)
                             .put("surfaceOpacity", s.surfaceOpacity.toDouble())
                             .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
                             .put("globalTextColorHex", s.globalTextColorHex)
@@ -774,6 +788,20 @@ fun SettingsScreen(
                                     fontStyle = json.optString("fontStyle", current.fontStyle),
                                     fontScale = json.optDouble("fontScale", current.fontScale.toDouble()).toFloat(),
                                     highReadabilityMode = json.optBoolean("highReadabilityMode", current.highReadabilityMode),
+                                    boldLabelsEnabled = json.optBoolean("boldLabelsEnabled", current.boldLabelsEnabled),
+                                    labelBackdropEnabled = json.optBoolean("labelBackdropEnabled", current.labelBackdropEnabled),
+                                    labelBackdropColorHex = json.optLong("labelBackdropColorHex", current.labelBackdropColorHex),
+                                    labelBackdropAlpha = json.optDouble("labelBackdropAlpha", current.labelBackdropAlpha.toDouble()).toFloat(),
+                                    textOutlineEnabled = json.optBoolean("textOutlineEnabled", current.textOutlineEnabled),
+                                    textOutlineColorHex = json.optLong("textOutlineColorHex", current.textOutlineColorHex),
+                                    textOutlineWidthDp = json.optDouble("textOutlineWidthDp", current.textOutlineWidthDp.toDouble()).toFloat(),
+                                    textShadowEnabled = json.optBoolean("textShadowEnabled", current.textShadowEnabled),
+                                    textShadowRadiusDp = json.optDouble("textShadowRadiusDp", current.textShadowRadiusDp.toDouble()).toFloat(),
+                                    letterSpacingEm = json.optDouble("letterSpacingEm", current.letterSpacingEm.toDouble()).toFloat(),
+                                    lineHeightMultiplier = json.optDouble("lineHeightMultiplier", current.lineHeightMultiplier.toDouble()).toFloat(),
+                                    minLabelFontSp = json.optDouble("minLabelFontSp", current.minLabelFontSp.toDouble()).toFloat(),
+                                    labelMaxLines = json.optInt("labelMaxLines", current.labelMaxLines),
+                                    autoContrastText = json.optBoolean("autoContrastText", current.autoContrastText),
                                     surfaceOpacity = json.optDouble("surfaceOpacity", current.surfaceOpacity.toDouble()).toFloat(),
                                     globalBorderWidthDp = json.optDouble("globalBorderWidthDp", current.globalBorderWidthDp.toDouble()).toFloat(),
                                     globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
