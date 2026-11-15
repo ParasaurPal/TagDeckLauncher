@@ -971,9 +971,9 @@ class LauncherViewModel(
                 targetElementId?.let { id ->
                     uiState.value.homeElements.firstOrNull { it.elementId == id }?.let { element ->
                         if (actionType.endsWith("_GROUP")) {
-                            val groupId = element.groupId
+                            val groupId = element.visibilityGroupId
                             if (!groupId.isNullOrBlank()) {
-                                uiState.value.homeElements.filter { it.groupId == groupId }.forEach { member ->
+                                uiState.value.homeElements.filter { it.visibilityGroupId == groupId }.forEach { member ->
                                     val visible = when (actionType) {
                                         "SHOW_GROUP" -> true
                                         "HIDE_GROUP" -> false
