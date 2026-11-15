@@ -673,6 +673,8 @@ fun SettingsScreen(
                             .put("wallpaperDimColorHex", s.wallpaperDimColorHex)
                             .put("wallpaperVignette", s.wallpaperVignette.toDouble())
                             .put("wallpaperSaturation", s.wallpaperSaturation.toDouble())
+                            .put("wallpaperContrast", s.wallpaperContrast.toDouble())
+                            .put("wallpaperBrightness", s.wallpaperBrightness.toDouble())
                             .put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
                             .put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
                             .put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
@@ -754,6 +756,8 @@ fun SettingsScreen(
                                     wallpaperDimColorHex = json.optLong("wallpaperDimColorHex", current.wallpaperDimColorHex),
                                     wallpaperVignette = json.optDouble("wallpaperVignette", current.wallpaperVignette.toDouble()).toFloat(),
                                     wallpaperSaturation = json.optDouble("wallpaperSaturation", current.wallpaperSaturation.toDouble()).toFloat(),
+                                    wallpaperContrast = json.optDouble("wallpaperContrast", current.wallpaperContrast.toDouble()).toFloat(),
+                                    wallpaperBrightness = json.optDouble("wallpaperBrightness", current.wallpaperBrightness.toDouble()).toFloat(),
                                     wallpaperParallaxIntensity = json.optDouble("wallpaperParallaxIntensity", current.wallpaperParallaxIntensity.toDouble()).toFloat(),
                                     wallpaperTintHex = if (!json.has("wallpaperTintHex") || json.isNull("wallpaperTintHex")) null else json.optLong("wallpaperTintHex", 0L),
                                     wallpaperAmbientMotion = json.optBoolean("wallpaperAmbientMotion", current.wallpaperAmbientMotion),
@@ -1535,6 +1539,10 @@ fun SettingsScreen(
                     Slider(value = s.wallpaperVignette, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperVignette = v) } }, valueRange = 0f..0.9f)
                     Text("Color Saturation: ${(s.wallpaperSaturation * 100).roundToInt()}%")
                     Slider(value = s.wallpaperSaturation, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperSaturation = v) } }, valueRange = 0f..2f)
+                    Text("Color Contrast: ${(s.wallpaperContrast * 100).roundToInt()}%")
+                    Slider(value = s.wallpaperContrast, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperContrast = v) } }, valueRange = 0f..2f)
+                    Text("Brightness: ${(s.wallpaperBrightness * 100).roundToInt()}%")
+                    Slider(value = s.wallpaperBrightness, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperBrightness = v) } }, valueRange = -1f..1f)
                     Text("Wallpaper Parallax: ${(s.wallpaperParallaxIntensity * 100).roundToInt()}%")
                     Slider(value = s.wallpaperParallaxIntensity, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperParallaxIntensity = v) } }, valueRange = 0f..1f)
                     ToggleRow("Ambient Wallpaper Motion", s.wallpaperAmbientMotion) { v -> onUpdateSettings { it.copy(wallpaperAmbientMotion = v) } }
