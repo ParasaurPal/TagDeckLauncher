@@ -1015,6 +1015,7 @@ val page = visiblePages[pageIdx]
             onSelect = { id ->
                 onSelectElement(id)
                 inspectingElement = state.homeElements.firstOrNull { it.elementId == id }
+                showLayerManager = false
             },
             onUpdate = { onSaveElement(it, true) },
             onDismiss = { showLayerManager = false },
