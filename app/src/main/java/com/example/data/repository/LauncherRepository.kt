@@ -556,6 +556,35 @@ class LauncherRepository(
 
     // --- HOME PAGES, WINDOWS & ELEMENTS ---
     suspend fun saveHomePage(page: HomePageEntity): Long = dao.upsertHomePage(page)
+    suspend fun createStarterTemplate(templateName: String): Long {
+        val pages = dao.getHomePagesOnce()
+        val pageId = dao.upsertHomePage(
+            HomePageEntity(
+                title = templateName,
+                pageOrder = (pages.maxOfOrNull { it.pageOrder } ?: -1) + 1,
+                isDefaultHome = false,
+            )
+        )
+        val elements = when (templateName) {
+            "Productivity" -> listOf(
+                HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.08f, yFraction = 0.08f, widthDp = 230f, heightDp = 116f),
+                HomeElementEntity(pageId = pageId, type = "CALENDAR_WIDGET", xFraction = 0.08f, yFraction = 0.36f, widthDp = 310f, heightDp = 220f),
+                HomeElementEntity(pageId = pageId, type = "AT_A_GLANCE_WIDGET", xFraction = 0.08f, yFraction = 0.72f, widthDp = 310f, heightDp = 100f),
+            )
+            "Widget Board" -> listOf(
+                HomeElementEntity(pageId = pageId, type = "BATTERY_WIDGET", xFraction = 0.06f, yFraction = 0.08f, widthDp = 140f, heightDp = 124f),
+                HomeElementEntity(pageId = pageId, type = "STORAGE_RAM_WIDGET", xFraction = 0.55f, yFraction = 0.08f, widthDp = 150f, heightDp = 124f),
+                HomeElementEntity(pageId = pageId, type = "COMPASS_WIDGET", xFraction = 0.28f, yFraction = 0.34f, widthDp = 170f, heightDp = 170f),
+                HomeElementEntity(pageId = pageId, type = "PHOTO_SLIDESHOW", xFraction = 0.08f, yFraction = 0.68f, widthDp = 300f, heightDp = 190f),
+            )
+            else -> listOf(
+                HomeElementEntity(pageId = pageId, type = "TEXT_LABEL", xFraction = 0.16f, yFraction = 0.16f, widthDp = 230f, heightDp = 72f, label = "Welcome Home", fontSizeSp = 24f, backgroundColorHex = 0x00000000L, borderWidthDp = 0f),
+                HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.16f, yFraction = 0.36f, widthDp = 230f, heightDp = 110f),
+            )
+        }
+        dao.insertHomeElements(elements)
+        return pageId
+    }
     suspend fun deleteHomePage(pageId: Long) = dao.deleteHomePageAndElements(pageId)
     suspend fun duplicateHomePage(page: HomePageEntity) {
         val pages = dao.getHomePagesOnce()
