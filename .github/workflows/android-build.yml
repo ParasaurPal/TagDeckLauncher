@@ -40,6 +40,10 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Generate CI debug keystore for feature branches
+        if: github.ref != 'refs/heads/main'
+        run: keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=TagDeck Debug,O=TagDeck,C=US"
+
       - name: Run unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
