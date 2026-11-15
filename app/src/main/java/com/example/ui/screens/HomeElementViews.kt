@@ -4,10 +4,12 @@ import com.example.ui.components.OutlinedLabelText
 
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Environment
 import android.os.StatFs
+import android.provider.Settings
 import android.os.Build
 import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -144,11 +146,30 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.roundToInt
+
+private fun evaluateSimpleCalculator(expression: String): String {
+    val match = Regex("""^\\s*(-?\\d+(?:\\.\\d+)?)\\s*([+\\-*/×÷])\\s*(-?\\d+(?:\\.\\d+)?)\\s*$""").matchEntire(expression)
+        ?: return expression
+    return runCatching {
+        val left = BigDecimal(match.groupValues[1])
+        val right = BigDecimal(match.groupValues[3])
+        val result = when (match.groupValues[2]) {
+            "+" -> left.add(right)
+            "-" -> left.subtract(right)
+            "*", "×" -> left.multiply(right)
+            "/", "÷" -> left.divide(right, 8, RoundingMode.HALF_UP)
+            else -> return expression
+        }
+        result.stripTrailingZeros().toPlainString()
+    }.getOrDefault("Error")
+}
 
 private fun contrastLabelModifier(textColor: Color): Modifier {
     val luminance = textColor.red * 0.299f + textColor.green * 0.587f + textColor.blue * 0.114f
@@ -211,6 +232,11 @@ fun HomeElementBody(
     val context = LocalContext.current
     val shape = resolveMaskShape(element)
     val styleExtras = remember(element.styleExtrasJson) { runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() } }
+    fun updateElementExtra(key: String, value: Any?) {
+        val updated = runCatching { JSONObject(element.styleExtrasJson) }.getOrElse { JSONObject() }
+        updated.put(key, value ?: JSONObject.NULL)
+        onUpdateElement(element.copy(styleExtrasJson = updated.toString()))
+    }
     val glowRadiusDp = styleExtras.optDouble("glowRadiusDp", 0.0).toFloat().coerceIn(0f, 40f)
     val glowColor = Color(styleExtras.optLong("glowColorHex", element.borderColorHex))
     val textOutlineEnabled = styleExtras.optBoolean("textOutlineEnabled", false)
