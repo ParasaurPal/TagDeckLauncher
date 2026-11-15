@@ -2756,7 +2756,7 @@ fun PagesAndSnapshotsDialog(
                         Text(trigger.replace('_', ' '), style = MaterialTheme.typography.labelMedium)
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            listOf("NONE", "NEXT_PAGE", "PREV_PAGE", "OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS").forEach { action ->
+                            listOf("NONE", "NEXT_PAGE", "PREV_PAGE", "OPEN_DRAWER", "OPEN_SEARCH", "OPEN_TAG_MANAGER", "TOGGLE_EDIT_MODE", "OPEN_SETTINGS", "OPEN_WIFI_PANEL", "OPEN_INTERNET_PANEL", "OPEN_VOLUME_PANEL", "OPEN_BLUETOOTH_SETTINGS", "TOGGLE_FLASHLIGHT", "TOGGLE_RINGER").forEach { action ->
                                 FilterChip(
                                     selected = getPageGesture(trigger) == action,
                                     onClick = { setPageGesture(trigger, action) },
