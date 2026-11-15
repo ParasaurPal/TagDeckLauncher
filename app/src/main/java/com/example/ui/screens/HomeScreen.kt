@@ -212,6 +212,13 @@ fun HomeScreen(
     }
 
     val currentPage = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }
+    fun resolvePageTarget(target: Int): Int {
+        if (currentPage.loopNavigation && visiblePages.isNotEmpty()) {
+            if (target < 0) return visiblePages.lastIndex
+            if (target >= visiblePages.size) return 0
+        }
+        return target.coerceIn(0, visiblePages.lastIndex)
+    }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
     val rightEdgeSidebar = state.sidebars.firstOrNull { it.side == "RIGHT" && it.edgeZoneEnabled }
     val topEdgeSidebar = state.sidebars.firstOrNull { it.side == "TOP" && it.edgeZoneEnabled }
@@ -244,7 +251,7 @@ fun HomeScreen(
                                         if (dy < -110f) {
                                             trackingTwoFinger = false
                                             onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
-                                                scope.launch { pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                                scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                             }
                                         } else if (dy > 110f) {
                                             trackingTwoFinger = false
