@@ -460,6 +460,7 @@ fun HomeElementBody(
                         value = styleExtras.optString("noteText", ""),
                         onValueChange = { updateElementExtra("noteText", it) },
                         modifier = Modifier.fillMaxSize().padding(6.dp),
+                        textStyle = elementTextStyle,
                         label = { Text(element.label.ifBlank { "Quick Note" }) },
                         placeholder = { Text("Write a note or checklist…") },
                     )
@@ -536,7 +537,7 @@ fun HomeElementBody(
                     var query by remember(element.elementId) { mutableStateOf("") }
                     val matches = state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden && (query.isBlank() || it.app.displayName.contains(query, ignoreCase = true)) }.take(40)
                     Column(modifier = Modifier.fillMaxSize().padding(6.dp)) {
-                        OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search apps") })
+                        OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), textStyle = elementTextStyle, singleLine = true, label = { Text("Search apps") })
                         LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxSize()) {
                             items(matches, key = { it.app.packageName }) { item ->
                                 Column(modifier = Modifier.clickable { onLaunchApp(item.app) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -875,7 +876,7 @@ fun HomeElementBody(
                                 Spacer(Modifier.height(4.dp))
                                 OutlinedLabelText(
                                     text = element.label.ifBlank { app.displayName },
-                                    color = Color.White,
+                                    color = elementTextColor,
                                     style = elementTextStyle,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -977,8 +978,7 @@ fun HomeElementBody(
                         Text(
                             text = win?.title ?: element.label.ifBlank { "Window" },
                             color = Color(element.textColorHex),
-                            fontSize = element.fontSizeSp.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            style = elementTextStyle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = contrastLabelModifier(Color(element.textColorHex)),
@@ -1105,7 +1105,7 @@ fun HomeElementBody(
                             Text(
                                 text = element.label.ifBlank { "Folder" },
                                 color = Color(element.textColorHex),
-                                fontSize = element.fontSizeSp.sp,
+                                style = elementTextStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = contrastLabelModifier(Color(element.textColorHex)),
