@@ -340,4 +340,31 @@ interface LauncherDao {
 
     @Query("DELETE FROM background_presets WHERE presetId = :presetId")
     suspend fun deleteBackgroundPreset(presetId: Long)
+
+    // --- CUSTOM FONT LIBRARY ---
+    @Query("SELECT * FROM custom_fonts ORDER BY isFavorite DESC, displayName COLLATE NOCASE ASC")
+    fun observeCustomFonts(): Flow<List<CustomFontEntity>>
+
+    @Query("SELECT * FROM custom_fonts ORDER BY displayName COLLATE NOCASE ASC")
+    suspend fun getCustomFontsOnce(): List<CustomFontEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCustomFont(font: CustomFontEntity): Long
+
+    @Query("DELETE FROM custom_fonts WHERE fontId = :fontId")
+    suspend fun deleteCustomFont(fontId: Long)
+
+    // --- SAVED THEME PROFILES ---
+    @Query("SELECT * FROM theme_profiles ORDER BY isBuiltIn DESC, updatedAt DESC")
+    fun observeThemeProfiles(): Flow<List<ThemeProfileEntity>>
+
+    @Query("SELECT * FROM theme_profiles ORDER BY updatedAt DESC")
+    suspend fun getThemeProfilesOnce(): List<ThemeProfileEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertThemeProfile(profile: ThemeProfileEntity): Long
+
+    @Query("DELETE FROM theme_profiles WHERE profileId = :profileId AND isBuiltIn = 0")
+    suspend fun deleteThemeProfile(profileId: Long)
+
 }
