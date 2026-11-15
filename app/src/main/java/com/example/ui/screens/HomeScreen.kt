@@ -546,6 +546,26 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                                 translationX = -pageOffset * size.width * 0.22f
                                 alpha = 1f - abs(pageOffset) * 0.18f
                             }
+                            "STACK" -> Modifier.graphicsLayer {
+                                val depth = abs(pageOffset)
+                                translationX = pageOffset * size.width * 0.16f
+                                scaleX = 1f - depth * 0.12f
+                                scaleY = 1f - depth * 0.12f
+                                alpha = 1f - depth * 0.22f
+                            }
+                            "ACCORDION" -> Modifier.graphicsLayer {
+                                cameraDistance = 10f * density
+                                rotationY = -pageOffset * 72f
+                                scaleX = 1f - abs(pageOffset) * 0.18f
+                                alpha = 1f - abs(pageOffset) * 0.25f
+                            }
+                            "WINDMILL" -> Modifier.graphicsLayer {
+                                rotationZ = pageOffset * 90f
+                                val scale = 1f - abs(pageOffset) * 0.28f
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = 1f - abs(pageOffset) * 0.3f
+                            }
                             else -> Modifier
                         }
                         val elements = remember(state.homeElements, page.pageId) {
