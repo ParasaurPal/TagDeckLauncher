@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.example.ui.screens
 
 import android.Manifest
@@ -36,6 +38,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -114,6 +117,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.db.BackgroundPresetEntity
@@ -917,11 +921,6 @@ fun SettingsScreen(
                                     statusStripAccentColorHex = json.optLong("statusStripAccentColorHex", current.statusStripAccentColorHex),
                                     widgetFeedEnabled = json.optBoolean("widgetFeedEnabled", current.widgetFeedEnabled),
                                     widgetFeedTitleColor = json.optString("widgetFeedTitleColor", current.widgetFeedTitleColor),
-                                    globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
-                                    globalIconShape = json.optString("globalIconShape", current.globalIconShape),
-                                    globalBorderWidthDp = json.optDouble("globalBorderWidthDp", current.globalBorderWidthDp.toDouble()).toFloat(),
-                                    surfaceOpacity = json.optDouble("surfaceOpacity", current.surfaceOpacity.toDouble()).toFloat(),
-                                    globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
                                     allAppsBgBlurDp = json.optDouble("allAppsBgBlurDp", current.allAppsBgBlurDp.toDouble()).toFloat(),
                                     allAppsBgImagePath = if (json.has("allAppsBgImagePath")) json.optString("allAppsBgImagePath", "").takeIf { it.isNotBlank() } else current.allAppsBgImagePath,
                                     niagaraWaveEnabled = json.optBoolean("niagaraWaveEnabled", current.niagaraWaveEnabled),
