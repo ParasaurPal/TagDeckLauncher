@@ -637,6 +637,21 @@ fun SettingsScreen(
                             .put("pageIndicatorStyle", s.pageIndicatorStyle)
                             .put("widgetFeedEnabled", s.widgetFeedEnabled)
                             .put("widgetFeedTitleColor", s.widgetFeedTitleColor)
+                            .put("globalCornerRadiusDp", s.globalCornerRadiusDp.toDouble())
+                            .put("globalIconShape", s.globalIconShape)
+                            .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
+                            .put("surfaceOpacity", s.surfaceOpacity.toDouble())
+                            .put("globalTextColorHex", s.globalTextColorHex)
+                            .put("allAppsBgBlurDp", s.allAppsBgBlurDp.toDouble())
+                            .put("allAppsBgImagePath", s.allAppsBgImagePath ?: "")
+                            .put("niagaraWaveEnabled", s.niagaraWaveEnabled)
+                            .put("niagaraIndexVisible", s.niagaraIndexVisible)
+                            .put("niagaraEdge", s.niagaraEdge)
+                            .put("niagaraWaveIntensity", s.niagaraWaveIntensity.toDouble())
+                            .put("niagaraBaseFontSp", s.niagaraBaseFontSp.toDouble())
+                            .put("niagaraSelectedFontSp", s.niagaraSelectedFontSp.toDouble())
+                            .put("niagaraAccentColorHex", s.niagaraAccentColorHex)
+                            .put("niagaraHapticFeedback", s.niagaraHapticFeedback)
                         onSaveThemeProfile(ThemeProfileEntity(name = newThemeProfileName.trim(), settingsJson = json.toString()))
                         newThemeProfileName = ""
                     }) { Text("Save Current Theme") }
@@ -693,6 +708,21 @@ fun SettingsScreen(
                                     pageIndicatorStyle = json.optString("pageIndicatorStyle", current.pageIndicatorStyle),
                                     widgetFeedEnabled = json.optBoolean("widgetFeedEnabled", current.widgetFeedEnabled),
                                     widgetFeedTitleColor = json.optString("widgetFeedTitleColor", current.widgetFeedTitleColor),
+                                    globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
+                                    globalIconShape = json.optString("globalIconShape", current.globalIconShape),
+                                    globalBorderWidthDp = json.optDouble("globalBorderWidthDp", current.globalBorderWidthDp.toDouble()).toFloat(),
+                                    surfaceOpacity = json.optDouble("surfaceOpacity", current.surfaceOpacity.toDouble()).toFloat(),
+                                    globalTextColorHex = json.optLong("globalTextColorHex", current.globalTextColorHex),
+                                    allAppsBgBlurDp = json.optDouble("allAppsBgBlurDp", current.allAppsBgBlurDp.toDouble()).toFloat(),
+                                    allAppsBgImagePath = if (json.has("allAppsBgImagePath")) json.optString("allAppsBgImagePath", "").takeIf { it.isNotBlank() } else current.allAppsBgImagePath,
+                                    niagaraWaveEnabled = json.optBoolean("niagaraWaveEnabled", current.niagaraWaveEnabled),
+                                    niagaraIndexVisible = json.optBoolean("niagaraIndexVisible", current.niagaraIndexVisible),
+                                    niagaraEdge = json.optString("niagaraEdge", current.niagaraEdge),
+                                    niagaraWaveIntensity = json.optDouble("niagaraWaveIntensity", current.niagaraWaveIntensity.toDouble()).toFloat(),
+                                    niagaraBaseFontSp = json.optDouble("niagaraBaseFontSp", current.niagaraBaseFontSp.toDouble()).toFloat(),
+                                    niagaraSelectedFontSp = json.optDouble("niagaraSelectedFontSp", current.niagaraSelectedFontSp.toDouble()).toFloat(),
+                                    niagaraAccentColorHex = json.optLong("niagaraAccentColorHex", current.niagaraAccentColorHex),
+                                    niagaraHapticFeedback = json.optBoolean("niagaraHapticFeedback", current.niagaraHapticFeedback),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
                             }) { Text("Apply") }
