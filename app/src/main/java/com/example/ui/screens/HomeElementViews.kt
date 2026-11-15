@@ -191,28 +191,47 @@ private fun resolveMaskShape(element: HomeElementEntity): Shape {
         bottomEnd = extras?.optDouble("bottomEndDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
         bottomStart = extras?.optDouble("bottomStartDp", base)?.toFloat()?.coerceIn(0f, 120f)?.dp ?: element.cornerRadiusDp.dp,
     )
+    fun polygon(points: Int, star: Boolean = false): Shape = GenericShape { size, _ ->
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = minOf(size.width, size.height) / 2f
+        val count = if (star) points * 2 else points
+        repeat(count) { index ->
+            val angle = (-Math.PI / 2.0) + (2.0 * Math.PI * index / count)
+            val r = if (star && index % 2 == 1) radius * 0.43f else radius
+            val x = cx + kotlin.math.cos(angle).toFloat() * r
+            val y = cy + kotlin.math.sin(angle).toFloat() * r
+            if (index == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
     return when (element.imageMaskShape) {
-    "CIRCLE" -> CircleShape
-    "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
-    "DIAMOND" -> GenericShape { size, _ ->
-        moveTo(size.width / 2f, 0f)
-        lineTo(size.width, size.height / 2f)
-        lineTo(size.width / 2f, size.height)
-        lineTo(0f, size.height / 2f)
-        close()
-    }
-    "HEXAGON" -> GenericShape { size, _ ->
-        val w = size.width
-        val h = size.height
-        moveTo(w * 0.5f, 0f)
-        lineTo(w, h * 0.25f)
-        lineTo(w, h * 0.75f)
-        lineTo(w * 0.5f, h)
-        lineTo(0f, h * 0.75f)
-        lineTo(0f, h * 0.25f)
-        close()
-    }
-    else -> customCorners
+        "CIRCLE" -> CircleShape
+        "PILL" -> RoundedCornerShape(50)
+        "SQUIRCLE" -> RoundedCornerShape((element.widthDp.coerceAtMost(element.heightDp) * 0.28f).dp)
+        "DIAMOND" -> polygon(4)
+        "TRIANGLE" -> polygon(3)
+        "PENTAGON" -> polygon(5)
+        "HEXAGON" -> polygon(6)
+        "OCTAGON" -> polygon(8)
+        "STAR" -> polygon(5, star = true)
+        "CUT_CORNER" -> GenericShape { size, _ ->
+            val cut = minOf(size.width, size.height) * 0.18f
+            moveTo(cut, 0f); lineTo(size.width - cut, 0f)
+            lineTo(size.width, cut); lineTo(size.width, size.height - cut)
+            lineTo(size.width - cut, size.height); lineTo(cut, size.height)
+            lineTo(0f, size.height - cut); lineTo(0f, cut); close()
+        }
+        "ARCH" -> GenericShape { size, _ ->
+            val radius = minOf(size.width / 2f, size.height * 0.45f)
+            moveTo(0f, size.height)
+            lineTo(0f, radius)
+            cubicTo(0f, radius * 0.45f, size.width * 0.22f, 0f, size.width / 2f, 0f)
+            cubicTo(size.width * 0.78f, 0f, size.width, radius * 0.45f, size.width, radius)
+            lineTo(size.width, size.height)
+            close()
+        }
+        else -> customCorners
     }
 }
 
@@ -2648,7 +2667,7 @@ fun ElementInspectorDialog(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            listOf("NONE", "SQUIRCLE", "CIRCLE", "DIAMOND", "HEXAGON").forEach { m ->
+                            listOf("NONE", "SQUIRCLE", "CIRCLE", "PILL", "DIAMOND", "TRIANGLE", "PENTAGON", "HEXAGON", "OCTAGON", "STAR", "ARCH", "CUT_CORNER").forEach { m ->
                                 FilterChip(
                                     selected = edited.imageMaskShape == m,
                                     onClick = { edited = edited.copy(imageMaskShape = m) },
