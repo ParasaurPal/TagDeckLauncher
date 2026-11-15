@@ -305,6 +305,20 @@ object BackupManager {
             put("fontStyle", s.fontStyle)
             put("fontScale", s.fontScale.toDouble())
             put("highReadabilityMode", s.highReadabilityMode)
+            put("boldLabelsEnabled", s.boldLabelsEnabled)
+            put("labelBackdropEnabled", s.labelBackdropEnabled)
+            put("labelBackdropColorHex", s.labelBackdropColorHex)
+            put("labelBackdropAlpha", s.labelBackdropAlpha.toDouble())
+            put("textOutlineEnabled", s.textOutlineEnabled)
+            put("textOutlineColorHex", s.textOutlineColorHex)
+            put("textOutlineWidthDp", s.textOutlineWidthDp.toDouble())
+            put("textShadowEnabled", s.textShadowEnabled)
+            put("textShadowRadiusDp", s.textShadowRadiusDp.toDouble())
+            put("letterSpacingEm", s.letterSpacingEm.toDouble())
+            put("lineHeightMultiplier", s.lineHeightMultiplier.toDouble())
+            put("minLabelFontSp", s.minLabelFontSp.toDouble())
+            put("labelMaxLines", s.labelMaxLines)
+            put("autoContrastText", s.autoContrastText)
             put("surfaceOpacity", s.surfaceOpacity.toDouble())
             put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
             put("globalTextColorHex", s.globalTextColorHex)
@@ -320,6 +334,8 @@ object BackupManager {
             put("wallpaperDimColorHex", s.wallpaperDimColorHex)
             put("wallpaperVignette", s.wallpaperVignette.toDouble())
             put("wallpaperSaturation", s.wallpaperSaturation.toDouble())
+            put("wallpaperContrast", s.wallpaperContrast.toDouble())
+            put("wallpaperBrightness", s.wallpaperBrightness.toDouble())
             put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
             put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
             put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
@@ -698,6 +714,20 @@ object BackupManager {
             fontStyle = so.optString("fontStyle", "DEFAULT"),
             fontScale = so.optDouble("fontScale", 1.0).toFloat(),
             highReadabilityMode = so.optBoolean("highReadabilityMode", false),
+            boldLabelsEnabled = so.optBoolean("boldLabelsEnabled", false),
+            labelBackdropEnabled = so.optBoolean("labelBackdropEnabled", false),
+            labelBackdropColorHex = so.optLong("labelBackdropColorHex", 0x99000000L),
+            labelBackdropAlpha = so.optDouble("labelBackdropAlpha", 0.6).toFloat(),
+            textOutlineEnabled = so.optBoolean("textOutlineEnabled", false),
+            textOutlineColorHex = so.optLong("textOutlineColorHex", 0xFF000000L),
+            textOutlineWidthDp = so.optDouble("textOutlineWidthDp", 0.8).toFloat(),
+            textShadowEnabled = so.optBoolean("textShadowEnabled", false),
+            textShadowRadiusDp = so.optDouble("textShadowRadiusDp", 4.0).toFloat(),
+            letterSpacingEm = so.optDouble("letterSpacingEm", 0.0).toFloat(),
+            lineHeightMultiplier = so.optDouble("lineHeightMultiplier", 1.25).toFloat(),
+            minLabelFontSp = so.optDouble("minLabelFontSp", 11.0).toFloat(),
+            labelMaxLines = so.optInt("labelMaxLines", 1),
+            autoContrastText = so.optBoolean("autoContrastText", false),
             surfaceOpacity = so.optDouble("surfaceOpacity", 0.86).toFloat(),
             globalBorderWidthDp = so.optDouble("globalBorderWidthDp", 1.0).toFloat(),
             globalTextColorHex = so.optLong("globalTextColorHex", 0xFFF8FAFC),
@@ -713,6 +743,8 @@ object BackupManager {
             wallpaperDimColorHex = so.optLong("wallpaperDimColorHex", 0xFF000000L),
             wallpaperVignette = so.optDouble("wallpaperVignette", 0.0).toFloat(),
             wallpaperSaturation = so.optDouble("wallpaperSaturation", 1.0).toFloat(),
+            wallpaperContrast = so.optDouble("wallpaperContrast", 1.0).toFloat(),
+            wallpaperBrightness = so.optDouble("wallpaperBrightness", 0.0).toFloat(),
             wallpaperParallaxIntensity = so.optDouble("wallpaperParallaxIntensity", 0.0).toFloat(),
             wallpaperTintHex = so.optNullableLong("wallpaperTintHex"),
             wallpaperAmbientMotion = so.optBoolean("wallpaperAmbientMotion", false),
