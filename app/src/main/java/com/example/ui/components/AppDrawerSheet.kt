@@ -12,6 +12,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -70,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -395,7 +397,7 @@ fun AppDrawerOverlay(
                                 }
                             }
 
-                            if (state.settings.drawerSearchBarVisible) {
+                            if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchBarPosition == "TOP") {
                                 OutlinedTextField(
                                     value = query,
                                     onValueChange = { query = it },
@@ -476,8 +478,10 @@ fun AppDrawerOverlay(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(16.dp))
-                                                
+                                                .shadow(state.settings.drawerCardShadowDp.coerceIn(0f, 20f).dp, RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
+                                                .clip(RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)))
+                                                .border(state.settings.drawerCardBorderWidthDp.coerceIn(0f, 4f).dp, Color(state.settings.drawerCardBorderColorHex), RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
                                                 .combinedClickable(
                                                     onClick = {
                                                         onLaunchApp(item.app)
@@ -546,7 +550,10 @@ fun AppDrawerOverlay(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(16.dp))
+                                                .shadow(state.settings.drawerCardShadowDp.coerceIn(0f, 20f).dp, RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
+                                                .clip(RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)))
+                                                .border(state.settings.drawerCardBorderWidthDp.coerceIn(0f, 4f).dp, Color(state.settings.drawerCardBorderColorHex), RoundedCornerShape(state.settings.drawerCornerRadiusDp.coerceIn(8f, 32f).dp))
                                                 .combinedClickable(
                                                     onClick = {
                                                         onLaunchApp(item.app)
@@ -611,7 +618,33 @@ fun AppDrawerOverlay(
                             }
                         }
 
-                        // MANDATORY BOTTOM SECTION: Persistent Horizontal Category & Tag Bar
+                        if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchBarPosition == "BOTTOM") {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                                OutlinedTextField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    modifier = Modifier.fillMaxWidth().testTag("drawer_search_input_bottom"),
+                                    placeholder = { Text("Search apps, categories, tags...") },
+                                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                                    trailingIcon = {
+                                        if (query.isNotEmpty()) IconButton(onClick = { query = "" }) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                                        }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(state.settings.globalCornerRadiusDp.coerceIn(8f, 28f).dp),
+                                )
+                                if (query.isNotBlank()) {
+                                    TextButton(onClick = { onOpenGlobalSearch(query) }) {
+                                        Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Search everywhere for \"$query\"")
+                                    }
+                                }
+                            }
+                        }
+
+                        // MANDATORY BOTTOM SECTION: Persistent Horizontal Category & Tag Bar                        // MANDATORY BOTTOM SECTION: Persistent Horizontal Category & Tag Bar
                         Surface(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = state.settings.drawerCardOpacity.coerceIn(0.2f, 1f)),
                             tonalElevation = 6.dp,
