@@ -49,6 +49,7 @@ import androidx.compose.material.icons.rounded.SortByAlpha
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -709,6 +710,8 @@ fun AppDrawerOverlay(
                                         }
                                     }
                                 }
+                            }
+
                             }
 
                         if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchPosition == "BOTTOM") {
