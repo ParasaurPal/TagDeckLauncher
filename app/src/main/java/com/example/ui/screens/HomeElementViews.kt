@@ -1945,3 +1945,42 @@ fun PagesAndSnapshotsDialog(
         },
     )
 }
+
+
+@Composable
+fun LayerManagerDialog(
+    elements: List<HomeElementEntity>,
+    onSelect: (Long) -> Unit,
+    onUpdate: (HomeElementEntity) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Layer Manager") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("Select a layer to inspect it. Adjust stacking order, visibility, and locks without hunting for objects on the canvas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                elements.sortedByDescending { it.zIndex }.forEach { element ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { onSelect(element.elementId) }.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(element.label.ifBlank { element.type.replace('_', ' ') }, maxLines = 1, style = MaterialTheme.typography.bodyMedium)
+                            Text("Layer ${element.zIndex}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = { onUpdate(element.copy(zIndex = element.zIndex + 1)) }) { Text("↑") }
+                        TextButton(onClick = { onUpdate(element.copy(zIndex = (element.zIndex - 1).coerceAtLeast(0))) }) { Text("↓") }
+                        Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
+                    }
+                    HorizontalDivider()
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
+}
