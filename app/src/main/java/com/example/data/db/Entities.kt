@@ -228,7 +228,7 @@ data class LauncherWindowEntity(
     val animationStyle: String = "SCALE", // SCALE, SLIDE, FADE
 )
 
-@Entity(tableName = "home_elements")
+@Entity(tableName = "home_elements", indices = [Index(value = ["parentContainerId"])])
 data class HomeElementEntity(
     @PrimaryKey(autoGenerate = true) val elementId: Long = 0,
     val pageId: Long,
