@@ -339,6 +339,7 @@ object BackupManager {
             put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
             put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
             put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
+            put("wallpaperAmbientEffectType", s.wallpaperAmbientEffectType)
             put("allAppsSidebarEdge", s.allAppsSidebarEdge)
             put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
             put("allAppsBgType", s.allAppsBgType)
@@ -749,6 +750,7 @@ object BackupManager {
             wallpaperParallaxIntensity = so.optDouble("wallpaperParallaxIntensity", 0.0).toFloat(),
             wallpaperTintHex = so.optNullableLong("wallpaperTintHex"),
             wallpaperAmbientMotion = so.optBoolean("wallpaperAmbientMotion", false),
+            wallpaperAmbientEffectType = so.optString("wallpaperAmbientEffectType", "RADIAL"),
             allAppsSidebarEdge = so.optString("allAppsSidebarEdge", "RIGHT"),
             allAppsSidebarWidthFraction = so.optDouble("allAppsSidebarWidthFraction", 0.90).toFloat(),
             allAppsBgType = so.optString("allAppsBgType", "SOLID"),
