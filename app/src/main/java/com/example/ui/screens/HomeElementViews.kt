@@ -2399,6 +2399,20 @@ fun ElementInspectorDialog(
                                 Text("Label backdrop pill")
                                 Switch(checked = styleExtras.optBoolean("labelBackdropEnabled", state.settings.labelBackdropEnabled || state.settings.highReadabilityMode), onCheckedChange = { updateStyleExtraBoolean("labelBackdropEnabled", it) })
                             }
+                            if (styleExtras.optBoolean("labelBackdropEnabled", state.settings.labelBackdropEnabled || state.settings.highReadabilityMode)) {
+                                ColorSwatchRow(
+                                    selectedColorHex = styleExtras.optLong("labelBackdropColorHex", state.settings.labelBackdropColorHex),
+                                    colors = StudioNeutralAndAccentSwatches,
+                                    onSelect = { updateStyleExtra("labelBackdropColorHex", it.toDouble()) },
+                                    tagPrefix = "object_label_backdrop",
+                                )
+                                Text("Backdrop opacity: ${(styleExtras.optDouble("labelBackdropAlpha", state.settings.labelBackdropAlpha.toDouble()) * 100).roundToInt()}%")
+                                Slider(
+                                    value = styleExtras.optDouble("labelBackdropAlpha", state.settings.labelBackdropAlpha.toDouble()).toFloat().coerceIn(0f, 1f),
+                                    onValueChange = { updateStyleExtra("labelBackdropAlpha", it.toDouble()) },
+                                    valueRange = 0f..1f,
+                                )
+                            }
                             OutlinedButton(onClick = {
                                 val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
                                 updated.put("minimumFontSizeSp", 14)
