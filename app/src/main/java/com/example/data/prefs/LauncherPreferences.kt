@@ -62,6 +62,10 @@ data class LauncherSettings(
     val drawerCardOpacity: Float = 0.88f,
     val drawerCornerRadiusDp: Float = 26f,
     val drawerSearchBarVisible: Boolean = true,
+    val drawerSearchBarPosition: String = "TOP", // TOP, BOTTOM
+    val drawerCardShadowDp: Float = 4f,
+    val drawerCardBorderWidthDp: Float = 0f,
+    val drawerCardBorderColorHex: Long = 0x55FFFFFFL,
     // Niagara Wave Alphabet Navigation
     val niagaraWaveEnabled: Boolean = true,
     val niagaraIndexVisible: Boolean = true,
@@ -70,6 +74,8 @@ data class LauncherSettings(
     val niagaraBaseFontSp: Float = 11f,
     val niagaraSelectedFontSp: Float = 24f,
     val niagaraAccentColorHex: Long = 0xFF38BDF8L,
+    val niagaraIndexWidthDp: Float = 28f,
+    val niagaraIndexColorHex: Long = 0xFF38BDF8L,
     val niagaraHapticFeedback: Boolean = true,
     // Edit Mode & Canvas
     val gridSnapEnabled: Boolean = false,
@@ -85,6 +91,12 @@ data class LauncherSettings(
     val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
     val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
     val pageIndicatorColorHex: Long = 0xFF38BDF8L,
+    val pageIndicatorSizeDp: Float = 7f,
+    val pageIndicatorActiveWidthDp: Float = 22f,
+    val statusStripEnabled: Boolean = false,
+    val statusStripShowDate: Boolean = true,
+    val statusStripShowBattery: Boolean = true,
+    val statusStripAccentColorHex: Long = 0xFF38BDF8L,
     val edgeHandlesVisible: Boolean = true,
     val edgeHandleOpacity: Float = 0.45f,
     val edgeHandleWidthDp: Float = 4f,
@@ -192,6 +204,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         val DRAWER_CARD_OPACITY = floatPreferencesKey("drawer_card_opacity")
         val DRAWER_CORNER_RADIUS = floatPreferencesKey("drawer_corner_radius")
         val DRAWER_SEARCH_BAR_VISIBLE = booleanPreferencesKey("drawer_search_bar_visible")
+        val DRAWER_SEARCH_BAR_POSITION = stringPreferencesKey("drawer_search_bar_position")
+        val DRAWER_CARD_SHADOW = floatPreferencesKey("drawer_card_shadow")
+        val DRAWER_CARD_BORDER_WIDTH = floatPreferencesKey("drawer_card_border_width")
+        val DRAWER_CARD_BORDER_COLOR = longPreferencesKey("drawer_card_border_color")
 
         val NIAGARA_WAVE_ENABLED = booleanPreferencesKey("niagara_wave_enabled")
         val NIAGARA_INDEX_VISIBLE = booleanPreferencesKey("niagara_index_visible")
@@ -200,6 +216,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val NIAGARA_BASE_FONT = floatPreferencesKey("niagara_base_font")
         val NIAGARA_SELECTED_FONT = floatPreferencesKey("niagara_selected_font")
         val NIAGARA_ACCENT = longPreferencesKey("niagara_accent")
+        val NIAGARA_INDEX_WIDTH = floatPreferencesKey("niagara_index_width")
+        val NIAGARA_INDEX_COLOR = longPreferencesKey("niagara_index_color")
         val NIAGARA_HAPTIC = booleanPreferencesKey("niagara_haptic")
 
         val GRID_SNAP = booleanPreferencesKey("grid_snap")
@@ -215,6 +233,12 @@ class LauncherPreferencesRepository(private val context: Context) {
         val WIDGET_FEED_TITLE_COLOR = stringPreferencesKey("widget_feed_title_color")
         val PAGE_INDICATOR_STYLE = stringPreferencesKey("page_indicator_style")
         val PAGE_INDICATOR_COLOR = longPreferencesKey("page_indicator_color")
+        val PAGE_INDICATOR_SIZE = floatPreferencesKey("page_indicator_size")
+        val PAGE_INDICATOR_ACTIVE_WIDTH = floatPreferencesKey("page_indicator_active_width")
+        val STATUS_STRIP_ENABLED = booleanPreferencesKey("status_strip_enabled")
+        val STATUS_STRIP_SHOW_DATE = booleanPreferencesKey("status_strip_show_date")
+        val STATUS_STRIP_SHOW_BATTERY = booleanPreferencesKey("status_strip_show_battery")
+        val STATUS_STRIP_ACCENT = longPreferencesKey("status_strip_accent")
         val EDGE_HANDLES_VISIBLE = booleanPreferencesKey("edge_handles_visible")
         val EDGE_HANDLE_OPACITY = floatPreferencesKey("edge_handle_opacity")
         val EDGE_HANDLE_WIDTH = floatPreferencesKey("edge_handle_width")
@@ -294,6 +318,10 @@ class LauncherPreferencesRepository(private val context: Context) {
         drawerCardOpacity = prefs[Keys.DRAWER_CARD_OPACITY] ?: 0.88f,
         drawerCornerRadiusDp = prefs[Keys.DRAWER_CORNER_RADIUS] ?: 26f,
         drawerSearchBarVisible = prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] ?: true,
+        drawerSearchBarPosition = prefs[Keys.DRAWER_SEARCH_BAR_POSITION] ?: "TOP",
+        drawerCardShadowDp = prefs[Keys.DRAWER_CARD_SHADOW] ?: 4f,
+        drawerCardBorderWidthDp = prefs[Keys.DRAWER_CARD_BORDER_WIDTH] ?: 0f,
+        drawerCardBorderColorHex = prefs[Keys.DRAWER_CARD_BORDER_COLOR] ?: 0x55FFFFFFL,
         niagaraWaveEnabled = prefs[Keys.NIAGARA_WAVE_ENABLED] ?: true,
         niagaraIndexVisible = prefs[Keys.NIAGARA_INDEX_VISIBLE] ?: true,
         niagaraEdge = prefs[Keys.NIAGARA_EDGE] ?: "RIGHT",
@@ -301,6 +329,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         niagaraBaseFontSp = prefs[Keys.NIAGARA_BASE_FONT] ?: 11f,
         niagaraSelectedFontSp = prefs[Keys.NIAGARA_SELECTED_FONT] ?: 24f,
         niagaraAccentColorHex = prefs[Keys.NIAGARA_ACCENT] ?: 0xFF38BDF8L,
+        niagaraIndexWidthDp = prefs[Keys.NIAGARA_INDEX_WIDTH] ?: 28f,
+        niagaraIndexColorHex = prefs[Keys.NIAGARA_INDEX_COLOR] ?: 0xFF38BDF8L,
         niagaraHapticFeedback = prefs[Keys.NIAGARA_HAPTIC] ?: true,
         gridSnapEnabled = prefs[Keys.GRID_SNAP] ?: false,
         alignmentGuidesEnabled = prefs[Keys.ALIGNMENT_GUIDES] ?: true,
@@ -315,6 +345,12 @@ class LauncherPreferencesRepository(private val context: Context) {
         widgetFeedTitleColor = prefs[Keys.WIDGET_FEED_TITLE_COLOR] ?: "WHITE",
         pageIndicatorStyle = prefs[Keys.PAGE_INDICATOR_STYLE] ?: "DOTS",
         pageIndicatorColorHex = prefs[Keys.PAGE_INDICATOR_COLOR] ?: 0xFF38BDF8L,
+        pageIndicatorSizeDp = prefs[Keys.PAGE_INDICATOR_SIZE] ?: 7f,
+        pageIndicatorActiveWidthDp = prefs[Keys.PAGE_INDICATOR_ACTIVE_WIDTH] ?: 22f,
+        statusStripEnabled = prefs[Keys.STATUS_STRIP_ENABLED] ?: false,
+        statusStripShowDate = prefs[Keys.STATUS_STRIP_SHOW_DATE] ?: true,
+        statusStripShowBattery = prefs[Keys.STATUS_STRIP_SHOW_BATTERY] ?: true,
+        statusStripAccentColorHex = prefs[Keys.STATUS_STRIP_ACCENT] ?: 0xFF38BDF8L,
         edgeHandlesVisible = prefs[Keys.EDGE_HANDLES_VISIBLE] ?: true,
         edgeHandleOpacity = prefs[Keys.EDGE_HANDLE_OPACITY] ?: 0.45f,
         edgeHandleWidthDp = prefs[Keys.EDGE_HANDLE_WIDTH] ?: 4f,
@@ -403,6 +439,10 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.DRAWER_CARD_OPACITY] = updated.drawerCardOpacity
             prefs[Keys.DRAWER_CORNER_RADIUS] = updated.drawerCornerRadiusDp
             prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] = updated.drawerSearchBarVisible
+            prefs[Keys.DRAWER_SEARCH_BAR_POSITION] = updated.drawerSearchBarPosition
+            prefs[Keys.DRAWER_CARD_SHADOW] = updated.drawerCardShadowDp
+            prefs[Keys.DRAWER_CARD_BORDER_WIDTH] = updated.drawerCardBorderWidthDp
+            prefs[Keys.DRAWER_CARD_BORDER_COLOR] = updated.drawerCardBorderColorHex
 
             prefs[Keys.NIAGARA_WAVE_ENABLED] = updated.niagaraWaveEnabled
             prefs[Keys.NIAGARA_INDEX_VISIBLE] = updated.niagaraIndexVisible
@@ -411,6 +451,8 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.NIAGARA_BASE_FONT] = updated.niagaraBaseFontSp
             prefs[Keys.NIAGARA_SELECTED_FONT] = updated.niagaraSelectedFontSp
             prefs[Keys.NIAGARA_ACCENT] = updated.niagaraAccentColorHex
+            prefs[Keys.NIAGARA_INDEX_WIDTH] = updated.niagaraIndexWidthDp
+            prefs[Keys.NIAGARA_INDEX_COLOR] = updated.niagaraIndexColorHex
             prefs[Keys.NIAGARA_HAPTIC] = updated.niagaraHapticFeedback
 
             prefs[Keys.GRID_SNAP] = updated.gridSnapEnabled
@@ -426,6 +468,12 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WIDGET_FEED_TITLE_COLOR] = updated.widgetFeedTitleColor
             prefs[Keys.PAGE_INDICATOR_STYLE] = updated.pageIndicatorStyle
             prefs[Keys.PAGE_INDICATOR_COLOR] = updated.pageIndicatorColorHex
+            prefs[Keys.PAGE_INDICATOR_SIZE] = updated.pageIndicatorSizeDp
+            prefs[Keys.PAGE_INDICATOR_ACTIVE_WIDTH] = updated.pageIndicatorActiveWidthDp
+            prefs[Keys.STATUS_STRIP_ENABLED] = updated.statusStripEnabled
+            prefs[Keys.STATUS_STRIP_SHOW_DATE] = updated.statusStripShowDate
+            prefs[Keys.STATUS_STRIP_SHOW_BATTERY] = updated.statusStripShowBattery
+            prefs[Keys.STATUS_STRIP_ACCENT] = updated.statusStripAccentColorHex
             prefs[Keys.EDGE_HANDLES_VISIBLE] = updated.edgeHandlesVisible
             prefs[Keys.EDGE_HANDLE_OPACITY] = updated.edgeHandleOpacity
             prefs[Keys.EDGE_HANDLE_WIDTH] = updated.edgeHandleWidthDp
