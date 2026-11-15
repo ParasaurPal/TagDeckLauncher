@@ -81,7 +81,7 @@ object LauncherSettingsCatalog {
             entries = listOf(
                 entry("theme_mode", SECTION_THEME_TYPOGRAPHY, "Theme Mode", "Switch between Dark, Light, System, or Dynamic color", listOf("dark", "light", "system", "dynamic", "material you")),
                 entry("font_family", SECTION_THEME_TYPOGRAPHY, "Font Family", "Choose Space Grotesk, Plus Jakarta, JetBrains Mono, or System", listOf("font", "typography", "monospace", "grotesk", "jakarta")),
-                entry("font_library", SECTION_THEME_TYPOGRAPHY, "Custom Font Library", "Import and validate TTF or OTF font files and use them on home objects", listOf("custom font", "upload font", "import font", "typeface")),
+                entry("font_library", SECTION_THEME_TYPOGRAPHY, "Custom Font Library", "Import and validate TTF or OTF font files, preview each typeface, and apply globally or per home object", listOf("custom font", "upload font", "import font", "typeface")),
                 entry("theme_profiles", SECTION_THEME_TYPOGRAPHY, "Theme Profiles", "Save, apply, and remove reusable appearance profiles", listOf("theme preset", "save theme", "appearance profile")),
                 entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.80x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
