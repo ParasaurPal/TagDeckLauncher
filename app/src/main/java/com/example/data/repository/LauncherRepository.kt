@@ -7,6 +7,8 @@ import com.example.data.db.AppTagCrossRef
 import com.example.data.db.AppWithTags
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
@@ -104,6 +106,8 @@ class LauncherRepository(
     val gesturesFlow: Flow<List<GestureBindingEntity>> = dao.observeGestures()
     val imageResourcesFlow: Flow<List<ImageResourceEntity>> = dao.observeImageResources()
     val backgroundPresetsFlow: Flow<List<BackgroundPresetEntity>> = dao.observeBackgroundPresets()
+    val customFontsFlow: Flow<List<CustomFontEntity>> = dao.observeCustomFonts()
+    val themeProfilesFlow: Flow<List<ThemeProfileEntity>> = dao.observeThemeProfiles()
     val settingsFlow: Flow<LauncherSettings> = prefsRepo.settingsFlow
 
     suspend fun syncInstalledAppsAndSeedDefaults() = syncMutex.withLock {
@@ -614,6 +618,10 @@ class LauncherRepository(
 
     suspend fun saveBackgroundPreset(preset: BackgroundPresetEntity): Long = dao.upsertBackgroundPreset(preset)
     suspend fun deleteBackgroundPreset(presetId: Long) = dao.deleteBackgroundPreset(presetId)
+    suspend fun saveCustomFont(font: CustomFontEntity): Long = dao.upsertCustomFont(font)
+    suspend fun deleteCustomFont(fontId: Long) = dao.deleteCustomFont(fontId)
+    suspend fun saveThemeProfile(profile: ThemeProfileEntity): Long = dao.upsertThemeProfile(profile)
+    suspend fun deleteThemeProfile(profileId: Long) = dao.deleteThemeProfile(profileId)
 
     // --- PREFERENCES ---
     suspend fun updateSettings(transform: (LauncherSettings) -> LauncherSettings) =
