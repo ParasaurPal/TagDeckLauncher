@@ -138,6 +138,8 @@ fun AppDrawerOverlay(
         var selectedFilterId by remember { mutableLongStateOf(FILTER_ALL) }
         var selectedTagFilterId by remember { mutableStateOf<Long?>(null) }
         var showCustomizeDialog by remember { mutableStateOf(false) }
+        var showT9Search by remember { mutableStateOf(false) }
+        var t9Query by remember { mutableStateOf("") }
 
         val allCategory = remember(state.categories) {
             state.categories.find { it.categoryId == FILTER_ALL }
@@ -417,12 +419,12 @@ fun AppDrawerOverlay(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                        ) {
+                                )
+                        {
                             val niagaraLeft = state.settings.niagaraIndexVisible && state.settings.niagaraEdge == "LEFT"
                             val niagaraRight = state.settings.niagaraIndexVisible && state.settings.niagaraEdge != "LEFT"
-                            val contentStartPad = if (niagaraLeft) 34.dp else 6.dp
-                            val contentEndPad = if (niagaraRight) 34.dp else 6.dp
+                            val contentStartPad = if (niagaraLeft) 42.dp else 14.dp
+                            val contentEndPad = if (niagaraRight) 42.dp else 14.dp
 
                             if (visibleApps.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -570,6 +572,14 @@ fun AppDrawerOverlay(
                             }
 
                             if (state.settings.niagaraIndexVisible && visibleApps.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { t9Query = ""; showT9Search = true },
+                                    modifier = Modifier.align(Alignment.BottomEnd)
+                                        .padding(end = if (niagaraRight) 38.dp else 0.dp, start = if (niagaraLeft) 38.dp else 0.dp, bottom = 8.dp)
+                                        .size(34.dp).testTag("drawer_t9_search_button"),
+                                ) {
+                                    Icon(Icons.Rounded.Search, contentDescription = "T9 Search", tint = Color.White, modifier = Modifier.size(19.dp))
+                                }
                                 NiagaraWaveAlphabetBar(
                                     activeLetters = activeLetters,
                                     waveEnabled = state.settings.niagaraWaveEnabled,
@@ -595,6 +605,67 @@ fun AppDrawerOverlay(
                                     },
                                     modifier = Modifier.align(if (niagaraLeft) Alignment.CenterStart else Alignment.CenterEnd),
                                 )
+                            }
+
+                            if (showT9Search) {
+                                val t9Digits = t9Query.filter { it.isDigit() }
+                                val t9Matches = visibleApps.filter { item ->
+                                    t9Digits.isBlank() || t9NameDigits(item.app.displayName).contains(t9Digits)
+                                }
+                                Surface(
+                                    modifier = Modifier.fillMaxSize().testTag("drawer_t9_search_overlay"),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                    shape = RoundedCornerShape(0.dp),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                            Text("T9 Search", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                            Text("✕", modifier = Modifier.clip(CircleShape).clickable { showT9Search = false }.padding(10.dp), color = MaterialTheme.colorScheme.onSurface)
+                                        }
+                                        Text(if (t9Query.isBlank()) "Enter numbers to find an app" else t9Query, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                                        Column(verticalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
+                                            listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("⌫", "0", "Clear")).forEach { rowKeys ->
+                                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                                    rowKeys.forEach { key ->
+                                                        Surface(
+                                                            modifier = Modifier.weight(1f).height(48.dp).clickable {
+                                                                when (key) {
+                                                                    "⌫" -> t9Query = t9Query.dropLast(1)
+                                                                    "Clear" -> t9Query = ""
+                                                                    else -> if (t9Query.length < 20) t9Query += key
+                                                                }
+                                                            },
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                                        ) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Text(key, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Text("Matching apps (\${t9Matches.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            items(t9Matches, key = { it.app.packageName }) { item ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                                                        .clickable { onLaunchApp(item.app); onClose() }
+                                                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    AppIconView(app = item.app, appDiscovery = appDiscovery, size = 34.dp, iconShapeKey = state.settings.globalIconShape)
+                                                    Spacer(Modifier.width(10.dp))
+                                                    Text(item.app.displayName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 
@@ -1004,3 +1075,18 @@ private fun DrawerCustomizeQuickDialog(
         },
     )
 }
+
+
+private fun t9NameDigits(name: String): String = name.lowercase().mapNotNull { char ->
+    when (char) {
+        in 'a'..'c' -> '2'
+        in 'd'..'f' -> '3'
+        in 'g'..'i' -> '4'
+        in 'j'..'l' -> '5'
+        in 'm'..'o' -> '6'
+        in 'p'..'s' -> '7'
+        in 't'..'v' -> '8'
+        in 'w'..'z' -> '9'
+        else -> null
+    }
+}.joinToString("")
