@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -826,6 +827,40 @@ fun AddHomeElementDialog(
                         AddTypeRow(Icons.AutoMirrored.Rounded.ViewSidebar, "Sidebar Trigger", "Button that opens a configured drawer") { step = "SIDEBAR" }
                         AddTypeRow(Icons.Rounded.SmartButton, "Custom Interactive Button", "Multi-gesture / macro button") { step = "BUTTON" }
                         AddTypeRow(Icons.Rounded.TextFields, "Dynamic Text Label", "Supports {TIME}, {DATE}, {RAM}, {STORAGE}") { step = "TEXT" }
+                        AddTypeRow(Icons.Rounded.Layers, "Nested Container", "Create a parent panel that can hold positioned objects") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    ownerType = ownerType,
+                                    ownerWindowId = ownerWindowId,
+                                    type = "CONTAINER",
+                                    xFraction = 0.12f,
+                                    yFraction = 0.18f,
+                                    widthDp = 240f,
+                                    heightDp = 220f,
+                                    backgroundColorHex = 0x33202A3AL,
+                                    borderColorHex = 0x667C9BC0L,
+                                    cornerRadiusDp = 20f,
+                                )
+                            )
+                            onDismiss()
+                        }
+                        AddTypeRow(Icons.Rounded.Widgets, "Widget Stack", "Combine existing objects into a swipeable stack") {
+                            onAddElement(
+                                HomeElementEntity(
+                                    pageId = pageId,
+                                    ownerType = ownerType,
+                                    ownerWindowId = ownerWindowId,
+                                    type = "WIDGET_STACK",
+                                    xFraction = 0.16f,
+                                    yFraction = 0.2f,
+                                    widthDp = 180f,
+                                    heightDp = 150f,
+                                    backgroundColorHex = 0x33202A3AL,
+                                )
+                            )
+                            onDismiss()
+                        }
                         AddTypeRow(Icons.Rounded.Category, "Decorative Shape / Panel", "Resizable glass/colored geometric layer") {
                             onAddElement(
                                 HomeElementEntity(
