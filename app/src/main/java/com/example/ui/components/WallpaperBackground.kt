@@ -41,7 +41,7 @@ fun WallpaperBackground(
     modifier: Modifier = Modifier,
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val parallaxOffsetPx = with(LocalDensity.current) { (currentPage?.pageOrder ?: 0) * settings.wallpaperParallaxIntensity.coerceIn(0f, 1f) * 28.dp.toPx() }
+    val parallaxOffsetPx = with(LocalDensity.current) { (currentPage?.pageOrder ?: 0).coerceIn(-4, 4) * settings.wallpaperParallaxIntensity.coerceIn(0f, 1f) * 28.dp.toPx() }
     val wallpaperColorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(settings.wallpaperSaturation.coerceIn(0f, 2f)) })
     val ambientTransition = rememberInfiniteTransition(label = "wallpaper_ambient")
     val ambientPhase by ambientTransition.animateFloat(0f, 1f, infiniteRepeatable(tween(9000), RepeatMode.Reverse), label = "wallpaper_ambient_phase")
