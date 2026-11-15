@@ -602,7 +602,7 @@ fun SettingsScreen(
                                     globalCornerRadiusDp = json.optDouble("globalCornerRadiusDp", current.globalCornerRadiusDp.toDouble()).toFloat(),
                                     globalIconShape = json.optString("globalIconShape", current.globalIconShape),
                                     wallpaperType = json.optString("wallpaperType", current.wallpaperType),
-                                    wallpaperCustomPath = json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } ?: current.wallpaperCustomPath,
+                                    wallpaperCustomPath = if (json.has("wallpaperCustomPath")) json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } else current.wallpaperCustomPath,
                                     wallpaperGradientStartHex = json.optLong("wallpaperGradientStartHex", current.wallpaperGradientStartHex),
                                     wallpaperGradientEndHex = json.optLong("wallpaperGradientEndHex", current.wallpaperGradientEndHex),
                                     wallpaperGradientDirection = json.optString("wallpaperGradientDirection", current.wallpaperGradientDirection),
@@ -613,7 +613,7 @@ fun SettingsScreen(
                                     wallpaperVignette = json.optDouble("wallpaperVignette", current.wallpaperVignette.toDouble()).toFloat(),
                                     wallpaperSaturation = json.optDouble("wallpaperSaturation", current.wallpaperSaturation.toDouble()).toFloat(),
                                     wallpaperParallaxIntensity = json.optDouble("wallpaperParallaxIntensity", current.wallpaperParallaxIntensity.toDouble()).toFloat(),
-                                    wallpaperTintHex = if (json.isNull("wallpaperTintHex")) current.wallpaperTintHex else json.optLong("wallpaperTintHex", current.wallpaperTintHex ?: 0L),
+                                    wallpaperTintHex = if (!json.has("wallpaperTintHex") || json.isNull("wallpaperTintHex")) null else json.optLong("wallpaperTintHex", 0L),
                                     wallpaperAmbientMotion = json.optBoolean("wallpaperAmbientMotion", current.wallpaperAmbientMotion),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
