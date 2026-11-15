@@ -295,7 +295,7 @@ fun SettingsScreen(
                         CustomFontEntity(
                             displayName = safeName.substringBeforeLast('.'),
                             localPath = destination.absolutePath,
-                            familyName = validatedTypeface.toString().take(120),
+                            familyName = safeName.substringBeforeLast('.'),
                         )
                     } catch (error: Throwable) {
                         destination.delete()
