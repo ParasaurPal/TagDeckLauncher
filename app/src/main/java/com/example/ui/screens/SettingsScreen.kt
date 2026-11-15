@@ -743,6 +743,10 @@ fun SettingsScreen(
                             .put("showTagStripOnHome", s.showTagStripOnHome)
                             .put("showStatusBar", s.showStatusBar)
                             .put("showNavBar", s.showNavBar)
+                            .put("alignmentGuideColorHex", s.alignmentGuideColorHex)
+                            .put("editGridColorHex", s.editGridColorHex)
+                            .put("animationSpeedScale", s.animationSpeedScale.toDouble())
+                            .put("hapticFeedbackEnabled", s.hapticFeedbackEnabled)
                             .put("wallpaperType", s.wallpaperType)
                             .put("wallpaperCustomPath", s.wallpaperCustomPath ?: "")
                             .put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
@@ -859,6 +863,10 @@ fun SettingsScreen(
                                     showTagStripOnHome = json.optBoolean("showTagStripOnHome", current.showTagStripOnHome),
                                     showStatusBar = json.optBoolean("showStatusBar", current.showStatusBar),
                                     showNavBar = json.optBoolean("showNavBar", current.showNavBar),
+                                    alignmentGuideColorHex = json.optLong("alignmentGuideColorHex", current.alignmentGuideColorHex),
+                                    editGridColorHex = json.optLong("editGridColorHex", current.editGridColorHex),
+                                    animationSpeedScale = json.optDouble("animationSpeedScale", current.animationSpeedScale.toDouble()).toFloat(),
+                                    hapticFeedbackEnabled = json.optBoolean("hapticFeedbackEnabled", current.hapticFeedbackEnabled),
                                     wallpaperType = json.optString("wallpaperType", current.wallpaperType),
                                     wallpaperCustomPath = if (json.has("wallpaperCustomPath")) json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } else current.wallpaperCustomPath,
                                     wallpaperGradientStartHex = json.optLong("wallpaperGradientStartHex", current.wallpaperGradientStartHex),
