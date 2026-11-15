@@ -558,6 +558,7 @@ class LauncherRepository(
     // --- HOME PAGES, WINDOWS & ELEMENTS ---
     suspend fun saveHomePage(page: HomePageEntity): Long = dao.upsertHomePage(page)
     suspend fun createStarterTemplate(templateName: String): Long {
+        saveCurrentLayoutSnapshot("Before template: $templateName")
         val pages = dao.getHomePagesOnce()
         val pageStyle = when (templateName) {
             "Cyber HUD" -> 0xFF08111FL
