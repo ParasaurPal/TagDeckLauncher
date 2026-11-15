@@ -23,8 +23,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         GestureBindingEntity::class,
         ImageResourceEntity::class,
         BackgroundPresetEntity::class,
+        CustomFontEntity::class,
+        ThemeProfileEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -58,6 +60,35 @@ abstract class LauncherDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE categories ADD COLUMN iconOpenStateEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE categories ADD COLUMN openIconKey TEXT")
+                db.execSQL("ALTER TABLE categories ADD COLUMN openCustomIconPath TEXT")
+                db.execSQL("ALTER TABLE categories ADD COLUMN openCustomEmoji TEXT")
+                db.execSQL("ALTER TABLE categories ADD COLUMN openColorHex INTEGER")
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN pageGesturesJson TEXT")
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN transitionOverride TEXT")
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN transitionDurationMs INTEGER NOT NULL DEFAULT 320")
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN loopNavigation INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN parallaxEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN parentContainerId INTEGER")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN styleExtrasJson TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN rotationXDeg REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN rotationYDeg REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN perspective REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN widgetStackItemsJson TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN widgetStackIndex INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN widgetStackSwipeEnabled INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN pinnedToViewport INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN pinEdge TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN pinOffsetDp REAL NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_home_elements_parentContainerId ON home_elements(parentContainerId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS custom_fonts (fontId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, displayName TEXT NOT NULL, localPath TEXT NOT NULL, familyName TEXT NOT NULL, weight INTEGER NOT NULL, isItalic INTEGER NOT NULL, isFavorite INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS theme_profiles (profileId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, settingsJson TEXT NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, isBuiltIn INTEGER NOT NULL)")
+            }
+        }
+
         @Volatile
         private var INSTANCE: LauncherDatabase? = null
 
@@ -67,7 +98,7 @@ abstract class LauncherDatabase : RoomDatabase() {
                     context.applicationContext,
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     // Preserve launcher layouts, tags, images, and settings if a migration is missing.
                     // Add an explicit Room Migration before increasing the schema version.
                     .build()
