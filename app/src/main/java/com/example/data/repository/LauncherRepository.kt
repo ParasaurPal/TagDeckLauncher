@@ -821,6 +821,9 @@ class LauncherRepository(
                         }.toString()
                     }.getOrDefault(e.extraImageLayersJson)
                     e.copy(
+                        // Android AppWidget IDs belong to this installation's host and cannot be
+                        // safely reused after importing a backup on another device or install.
+                        appWidgetId = null,
                         imagePath = e.imagePath?.let { remappedPaths[it] ?: it },
                         extraImageLayersJson = remappedLayers,
                     )
