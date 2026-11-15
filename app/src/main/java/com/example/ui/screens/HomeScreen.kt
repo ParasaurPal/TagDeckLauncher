@@ -231,8 +231,8 @@ fun HomeScreen(
     val deviceConfiguration = LocalConfiguration.current
     fun resolvePageTarget(target: Int): Int {
         if (currentPage.loopNavigation && visiblePages.isNotEmpty()) {
-            if (target < 0) return visiblePages.lastIndex
-            if (target >= visiblePages.size) return 0
+            if (target < 0) return visiblePages.lastIndex + pagerPageOffset
+            if (target >= visiblePages.size) return pagerPageOffset
         }
         return target.coerceIn(0, visiblePages.lastIndex) + pagerPageOffset
     }
