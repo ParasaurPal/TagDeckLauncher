@@ -1281,6 +1281,15 @@ fun ElementInspectorDialog(
         updated.put(key, value)
         edited = edited.copy(styleExtrasJson = updated.toString())
     }
+    fun isDescendantOf(candidateId: Long, ancestorId: Long): Boolean {
+        var parentId = state.homeElements.firstOrNull { it.elementId == candidateId }?.parentContainerId
+        val visited = mutableSetOf<Long>()
+        while (parentId != null && visited.add(parentId)) {
+            if (parentId == ancestorId) return true
+            parentId = state.homeElements.firstOrNull { it.elementId == parentId }?.parentContainerId
+        }
+        return false
+    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -1522,7 +1531,7 @@ fun ElementInspectorDialog(
                         Text("Parent Container", style = MaterialTheme.typography.labelLarge)
                         Text("Canvas means this object sits directly on the page.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FilterChip(selected = edited.parentContainerId == null, onClick = { edited = edited.copy(parentContainerId = null) }, label = { Text("Canvas") })
-                        state.homeElements.filter { it.type == "CONTAINER" && it.elementId != edited.elementId && it.parentContainerId != edited.elementId }.forEach { container ->
+                        state.homeElements.filter { it.type == "CONTAINER" && it.elementId != edited.elementId && !isDescendantOf(it.elementId, edited.elementId) }.forEach { container ->
                             FilterChip(
                                 selected = edited.parentContainerId == container.elementId,
                                 onClick = { edited = edited.copy(parentContainerId = container.elementId) },
