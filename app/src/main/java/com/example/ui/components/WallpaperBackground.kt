@@ -297,7 +297,6 @@ fun SurfaceBackgroundLayer(
                         contentScale = ContentScale.Crop,
                         alpha = opacity,
                         modifier = Modifier.fillMaxSize().then(blurMod),
-                    colorFilter = wallpaperColorFilter,
                     )
                     Box(
                         modifier = Modifier
