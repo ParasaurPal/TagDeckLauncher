@@ -577,7 +577,7 @@ fun SettingsScreen(
                     Slider(
                         value = s.fontScale,
                         onValueChange = { v -> onUpdateSettings { it.copy(fontScale = v) } },
-                        valueRange = 0.80f..1.40f,
+                        valueRange = 0.80f..1.80f,
                         modifier = Modifier.testTag("settings_font_scale_slider"),
                     )
 
