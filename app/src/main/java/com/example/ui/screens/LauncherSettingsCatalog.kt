@@ -143,7 +143,7 @@ object LauncherSettingsCatalog {
             keywords = listOf("background", "prism", "topo", "gradient"),
             entries = listOf(
                 entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Android system/live wallpaper, Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "live wallpaper", "system wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
-                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Color Grading", "Adjust blur, dim opacity, vignette, saturation, contrast, brightness, parallax, ambient motion, and tint", listOf("blur", "dim", "darken", "tint", "vignette", "saturation", "contrast", "brightness", "parallax", "ambient motion", "color grading")),
+                entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim & Color Grading", "Adjust blur, dim opacity, vignette, saturation, contrast, brightness, parallax, ambient motion styles, and tint", listOf("blur", "dim", "darken", "tint", "vignette", "saturation", "contrast", "brightness", "parallax", "ambient motion", "ambient effect", "aurora", "pulse", "glow", "color grading")),
             ),
         ),
         section(
