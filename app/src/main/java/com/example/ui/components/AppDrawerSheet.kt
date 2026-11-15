@@ -588,6 +588,8 @@ fun AppDrawerOverlay(
                                     baseFontSp = state.settings.niagaraBaseFontSp,
                                     selectedFontSp = state.settings.niagaraSelectedFontSp,
                                     accentColorHex = state.settings.niagaraAccentColorHex,
+                                    indexWidthDp = state.settings.niagaraIndexWidthDp,
+                                    indexColorHex = state.settings.niagaraIndexColorHex,
                                     isLeftEdge = niagaraLeft,
                                     hapticsEnabled = state.settings.niagaraHapticFeedback,
                                     onSelectLetter = { targetLetter ->
