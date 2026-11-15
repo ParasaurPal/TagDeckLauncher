@@ -863,6 +863,7 @@ object BackupManager {
         put("transitionDurationMs", p.transitionDurationMs)
         put("loopNavigation", p.loopNavigation)
         put("parallaxEnabled", p.parallaxEnabled)
+        put("showDockOverride", p.showDockOverride ?: JSONObject.NULL)
     }
 
     private fun decodePage(o: JSONObject, idx: Int): HomePageEntity = HomePageEntity(
@@ -887,6 +888,7 @@ object BackupManager {
         transitionDurationMs = o.optInt("transitionDurationMs", 320),
         loopNavigation = o.optBoolean("loopNavigation", false),
         parallaxEnabled = o.optBoolean("parallaxEnabled", false),
+        showDockOverride = if (!o.has("showDockOverride") || o.isNull("showDockOverride")) null else o.optBoolean("showDockOverride"),
     )
 
     private fun encodeElement(e: HomeElementEntity): JSONObject = JSONObject().apply {
@@ -956,6 +958,10 @@ object BackupManager {
         put("widgetStackIndex", e.widgetStackIndex)
         put("widgetStackSwipeEnabled", e.widgetStackSwipeEnabled)
         put("pinnedToViewport", e.pinnedToViewport)
+        put("pinnedToAllPages", e.pinnedToAllPages)
+        put("visibilityGroupId", e.visibilityGroupId ?: JSONObject.NULL)
+        put("landscapeWidthDp", e.landscapeWidthDp?.toDouble() ?: JSONObject.NULL)
+        put("landscapeHeightDp", e.landscapeHeightDp?.toDouble() ?: JSONObject.NULL)
         put("pinEdge", e.pinEdge)
         put("pinOffsetDp", e.pinOffsetDp.toDouble())
     }
@@ -1027,6 +1033,10 @@ object BackupManager {
         widgetStackIndex = o.optInt("widgetStackIndex", 0),
         widgetStackSwipeEnabled = o.optBoolean("widgetStackSwipeEnabled", true),
         pinnedToViewport = o.optBoolean("pinnedToViewport", false),
+        pinnedToAllPages = o.optBoolean("pinnedToAllPages", false),
+        visibilityGroupId = o.optNullableString("visibilityGroupId"),
+        landscapeWidthDp = if (!o.has("landscapeWidthDp") || o.isNull("landscapeWidthDp")) null else o.optDouble("landscapeWidthDp").toFloat(),
+        landscapeHeightDp = if (!o.has("landscapeHeightDp") || o.isNull("landscapeHeightDp")) null else o.optDouble("landscapeHeightDp").toFloat(),
         pinEdge = o.optString("pinEdge", "NONE"),
         pinOffsetDp = o.optDouble("pinOffsetDp", 0.0).toFloat(),
     )
