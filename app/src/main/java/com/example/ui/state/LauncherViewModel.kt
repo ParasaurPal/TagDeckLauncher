@@ -632,6 +632,16 @@ class LauncherViewModel(
         }
     }
 
+    fun createStarterTemplate(templateName: String) {
+        viewModelScope.launch {
+            recordUndoCheckpoint()
+            val currentCount = uiState.value.homePages.size
+            repository.createStarterTemplate(templateName)
+            transientState.update { it.copy(currentPageIndex = currentCount) }
+            showMessage("Created " + templateName + " starter page")
+        }
+    }
+
     fun saveHomePage(page: HomePageEntity) {
         viewModelScope.launch {
             recordUndoCheckpoint()
