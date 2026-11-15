@@ -275,7 +275,7 @@ fun HomeElementBody(
     val textOutlineColor = Color(styleExtras.optLong("textOutlineColorHex", state.settings.textOutlineColorHex))
     val textOutlineWidth = styleExtras.optDouble("textOutlineWidth", state.settings.textOutlineWidthDp.toDouble()).toFloat()
     val customFontId = styleExtras.optLong("customFontId", -1L)
-    val objectFontStyle = styleExtras.optString("fontStyle", if (customFontId >= 0L) "CUSTOM_$customFontId" else "DEFAULT")
+    val objectFontStyle = styleExtras.optString("fontStyle", if (customFontId >= 0L) "CUSTOM_$customFontId" else state.settings.fontStyle)
     val elementFontFamily = remember(objectFontStyle, customFontId, state.customFonts) {
         when {
             objectFontStyle == "SPACE_GROTESK" -> SpaceGroteskFamily
