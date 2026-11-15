@@ -119,15 +119,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
@@ -397,7 +392,6 @@ fun HomeElementBody(
 
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
     val effectiveBgHex = if (isPressed && !state.isEditMode && extras.pressedBgColorHex != null) extras.pressedBgColorHex else element.backgroundColorHex
-    val effectiveBorderHex = if (isPressed && !state.isEditMode && extras.pressedBorderColorHex != null) extras.pressedBorderColorHex else element.borderColorHex
     val effectiveTextHex = if (isPressed && !state.isEditMode && extras.pressedTextColorHex != null) extras.pressedTextColorHex else element.textColorHex
 
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
@@ -411,10 +405,6 @@ fun HomeElementBody(
             else -> Brush.verticalGradient(colors)
         }
     }
-
-    val solidBorder = if (element.borderWidthDp > 0.05f && (extras.borderStyle == "SOLID" || extras.borderStyle == "DOUBLE")) {
-        BorderStroke(element.borderWidthDp.coerceIn(0.5f, 8f).dp, Color(effectiveBorderHex))
-    } else null
 
     val glowModifier = if (extras.shadowColorHex != null && extras.shadowBlurDp > 0.5f) {
         val glowArgb = Color(extras.shadowColorHex).toArgb()
@@ -433,41 +423,6 @@ fun HomeElementBody(
                 val paint = Paint().apply { asFrameworkPaint().set(frameworkPaint) }
                 val r = element.cornerRadiusDp.dp.toPx()
                 canvas.drawRoundRect(0f, 0f, size.width, size.height, r, r, paint)
-            }
-        }
-    } else Modifier
-
-    val customStrokeModifier = if (element.borderWidthDp > 0.05f && extras.borderStyle in listOf("DASHED", "DOTTED", "DOUBLE", "GRADIENT")) {
-        Modifier.drawWithContent {
-            drawContent()
-            val strokePx = element.borderWidthDp.coerceIn(0.5f, 8f).dp.toPx()
-            val cr = CornerRadius(element.cornerRadiusDp.dp.toPx(), element.cornerRadiusDp.dp.toPx())
-            when (extras.borderStyle) {
-                "DASHED" -> drawRoundRect(
-                    color = Color(effectiveBorderHex),
-                    cornerRadius = cr,
-                    style = Stroke(width = strokePx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), 0f)),
-                )
-                "DOTTED" -> drawRoundRect(
-                    color = Color(effectiveBorderHex),
-                    cornerRadius = cr,
-                    style = Stroke(width = strokePx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), 0f)),
-                )
-                "DOUBLE" -> {
-                    val inset = (strokePx * 2f).coerceAtLeast(3.dp.toPx())
-                    drawRoundRect(
-                        color = Color(effectiveBorderHex).copy(alpha = 0.7f),
-                        topLeft = Offset(inset, inset),
-                        size = androidx.compose.ui.geometry.Size((size.width - inset * 2).coerceAtLeast(1f), (size.height - inset * 2).coerceAtLeast(1f)),
-                        cornerRadius = cr,
-                        style = Stroke(width = (strokePx * 0.6f).coerceAtLeast(1f)),
-                    )
-                }
-                "GRADIENT" -> drawRoundRect(
-                    brush = Brush.linearGradient(listOf(Color(effectiveBorderHex), Color(extras.borderGradientEndHex ?: 0xFFA855F7L))),
-                    cornerRadius = cr,
-                    style = Stroke(width = strokePx),
-                )
             }
         }
     } else Modifier
@@ -527,11 +482,9 @@ fun HomeElementBody(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .then(gestureMod)
-                .then(customStrokeModifier),
+                .then(gestureMod),
             shape = shape,
             color = bg,
-            border = solidBorder,
             shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
         ) {
             Box(
