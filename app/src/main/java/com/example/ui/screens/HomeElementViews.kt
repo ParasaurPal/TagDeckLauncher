@@ -155,7 +155,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 private fun evaluateSimpleCalculator(expression: String): String {
-    val match = Regex("""^\\s*(-?\\d+(?:\\.\\d+)?)\\s*([+\\-*/×÷])\\s*(-?\\d+(?:\\.\\d+)?)\\s*$""").matchEntire(expression)
+    val match = Regex("""^\s*(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)\s*$""").matchEntire(expression)
         ?: return expression
     return runCatching {
         val left = BigDecimal(match.groupValues[1])
