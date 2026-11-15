@@ -194,7 +194,7 @@ fun HomeScreen(
     LaunchedEffect(pagerState.currentPage, visiblePages.size, loopPagerEnabled) {
         if (loopPagerEnabled && pagerState.currentPage == 0) {
             pagerState.scrollToPage(if (visiblePages.first().loopNavigation) visiblePages.size else 1)
-        } else if (loopPagerEnabled && pagerState.currentPage == feedPagerIndex + 1) {
+        } else if (loopPagerEnabled && pagerState.currentPage == visiblePages.size + 1) {
             pagerState.scrollToPage(if (visiblePages.last().loopNavigation) 1 else visiblePages.size)
         } else if (pagerState.currentPage < feedPagerIndex) {
             onPageChanged(logicalPageIndex(pagerState.currentPage))
@@ -622,7 +622,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
 }
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && leftEdgeSidebar != null) {
+                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == feedPagerIndex) && leftEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterStart)
@@ -652,7 +652,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                         }
                     }
 
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && rightEdgeSidebar != null) {
+                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == feedPagerIndex) && rightEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -794,7 +794,7 @@ val logicalPageIdx = logicalPageIndex(pageIdx)
                             }
                             else -> {
                                 visiblePages.forEachIndexed { idx, _ ->
-                                    val active = idx == pagerState.currentPage
+                                    val active = idx == logicalPageIndex(pagerState.currentPage)
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 4.dp)
