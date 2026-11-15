@@ -1677,7 +1677,7 @@ fun ElementInspectorDialog(
                             }
                             Text("Nested Folders", style = MaterialTheme.typography.labelMedium)
                             val nestedIds = edited.nestedFolderIds().toSet()
-                            state.homeElements.filter { it.type == "FOLDER" && it.elementId != edited.elementId }.forEach { folder ->
+                            state.homeElements.filter { it.type == "FOLDER" && it.pageId == edited.pageId && it.elementId != edited.elementId }.forEach { folder ->
                                 FilterChip(
                                     selected = folder.elementId in nestedIds,
                                     onClick = {
