@@ -1376,6 +1376,11 @@ fun ElementInspectorDialog(
         updated.put(key, value)
         edited = edited.copy(styleExtrasJson = updated.toString())
     }
+    fun updateStyleExtraString(key: String, value: String) {
+        val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
+        updated.put(key, value)
+        edited = edited.copy(styleExtrasJson = updated.toString())
+    }
     fun isDescendantOf(candidateId: Long, ancestorId: Long): Boolean {
         var parentId = state.homeElements.firstOrNull { it.elementId == candidateId }?.parentContainerId
         val visited = mutableSetOf<Long>()
@@ -1673,6 +1678,20 @@ fun ElementInspectorDialog(
                                     label = { Text(folder.label.ifBlank { "Folder " + folder.elementId }) },
                                 )
                             }
+                        }
+                        if (edited.type == "GAUGE_WIDGET") {
+                            Text("Gauge Value: ${(styleExtras.optDouble("gaugeValue", 0.72) * 100).roundToInt()}%")
+                            Slider(
+                                value = styleExtras.optDouble("gaugeValue", 0.72).toFloat().coerceIn(0f, 1f),
+                                onValueChange = { updateStyleExtra("gaugeValue", it.toDouble()) },
+                                valueRange = 0f..1f,
+                            )
+                            OutlinedTextField(
+                                value = styleExtras.optString("gaugeLabel", edited.label.ifBlank { "Progress" }),
+                                onValueChange = { updateStyleExtraString("gaugeLabel", it.take(24)) },
+                                label = { Text("Gauge Label") },
+                                singleLine = true,
+                            )
                         }
                         if (edited.type == "CONTAINER") {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
