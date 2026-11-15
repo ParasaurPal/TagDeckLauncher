@@ -1197,6 +1197,12 @@ fun ElementInspectorDialog(
     LaunchedEffect(element.locked, element.zIndex) {
         edited = edited.copy(locked = element.locked, zIndex = element.zIndex)
     }
+    val styleExtras = remember(edited.styleExtrasJson) { runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() } }
+    fun updateStyleExtra(key: String, value: Double) {
+        val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
+        updated.put(key, value)
+        edited = edited.copy(styleExtrasJson = updated.toString())
+    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
