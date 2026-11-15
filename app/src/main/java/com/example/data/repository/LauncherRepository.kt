@@ -559,14 +559,42 @@ class LauncherRepository(
     suspend fun saveHomePage(page: HomePageEntity): Long = dao.upsertHomePage(page)
     suspend fun createStarterTemplate(templateName: String): Long {
         val pages = dao.getHomePagesOnce()
+        val pageStyle = when (templateName) {
+            "Cyber HUD" -> 0xFF08111FL
+            "Editorial Minimal" -> 0xFFF2EEE6L
+            "Glass Bento Dashboard" -> 0xFF111827L
+            else -> 0xFF101018L
+        }
         val pageId = dao.upsertHomePage(
             HomePageEntity(
                 title = templateName,
                 pageOrder = (pages.maxOfOrNull { it.pageOrder } ?: -1) + 1,
                 isDefaultHome = false,
+                backgroundColorHex = pageStyle,
             )
         )
         val elements = when (templateName) {
+            "Cyber HUD" -> listOf(
+                HomeElementEntity(pageId = pageId, type = "TEXT_LABEL", xFraction = 0.08f, yFraction = 0.04f, widthDp = 280f, heightDp = 44f, label = "CYBER HUD", fontSizeSp = 24f, textColorHex = 0xFF7DD3FC, backgroundColorHex = 0x00000000L, borderWidthDp = 0f),
+                HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.08f, yFraction = 0.13f, widthDp = 300f, heightDp = 128f, backgroundColorHex = 0xCC0B1B2BL, borderColorHex = 0xFF38BDF8L, borderWidthDp = 1.5f, cornerRadiusDp = 22f, shadowElevationDp = 12f, textColorHex = 0xFFE0F2FE),
+                HomeElementEntity(pageId = pageId, type = "BATTERY_WIDGET", xFraction = 0.08f, yFraction = 0.34f, widthDp = 140f, heightDp = 126f, backgroundColorHex = 0xCC10243AL, borderColorHex = 0xFF22D3EEL, borderWidthDp = 1f, cornerRadiusDp = 18f),
+                HomeElementEntity(pageId = pageId, type = "STORAGE_RAM_WIDGET", xFraction = 0.56f, yFraction = 0.34f, widthDp = 150f, heightDp = 126f, backgroundColorHex = 0xCC10243AL, borderColorHex = 0xFF22D3EEL, borderWidthDp = 1f, cornerRadiusDp = 18f),
+                HomeElementEntity(pageId = pageId, type = "GAUGE_WIDGET", xFraction = 0.08f, yFraction = 0.59f, widthDp = 145f, heightDp = 145f, label = "Day Progress", backgroundColorHex = 0xCC0B1B2BL, borderColorHex = 0xFF38BDF8L, borderWidthDp = 1f, cornerRadiusDp = 20f, styleExtrasJson = "{\"gaugeStyle\":\"ARC\",\"gaugeSource\":\"DAY_PROGRESS\",\"gaugeLabel\":\"Day\"}"),
+                HomeElementEntity(pageId = pageId, type = "COMPASS_WIDGET", xFraction = 0.56f, yFraction = 0.59f, widthDp = 145f, heightDp = 145f, backgroundColorHex = 0xCC0B1B2BL, borderColorHex = 0xFF38BDF8L, borderWidthDp = 1f, cornerRadiusDp = 20f),
+            )
+            "Editorial Minimal" -> listOf(
+                HomeElementEntity(pageId = pageId, type = "TEXT_LABEL", xFraction = 0.08f, yFraction = 0.09f, widthDp = 300f, heightDp = 64f, label = "A calmer start.", fontSizeSp = 28f, textColorHex = 0xFF252525L, backgroundColorHex = 0x00000000L, borderWidthDp = 0f),
+                HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.08f, yFraction = 0.24f, widthDp = 280f, heightDp = 120f, textColorHex = 0xFF252525L, backgroundColorHex = 0x00FFFFFFL, borderWidthDp = 0f),
+                HomeElementEntity(pageId = pageId, type = "AT_A_GLANCE_WIDGET", xFraction = 0.08f, yFraction = 0.44f, widthDp = 300f, heightDp = 94f, textColorHex = 0xFF252525L, backgroundColorHex = 0x00FFFFFFL, borderWidthDp = 0f),
+                HomeElementEntity(pageId = pageId, type = "CALENDAR_WIDGET", xFraction = 0.08f, yFraction = 0.61f, widthDp = 300f, heightDp = 190f, textColorHex = 0xFF252525L, backgroundColorHex = 0xFFE8E2D8L, borderColorHex = 0xFFD6CEC1L, borderWidthDp = 1f, cornerRadiusDp = 16f),
+            )
+            "Glass Bento Dashboard" -> listOf(
+                HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.06f, yFraction = 0.06f, widthDp = 310f, heightDp = 128f, backgroundColorHex = 0xAAFFFFFFL, borderColorHex = 0x66FFFFFFL, borderWidthDp = 1f, cornerRadiusDp = 24f, shadowElevationDp = 16f, textColorHex = 0xFFFFFFFFL),
+                HomeElementEntity(pageId = pageId, type = "CALENDAR_WIDGET", xFraction = 0.06f, yFraction = 0.29f, widthDp = 190f, heightDp = 190f, backgroundColorHex = 0xAAFFFFFFL, borderColorHex = 0x66FFFFFFL, borderWidthDp = 1f, cornerRadiusDp = 22f, shadowElevationDp = 12f),
+                HomeElementEntity(pageId = pageId, type = "BATTERY_WIDGET", xFraction = 0.59f, yFraction = 0.29f, widthDp = 130f, heightDp = 150f, backgroundColorHex = 0xAAFFFFFFL, borderColorHex = 0x66FFFFFFL, borderWidthDp = 1f, cornerRadiusDp = 22f, shadowElevationDp = 12f),
+                HomeElementEntity(pageId = pageId, type = "FOCUS_TIMER_WIDGET", xFraction = 0.06f, yFraction = 0.61f, widthDp = 190f, heightDp = 150f, backgroundColorHex = 0xAAFFFFFFL, borderColorHex = 0x66FFFFFFL, borderWidthDp = 1f, cornerRadiusDp = 22f, shadowElevationDp = 12f, styleExtrasJson = "{\"focusDurationMinutes\":25,\"timerRunning\":false,\"timerRemainingSeconds\":1500}"),
+                HomeElementEntity(pageId = pageId, type = "GAUGE_WIDGET", xFraction = 0.59f, yFraction = 0.61f, widthDp = 130f, heightDp = 150f, backgroundColorHex = 0xAAFFFFFFL, borderColorHex = 0x66FFFFFFL, borderWidthDp = 1f, cornerRadiusDp = 22f, shadowElevationDp = 12f, styleExtrasJson = "{\"gaugeStyle\":\"SEGMENTED\",\"gaugeSource\":\"BATTERY\",\"gaugeLabel\":\"Battery\"}"),
+            )
             "Productivity" -> listOf(
                 HomeElementEntity(pageId = pageId, type = "DIGITAL_CLOCK", xFraction = 0.08f, yFraction = 0.08f, widthDp = 230f, heightDp = 116f),
                 HomeElementEntity(pageId = pageId, type = "CALENDAR_WIDGET", xFraction = 0.08f, yFraction = 0.36f, widthDp = 310f, heightDp = 220f),
