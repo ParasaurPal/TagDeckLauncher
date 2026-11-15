@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -260,7 +261,20 @@ fun HomeElementBody(
                     val stackItems = stackIds.mapNotNull { id -> state.homeElements.firstOrNull { it.elementId == id && it.type != "WIDGET_STACK" } }
                     val activeIndex = element.widgetStackIndex.coerceIn(0, (stackItems.size - 1).coerceAtLeast(0))
                     val activeItem = stackItems.getOrNull(activeIndex)
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().then(
+                            if (stackItems.size > 1 && element.widgetStackSwipeEnabled) Modifier.pointerInput(element.elementId, activeIndex, stackItems.size) {
+                                var dragTotal = 0f
+                                detectHorizontalDragGestures(
+                                    onHorizontalDrag = { change, amount -> dragTotal += amount; change.consume() },
+                                    onDragEnd = {
+                                        if (dragTotal < -32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex + 1) % stackItems.size))
+                                        else if (dragTotal > 32f) onUpdateElement(element.copy(widgetStackIndex = (activeIndex - 1 + stackItems.size) % stackItems.size))
+                                    },
+                                )
+                            } else Modifier
+                        ),
+                    ) {
                         if (activeItem != null) {
                             HomeElementBody(
                                 element = activeItem.copy(widthDp = element.widthDp, heightDp = element.heightDp),
