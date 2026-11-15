@@ -1203,6 +1203,11 @@ fun ElementInspectorDialog(
         updated.put(key, value)
         edited = edited.copy(styleExtrasJson = updated.toString())
     }
+    fun updateStyleExtraLong(key: String, value: Long) {
+        val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
+        updated.put(key, value)
+        edited = edited.copy(styleExtrasJson = updated.toString())
+    }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -1490,7 +1495,7 @@ fun ElementInspectorDialog(
                         ColorSwatchRow(
                             selectedColorHex = styleExtras.optLong("glowColorHex", edited.borderColorHex),
                             colors = StudioNeutralAndAccentSwatches,
-                            onSelect = { color -> updateStyleExtra("glowColorHex", color.toDouble()) },
+                            onSelect = { color -> updateStyleExtraLong("glowColorHex", color) },
                             tagPrefix = "inspector_glow_color",
                         )
                         Text("Shape Mask", style = MaterialTheme.typography.labelLarge)
