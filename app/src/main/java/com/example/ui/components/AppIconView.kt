@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
@@ -54,18 +55,42 @@ val LocalNotificationBadgesEnabled = staticCompositionLocalOf { false }
 val LocalLineIconProfiles = staticCompositionLocalOf<Map<String, LineIconProfile>> { emptyMap() }
 val LocalDefaultLineIconProfile = staticCompositionLocalOf<LineIconProfile?> { null }
 
-fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape = when (shapeKey) {
-    "NONE" -> androidx.compose.ui.graphics.RectangleShape
-    "CIRCLE" -> CircleShape
-    "ROUNDED_SQUARE" -> RoundedCornerShape(sizeDp * 0.20f)
-    "DIAMOND" -> androidx.compose.foundation.shape.CutCornerShape(50)
-    "HEXAGON" -> androidx.compose.foundation.shape.CutCornerShape(
-        topStart = sizeDp * 0.25f,
-        topEnd = sizeDp * 0.25f,
-        bottomStart = sizeDp * 0.25f,
-        bottomEnd = sizeDp * 0.25f,
-    )
-    else -> RoundedCornerShape(sizeDp * 0.30f) // SQUIRCLE
+fun resolveIconShape(shapeKey: String, sizeDp: Dp): Shape {
+    fun polygon(points: Int, star: Boolean = false): Shape = GenericShape { size, _ ->
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = minOf(size.width, size.height) / 2f
+        val count = if (star) points * 2 else points
+        repeat(count) { index ->
+            val angle = (-Math.PI / 2.0) + (2.0 * Math.PI * index / count)
+            val r = if (star && index % 2 == 1) radius * 0.43f else radius
+            val x = cx + kotlin.math.cos(angle).toFloat() * r
+            val y = cy + kotlin.math.sin(angle).toFloat() * r
+            if (index == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    return when (shapeKey) {
+        "NONE", "SQUARE" -> androidx.compose.ui.graphics.RectangleShape
+        "CIRCLE" -> CircleShape
+        "PILL" -> RoundedCornerShape(50)
+        "ROUNDED_SQUARE" -> RoundedCornerShape(sizeDp * 0.20f)
+        "DIAMOND" -> polygon(4)
+        "TRIANGLE" -> polygon(3)
+        "PENTAGON" -> polygon(5)
+        "HEXAGON" -> polygon(6)
+        "OCTAGON" -> polygon(8)
+        "STAR" -> polygon(5, star = true)
+        "ARCH" -> GenericShape { size, _ ->
+            val radius = minOf(size.width / 2f, size.height * 0.45f)
+            moveTo(0f, size.height); lineTo(0f, radius)
+            cubicTo(0f, radius * 0.45f, size.width * 0.22f, 0f, size.width / 2f, 0f)
+            cubicTo(size.width * 0.78f, 0f, size.width, radius * 0.45f, size.width, radius)
+            lineTo(size.width, size.height); close()
+        }
+        "CUT_CORNER" -> androidx.compose.foundation.shape.CutCornerShape(sizeDp * 0.18f)
+        else -> RoundedCornerShape(sizeDp * 0.30f)
+    }
 }
 
 @Composable
