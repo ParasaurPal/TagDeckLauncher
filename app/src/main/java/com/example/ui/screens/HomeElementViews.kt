@@ -766,7 +766,18 @@ fun HomeElementBody(
                 }
 
                 "CONTAINER" -> {
-                    val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.pageId == element.pageId && it.ownerType == element.ownerType && it.ownerWindowId == element.ownerWindowId && it.visible }.sortedBy { it.zIndex }
+                    val stackedChildIds = state.homeElements
+                        .filter { it.type == "WIDGET_STACK" || it.type == "TAB_SWITCHER_WIDGET" }
+                        .flatMap { it.widgetStackItemsJson.split(",").mapNotNull { raw -> raw.trim().toLongOrNull() } }
+                        .toSet()
+                    val children = state.homeElements.filter {
+                        it.parentContainerId == element.elementId &&
+                            it.pageId == element.pageId &&
+                            it.ownerType == element.ownerType &&
+                            it.ownerWindowId == element.ownerWindowId &&
+                            it.visible &&
+                            it.elementId !in stackedChildIds
+                    }.sortedBy { it.zIndex }
                     val containerLayout = styleExtras.optString("containerLayoutMode", "FREEFORM")
                     if (containerLayout == "GRID") {
                         LazyVerticalGrid(
