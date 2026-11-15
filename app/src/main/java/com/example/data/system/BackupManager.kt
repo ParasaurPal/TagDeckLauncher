@@ -5,6 +5,8 @@ import com.example.data.db.AppEntity
 import com.example.data.db.AppTagCrossRef
 import com.example.data.db.BackgroundPresetEntity
 import com.example.data.db.CategoryEntity
+import com.example.data.db.CustomFontEntity
+import com.example.data.db.ThemeProfileEntity
 import com.example.data.db.GestureBindingEntity
 import com.example.data.db.HomeElementEntity
 import com.example.data.db.HomePageEntity
