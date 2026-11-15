@@ -734,6 +734,7 @@ fun SettingsScreen(
                             .put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
                             .put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
                             .put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
+                            .put("wallpaperAmbientEffectType", s.wallpaperAmbientEffectType)
                             .put("sidebarTextColorMode", s.sidebarTextColorMode)
                             .put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
                             .put("showHomeAppLabels", s.showHomeAppLabels)
@@ -1618,6 +1619,13 @@ fun SettingsScreen(
                     Text("Wallpaper Parallax: ${(s.wallpaperParallaxIntensity * 100).roundToInt()}%")
                     Slider(value = s.wallpaperParallaxIntensity, onValueChange = { v -> onUpdateSettings { it.copy(wallpaperParallaxIntensity = v) } }, valueRange = 0f..1f)
                     ToggleRow("Ambient Wallpaper Motion", s.wallpaperAmbientMotion) { v -> onUpdateSettings { it.copy(wallpaperAmbientMotion = v) } }
+                    Text("Ambient Effect Style", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("RADIAL", "AURORA", "GLOW", "PULSE").forEach { effect ->
+                            FilterChip(selected = s.wallpaperAmbientEffectType == effect, onClick = { onUpdateSettings { it.copy(wallpaperAmbientEffectType = effect) } }, label = { Text(effect) })
+                        }
+                    }
                     Text("Color Grading Tint", style = MaterialTheme.typography.labelLarge)
                     ColorSwatchRow(
                         selectedColorHex = s.wallpaperTintHex ?: 0x00000000L,
