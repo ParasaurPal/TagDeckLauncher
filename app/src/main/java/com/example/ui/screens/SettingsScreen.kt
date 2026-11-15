@@ -650,6 +650,7 @@ fun SettingsScreen(
                             .put("tertiaryColorHex", s.tertiaryColorHex)
                             .put("fontStyle", s.fontStyle)
                             .put("fontScale", s.fontScale.toDouble())
+                            .put("highReadabilityMode", s.highReadabilityMode)
                             .put("surfaceOpacity", s.surfaceOpacity.toDouble())
                             .put("globalBorderWidthDp", s.globalBorderWidthDp.toDouble())
                             .put("globalTextColorHex", s.globalTextColorHex)
