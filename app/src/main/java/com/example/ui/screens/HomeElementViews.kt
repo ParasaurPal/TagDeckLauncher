@@ -1325,6 +1325,11 @@ fun ElementInspectorDialog(
         updated.put(key, value)
         edited = edited.copy(styleExtrasJson = updated.toString())
     }
+    fun updateStyleExtraBoolean(key: String, value: Boolean) {
+        val updated = runCatching { JSONObject(edited.styleExtrasJson) }.getOrElse { JSONObject() }
+        updated.put(key, value)
+        edited = edited.copy(styleExtrasJson = updated.toString())
+    }
     fun isDescendantOf(candidateId: Long, ancestorId: Long): Boolean {
         var parentId = state.homeElements.firstOrNull { it.elementId == candidateId }?.parentContainerId
         val visited = mutableSetOf<Long>()
@@ -1621,6 +1626,15 @@ fun ElementInspectorDialog(
                                     },
                                     label = { Text(folder.label.ifBlank { "Folder " + folder.elementId }) },
                                 )
+                            }
+                        }
+                        if (edited.type == "CONTAINER") {
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Scrollable Container")
+                                    Text("Show children in a vertical scrollable list.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(checked = styleExtras.optBoolean("containerScrollable", false), onCheckedChange = { updateStyleExtraBoolean("containerScrollable", it) })
                             }
                         }
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
