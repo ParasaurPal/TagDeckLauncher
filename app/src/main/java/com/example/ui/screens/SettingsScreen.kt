@@ -587,6 +587,27 @@ fun SettingsScreen(
                             .put("wallpaperParallaxIntensity", s.wallpaperParallaxIntensity.toDouble())
                             .put("wallpaperTintHex", s.wallpaperTintHex ?: JSONObject.NULL)
                             .put("wallpaperAmbientMotion", s.wallpaperAmbientMotion)
+                            .put("sidebarTextColorMode", s.sidebarTextColorMode)
+                            .put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
+                            .put("showHomeAppLabels", s.showHomeAppLabels)
+                            .put("appLabelOutlineEnabled", s.appLabelOutlineEnabled)
+                            .put("allAppsSidebarEdge", s.allAppsSidebarEdge)
+                            .put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
+                            .put("allAppsBgType", s.allAppsBgType)
+                            .put("allAppsBgColorHex", s.allAppsBgColorHex)
+                            .put("allAppsBgGradientEndHex", s.allAppsBgGradientEndHex)
+                            .put("drawerLayoutMode", s.drawerLayoutMode)
+                            .put("drawerColumns", s.drawerColumns)
+                            .put("drawerIconSizeDp", s.drawerIconSizeDp)
+                            .put("drawerLabelSizeSp", s.drawerLabelSizeSp)
+                            .put("drawerSortOrder", s.drawerSortOrder)
+                            .put("drawerCardOpacity", s.drawerCardOpacity.toDouble())
+                            .put("drawerCornerRadiusDp", s.drawerCornerRadiusDp.toDouble())
+                            .put("drawerSearchBarVisible", s.drawerSearchBarVisible)
+                            .put("pageTransitionStyle", s.pageTransitionStyle)
+                            .put("pageIndicatorStyle", s.pageIndicatorStyle)
+                            .put("widgetFeedEnabled", s.widgetFeedEnabled)
+                            .put("widgetFeedTitleColor", s.widgetFeedTitleColor)
                         onSaveThemeProfile(ThemeProfileEntity(name = newThemeProfileName.trim(), settingsJson = json.toString()))
                         newThemeProfileName = ""
                     }) { Text("Save Current Theme") }
@@ -622,6 +643,27 @@ fun SettingsScreen(
                                     wallpaperParallaxIntensity = json.optDouble("wallpaperParallaxIntensity", current.wallpaperParallaxIntensity.toDouble()).toFloat(),
                                     wallpaperTintHex = if (!json.has("wallpaperTintHex") || json.isNull("wallpaperTintHex")) null else json.optLong("wallpaperTintHex", 0L),
                                     wallpaperAmbientMotion = json.optBoolean("wallpaperAmbientMotion", current.wallpaperAmbientMotion),
+                                    sidebarTextColorMode = json.optString("sidebarTextColorMode", current.sidebarTextColorMode),
+                                    sidebarCategoryIconStyle = json.optString("sidebarCategoryIconStyle", current.sidebarCategoryIconStyle),
+                                    showHomeAppLabels = json.optBoolean("showHomeAppLabels", current.showHomeAppLabels),
+                                    appLabelOutlineEnabled = json.optBoolean("appLabelOutlineEnabled", current.appLabelOutlineEnabled),
+                                    allAppsSidebarEdge = json.optString("allAppsSidebarEdge", current.allAppsSidebarEdge),
+                                    allAppsSidebarWidthFraction = json.optDouble("allAppsSidebarWidthFraction", current.allAppsSidebarWidthFraction.toDouble()).toFloat(),
+                                    allAppsBgType = json.optString("allAppsBgType", current.allAppsBgType),
+                                    allAppsBgColorHex = json.optLong("allAppsBgColorHex", current.allAppsBgColorHex),
+                                    allAppsBgGradientEndHex = json.optLong("allAppsBgGradientEndHex", current.allAppsBgGradientEndHex),
+                                    drawerLayoutMode = json.optString("drawerLayoutMode", current.drawerLayoutMode),
+                                    drawerColumns = json.optInt("drawerColumns", current.drawerColumns),
+                                    drawerIconSizeDp = json.optInt("drawerIconSizeDp", current.drawerIconSizeDp),
+                                    drawerLabelSizeSp = json.optInt("drawerLabelSizeSp", current.drawerLabelSizeSp),
+                                    drawerSortOrder = json.optString("drawerSortOrder", current.drawerSortOrder),
+                                    drawerCardOpacity = json.optDouble("drawerCardOpacity", current.drawerCardOpacity.toDouble()).toFloat(),
+                                    drawerCornerRadiusDp = json.optDouble("drawerCornerRadiusDp", current.drawerCornerRadiusDp.toDouble()).toFloat(),
+                                    drawerSearchBarVisible = json.optBoolean("drawerSearchBarVisible", current.drawerSearchBarVisible),
+                                    pageTransitionStyle = json.optString("pageTransitionStyle", current.pageTransitionStyle),
+                                    pageIndicatorStyle = json.optString("pageIndicatorStyle", current.pageIndicatorStyle),
+                                    widgetFeedEnabled = json.optBoolean("widgetFeedEnabled", current.widgetFeedEnabled),
+                                    widgetFeedTitleColor = json.optLong("widgetFeedTitleColor", current.widgetFeedTitleColor),
                                 ) }
                                 onShowMessage("Applied theme " + profile.name)
                             }) { Text("Apply") }
