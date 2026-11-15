@@ -262,7 +262,7 @@ fun HomeElementBody(
             else -> null
         }
     }
-    val elementFontSize = element.fontSizeSp.coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).toFloat().coerceIn(11f, 20f))
+    val elementFontSize = (element.fontSizeSp * state.settings.fontScale.coerceIn(0.8f, 1.8f)).coerceAtLeast(styleExtras.optDouble("minimumFontSizeSp", state.settings.minLabelFontSp.toDouble()).toFloat().coerceIn(11f, 20f))
     val elementFontWeight = if (styleExtras.optBoolean("textBoldBoost", state.settings.boldLabelsEnabled || highReadability)) FontWeight.Bold else FontWeight.SemiBold
     val elementTextColor = if (styleExtras.optBoolean("textAutoContrast", state.settings.autoContrastText || highReadability) && Color(element.backgroundColorHex).alpha > 0.05f) {
         val bgColor = Color(element.backgroundColorHex)
