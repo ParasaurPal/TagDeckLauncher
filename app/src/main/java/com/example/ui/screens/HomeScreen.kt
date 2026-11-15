@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -178,6 +179,8 @@ fun HomeScreen(
         visiblePages.size + if (feedEnabled) 1 else 0
     }
 
+    val activeTransitionDurationMs = visiblePages.getOrElse(pagerState.currentPage.coerceAtMost(visiblePages.lastIndex)) { visiblePages.first() }.transitionDurationMs
+
     LaunchedEffect(pagerState.currentPage, visiblePages.size) {
         if (pagerState.currentPage < visiblePages.size) {
             onPageChanged(pagerState.currentPage)
@@ -188,7 +191,7 @@ fun HomeScreen(
         val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
         if (!feedEnabled || pagerState.currentPage < visiblePages.size) {
             if (pagerState.currentPage != target) {
-                pagerState.animateScrollToPage(target)
+                pagerState.animateScrollToPage(target, animationSpec = tween(durationMillis = activeTransitionDurationMs))
             }
         }
     }
@@ -948,7 +951,7 @@ val page = visiblePages[pageIdx]
                 val idx = visiblePages.indexOfFirst { it.pageId == pageId }
                 if (idx >= 0) {
                     onPageChanged(idx)
-                    scope.launch { pagerState.animateScrollToPage(idx) }
+                    scope.launch { pagerState.animateScrollToPage(idx, animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                 }
             },
             onImportImage = onImportImage,
