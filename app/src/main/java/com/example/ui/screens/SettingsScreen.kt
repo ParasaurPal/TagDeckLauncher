@@ -757,6 +757,7 @@ fun SettingsScreen(
                             .put("drawerCardBorderColorHex", s.drawerCardBorderColorHex)
                             .put("pageTransitionStyle", s.pageTransitionStyle)
                             .put("pageIndicatorStyle", s.pageIndicatorStyle)
+                            .put("pageIndicatorPlacement", s.pageIndicatorPlacement)
                             .put("pageIndicatorColorHex", s.pageIndicatorColorHex)
                             .put("pageIndicatorSizeDp", s.pageIndicatorSizeDp.toDouble())
                             .put("pageIndicatorActiveWidthDp", s.pageIndicatorActiveWidthDp.toDouble())
@@ -854,6 +855,7 @@ fun SettingsScreen(
                                     drawerCardBorderColorHex = json.optLong("drawerCardBorderColorHex", current.drawerCardBorderColorHex),
                                     pageTransitionStyle = json.optString("pageTransitionStyle", current.pageTransitionStyle),
                                     pageIndicatorStyle = json.optString("pageIndicatorStyle", current.pageIndicatorStyle),
+                                    pageIndicatorPlacement = json.optString("pageIndicatorPlacement", current.pageIndicatorPlacement),
                                     pageIndicatorColorHex = json.optLong("pageIndicatorColorHex", current.pageIndicatorColorHex),
                                     pageIndicatorSizeDp = json.optDouble("pageIndicatorSizeDp", current.pageIndicatorSizeDp.toDouble()).toFloat(),
                                     pageIndicatorActiveWidthDp = json.optDouble("pageIndicatorActiveWidthDp", current.pageIndicatorActiveWidthDp.toDouble()).toFloat(),
@@ -1969,6 +1971,17 @@ fun SettingsScreen(
                                 onClick = { onUpdateSettings { it.copy(pageIndicatorStyle = st) } },
                                 label = { Text(st) },
                                 modifier = Modifier.testTag("settings_indicator_style_$st"),
+                            )
+                        }
+                    }
+                    Text("Page Indicator Placement", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("TOP", "BOTTOM").forEach { placement ->
+                            FilterChip(
+                                selected = s.pageIndicatorPlacement == placement,
+                                onClick = { onUpdateSettings { it.copy(pageIndicatorPlacement = placement) } },
+                                label = { Text(placement) },
                             )
                         }
                     }
