@@ -196,6 +196,7 @@ fun CategoryBadgeIcon(
     contentDescription: String? = category.name,
     contrastStyle: String? = null,
     isOpen: Boolean = false,
+    vectorIconScale: Float = 0.58f,
 ) {
     val context = LocalContext.current
     val iconStyle = LocalIconStyleConfig.current
@@ -268,7 +269,7 @@ fun CategoryBadgeIcon(
                     fillColor = if (whiteFill) Color.White else Color.Black,
                     outlineColor = if (whiteFill) Color.Black else Color.White,
                     outlineWidthDp = 0.8.dp,
-                    modifier = Modifier.size(size * 0.58f),
+                    modifier = Modifier.size(size * vectorIconScale),
                 )
             }
             iconStyle.enabled && (isColorDark(accent, iconStyle.darknessThreshold) || iconStyle.mode == IconStyleConfig.MODE_ALL_ICONS_OUTLINE) -> {
@@ -279,7 +280,7 @@ fun CategoryBadgeIcon(
                     fillColor = fill,
                     outlineColor = Color(iconStyle.outlineColorHex),
                     outlineWidthDp = (iconStyle.outlineWidthDp * 0.55f).dp,
-                    modifier = Modifier.size(size * 0.58f),
+                    modifier = Modifier.size(size * vectorIconScale),
                 )
             }
             else -> {
@@ -287,7 +288,7 @@ fun CategoryBadgeIcon(
                     imageVector = tagIconVector(resolvedIconKey),
                     contentDescription = contentDescription,
                     tint = accent,
-                    modifier = Modifier.size(size * 0.58f),
+                    modifier = Modifier.size(size * vectorIconScale),
                 )
             }
         }
