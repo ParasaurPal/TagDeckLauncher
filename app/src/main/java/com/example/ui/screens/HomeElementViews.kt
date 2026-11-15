@@ -282,32 +282,57 @@ fun HomeElementBody(
                 "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                 "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
                 "CONTAINER" -> {
-                    val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        if (children.isEmpty()) {
-                            Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex), modifier = Modifier.align(Alignment.Center))
+                    val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }.sortedBy { it.zIndex }
+                    if (styleExtras.optBoolean("containerScrollable", false)) {
+                        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            if (children.isEmpty()) Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex))
+                            children.forEach { child ->
+                                Box(modifier = Modifier.fillMaxWidth().height(child.heightDp.dp)) {
+                                    HomeElementBody(
+                                        element = child.copy(widthDp = element.widthDp, xFraction = 0f, yFraction = 0f),
+                                        state = state,
+                                        appDiscovery = appDiscovery,
+                                        widgetHost = widgetHost,
+                                        onLaunchApp = onLaunchApp,
+                                        onOpenTagSidebar = onOpenTagSidebar,
+                                        onOpenCategorySidebar = onOpenCategorySidebar,
+                                        onOpenRuleSidebar = onOpenRuleSidebar,
+                                        onOpenSidebar = onOpenSidebar,
+                                        onOpenWindow = onOpenWindow,
+                                        onOpenFolder = onOpenFolder,
+                                        onElementTrigger = onElementTrigger,
+                                        onUpdateElement = onUpdateElement,
+                                    )
+                                }
+                            }
                         }
-                        children.forEach { child ->
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = maxWidth * child.xFraction.coerceIn(0f, 1f), y = maxHeight * child.yFraction.coerceIn(0f, 1f))
-                                    .size(child.widthDp.dp, child.heightDp.dp),
-                            ) {
-                                HomeElementBody(
-                                    element = child,
-                                    state = state,
-                                    appDiscovery = appDiscovery,
-                                    widgetHost = widgetHost,
-                                    onLaunchApp = onLaunchApp,
-                                    onOpenTagSidebar = onOpenTagSidebar,
-                                    onOpenCategorySidebar = onOpenCategorySidebar,
-                                    onOpenRuleSidebar = onOpenRuleSidebar,
-                                    onOpenSidebar = onOpenSidebar,
-                                    onOpenWindow = onOpenWindow,
-                                    onOpenFolder = onOpenFolder,
-                                    onElementTrigger = onElementTrigger,
-                                    onUpdateElement = onUpdateElement,
-                                )
+                    } else {
+                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                            if (children.isEmpty()) {
+                                Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex), modifier = Modifier.align(Alignment.Center))
+                            }
+                            children.forEach { child ->
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = maxWidth * child.xFraction.coerceIn(0f, 1f), y = maxHeight * child.yFraction.coerceIn(0f, 1f))
+                                        .size(child.widthDp.dp, child.heightDp.dp),
+                                ) {
+                                    HomeElementBody(
+                                        element = child,
+                                        state = state,
+                                        appDiscovery = appDiscovery,
+                                        widgetHost = widgetHost,
+                                        onLaunchApp = onLaunchApp,
+                                        onOpenTagSidebar = onOpenTagSidebar,
+                                        onOpenCategorySidebar = onOpenCategorySidebar,
+                                        onOpenRuleSidebar = onOpenRuleSidebar,
+                                        onOpenSidebar = onOpenSidebar,
+                                        onOpenWindow = onOpenWindow,
+                                        onOpenFolder = onOpenFolder,
+                                        onElementTrigger = onElementTrigger,
+                                        onUpdateElement = onUpdateElement,
+                                    )
+                                }
                             }
                         }
                     }
