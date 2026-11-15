@@ -635,7 +635,7 @@ class LauncherViewModel(
     fun createStarterTemplate(templateName: String) {
         viewModelScope.launch {
             recordUndoCheckpoint()
-            val currentCount = uiState.value.homePages.count { !it.isHidden }
+            val currentCount = if (uiState.value.isEditMode) uiState.value.homePages.size else uiState.value.homePages.count { !it.isHidden }
             repository.createStarterTemplate(templateName)
             transientState.update { it.copy(currentPageIndex = currentCount) }
             showMessage("Created " + templateName + " starter page")
