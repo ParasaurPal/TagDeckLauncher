@@ -906,6 +906,7 @@ class LauncherViewModel(
                 targetWindowId = if (actionObj.has("targetWindowId") && !actionObj.isNull("targetWindowId")) actionObj.optLong("targetWindowId") else null,
                 targetRuleId = if (actionObj.has("targetRuleId") && !actionObj.isNull("targetRuleId")) actionObj.optLong("targetRuleId") else null,
                 targetUrl = actionObj.optString("targetUrl").takeIf { it.isNotBlank() },
+                targetElementId = if (actionObj.has("targetElementId") && !actionObj.isNull("targetElementId")) actionObj.optLong("targetElementId") else null,
                 macroStepsJson = actionObj.optJSONArray("macro")?.toString(),
                 onNavigate = onNavigate,
                 onScrollPage = onScrollPage,
@@ -925,6 +926,7 @@ class LauncherViewModel(
         targetWindowId: Long? = null,
         targetRuleId: Long? = null,
         targetUrl: String? = null,
+        targetElementId: Long? = null,
         macroStepsJson: String? = null,
         onNavigate: (LauncherRoute) -> Unit,
         onScrollPage: (Int) -> Unit,
@@ -964,6 +966,30 @@ class LauncherViewModel(
                 }
             }
             "TOGGLE_EDIT_MODE" -> setEditMode(!uiState.value.isEditMode)
+            "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM" -> {
+                targetElementId?.let { id ->
+                    uiState.value.homeElements.firstOrNull { it.elementId == id }?.let { element ->
+                        val updated = when (actionType) {
+                            "SHOW_OBJECT" -> element.copy(visible = true)
+                            "HIDE_OBJECT" -> element.copy(visible = false)
+                            "TOGGLE_OBJECT" -> element.copy(visible = !element.visible)
+                            "NEXT_STACK_ITEM" -> {
+                                val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
+                                if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex + 1) % count) else element
+                            }
+                            else -> {
+                                val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
+                                if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex - 1 + count) % count) else element
+                            }
+                        }
+                        if (updated != element) saveHomeElement(updated, recordHistory = false)
+                    }
+                }
+            }
+            "OPEN_WIFI_PANEL" -> appDiscovery.openSystemSettings(Settings.Panel.ACTION_WIFI)
+            "OPEN_INTERNET_PANEL" -> appDiscovery.openSystemSettings(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+            "OPEN_VOLUME_PANEL" -> appDiscovery.openSystemSettings(Settings.Panel.ACTION_VOLUME)
+            "OPEN_BLUETOOTH_SETTINGS" -> appDiscovery.openSystemSettings(Settings.ACTION_BLUETOOTH_SETTINGS)
             "MACRO" -> {
                 if (!macroStepsJson.isNullOrBlank()) {
                     viewModelScope.launch {
@@ -982,6 +1008,7 @@ class LauncherViewModel(
                                     targetWindowId = if (step.has("targetWindowId") && !step.isNull("targetWindowId")) step.optLong("targetWindowId") else null,
                                     targetRuleId = if (step.has("targetRuleId") && !step.isNull("targetRuleId")) step.optLong("targetRuleId") else null,
                                     targetUrl = step.optString("targetUrl").takeIf { it.isNotBlank() },
+                                    targetElementId = if (step.has("targetElementId") && !step.isNull("targetElementId")) step.optLong("targetElementId") else null,
                                     onNavigate = onNavigate,
                                     onScrollPage = onScrollPage,
                                 )
