@@ -26,7 +26,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CustomFontEntity::class,
         ThemeProfileEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -89,6 +89,16 @@ abstract class LauncherDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE home_pages ADD COLUMN showDockOverride INTEGER")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN pinnedToAllPages INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN visibilityGroupId TEXT")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN landscapeWidthDp REAL")
+                db.execSQL("ALTER TABLE home_elements ADD COLUMN landscapeHeightDp REAL")
+            }
+        }
+
         @Volatile
         private var INSTANCE: LauncherDatabase? = null
 
@@ -98,7 +108,7 @@ abstract class LauncherDatabase : RoomDatabase() {
                     context.applicationContext,
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     // Preserve launcher layouts, tags, images, and settings if a migration is missing.
                     // Add an explicit Room Migration before increasing the schema version.
                     .build()
