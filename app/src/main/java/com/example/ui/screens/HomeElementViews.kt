@@ -3128,8 +3128,8 @@ fun LayerManagerDialog(
                             TextButton(onClick = { onUpdate(element.copy(locked = !element.locked)) }) { Text(if (element.locked) "Unlock" else "Lock") }
                             Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
                         }
-                        if (element.groupId != null) {
-                            val groupMembers = elements.filter { it.groupId == element.groupId }
+                        if (!element.visibilityGroupId.isNullOrBlank()) {
+                            val groupMembers = elements.filter { it.visibilityGroupId == element.visibilityGroupId }
                             val showGroup = groupMembers.any { !it.visible }
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text("Visibility group • ${groupMembers.size} layers", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
