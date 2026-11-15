@@ -610,6 +610,18 @@ fun SettingsScreen(
                     HorizontalDivider()
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
+                            ToggleRow("High-Readability Mode (Global)", s.highReadabilityMode) { enabled ->
+                                onUpdateSettings { it.copy(highReadabilityMode = enabled) }
+                            }
+                            Text("Applies stronger text weight, minimum label sizing, outline, contrast, shadow, and backdrop defaults unless an object overrides them.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Aa  Readable text preview • Clear labels over busy wallpapers", modifier = Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 0.2.sp)
+                            }
                             Text("Custom Font Library", style = MaterialTheme.typography.titleSmall)
                             Text("Import TTF or OTF files. Fonts stay in app storage.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
