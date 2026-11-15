@@ -2549,6 +2549,45 @@ private fun GestureBindingDialog(
                                     }
                                 }
                             }
+                            when (step.actionType) {
+                                "OPEN_TAG" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.allTags, key = { it.tagId }) { tag ->
+                                        Text((if (step.targetTagId == tag.tagId) "● " else "○ ") + tag.name, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetTagId = tag.tagId) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_CATEGORY" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.categories, key = { it.categoryId }) { category ->
+                                        Text((if (step.targetCategoryId == category.categoryId) "● " else "○ ") + category.name, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetCategoryId = category.categoryId) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_SIDEBAR" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.sidebars, key = { it.sidebarId }) { sidebar ->
+                                        Text((if (step.targetSidebarId == sidebar.sidebarId) "● " else "○ ") + sidebar.title, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetSidebarId = sidebar.sidebarId) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_WINDOW" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.windows, key = { it.windowId }) { window ->
+                                        Text((if (step.targetWindowId == window.windowId) "● " else "○ ") + window.title, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetWindowId = window.windowId) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_RULE" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.savedRules, key = { it.ruleId }) { rule ->
+                                        Text((if (step.targetRuleId == rule.ruleId) "● " else "○ ") + rule.name, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetRuleId = rule.ruleId) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_APP" -> LazyColumn(modifier = Modifier.fillMaxWidth().height(112.dp)) {
+                                    items(state.appsWithTags, key = { it.app.packageName }) { item ->
+                                        Text((if (step.targetPackageName == item.app.packageName) "● " else "○ ") + item.app.displayName, modifier = Modifier.fillMaxWidth().clickable { macroSteps[index] = step.copy(targetPackageName = item.app.packageName) }.padding(8.dp))
+                                    }
+                                }
+                                "OPEN_WEBSITE", "OPEN_SYSTEM_SETTING" -> OutlinedTextField(
+                                    value = step.targetUrl.orEmpty(),
+                                    onValueChange = { macroSteps[index] = step.copy(targetUrl = it) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = { Text(if (step.actionType == "OPEN_WEBSITE") "Website URL" else "Android setting action") },
+                                    singleLine = true,
+                                )
+                            }
                         }
                     }
                     OutlinedButton(onClick = { macroSteps.add(MacroStepDraft()) }, modifier = Modifier.fillMaxWidth()) { Text("Add Macro Step") }
@@ -2568,7 +2607,17 @@ private fun GestureBindingDialog(
                         targetRuleId = targetRuleId,
                         macroStepsJson = if (actionType == "MACRO") JSONArray().apply {
                             macroSteps.forEach { step ->
-                                put(JSONObject().put("actionType", step.actionType).put("delayMs", step.delayMs).put("targetElementId", step.targetElementId ?: JSONObject.NULL))
+                                put(JSONObject()
+                                    .put("actionType", step.actionType)
+                                    .put("delayMs", step.delayMs)
+                                    .put("targetElementId", step.targetElementId ?: JSONObject.NULL)
+                                    .put("targetPackage", step.targetPackageName ?: JSONObject.NULL)
+                                    .put("targetTagId", step.targetTagId ?: JSONObject.NULL)
+                                    .put("targetCategoryId", step.targetCategoryId ?: JSONObject.NULL)
+                                    .put("targetSidebarId", step.targetSidebarId ?: JSONObject.NULL)
+                                    .put("targetWindowId", step.targetWindowId ?: JSONObject.NULL)
+                                    .put("targetRuleId", step.targetRuleId ?: JSONObject.NULL)
+                                    .put("targetUrl", step.targetUrl ?: JSONObject.NULL))
                             }
                         }.toString() else null,
                     )
