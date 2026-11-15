@@ -1479,7 +1479,10 @@ private fun FreeformPageCanvas(
                         .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
                         .size(width = widthDp.dp, height = heightDp.dp)
                         .graphicsLayer {
+                            rotationX = elem.rotationXDeg
+                            rotationY = elem.rotationYDeg
                             rotationZ = elem.rotationDeg
+                            cameraDistance = (8f + (1f - elem.perspective.coerceIn(0f, 1f)) * 24f) * density
                             scaleX = elem.scaleX * (if (elem.flipHorizontal) -1f else 1f)
                             scaleY = elem.scaleY * (if (elem.flipVertical) -1f else 1f)
                         }
