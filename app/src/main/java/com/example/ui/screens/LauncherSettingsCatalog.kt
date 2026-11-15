@@ -176,6 +176,9 @@ object LauncherSettingsCatalog {
                 entry("object_layers", SECTION_HOME_CANVAS, "Layer Manager & Format Painter", "Reorder, hide, lock, and inspect objects; copy visual styling between objects", listOf("layers", "z index", "visibility", "format painter", "copy style", "paste style")),
                 entry("object_transforms", SECTION_HOME_CANVAS, "3D Object Transforms & Pinning", "Control X/Y/Z rotation, perspective, independent corner radii, glow, and viewport pinning", listOf("3d", "perspective", "rotation", "glow", "corner radius", "pin", "sticky")),
                 entry("nested_objects", SECTION_HOME_CANVAS, "Widget Stacks & Nested Containers", "Combine existing objects into swipeable stacks and place objects inside nested containers", listOf("widget stack", "stack", "container", "nested", "group", "scrollable container")),
+                entry("folder_studio", SECTION_HOME_CANVAS, "Folder Studio", "Choose folder grid, list, or stack previews, edit app membership, and nest folders", listOf("folder", "nested folders", "folder layout", "folder apps")),
+                entry("graphic_gauges", SECTION_HOME_CANVAS, "Graphic Gauges", "Add editable circular gauges with custom values, labels, colors, and styles", listOf("gauge", "progress ring", "meter", "progress")),
+                entry("starter_templates", SECTION_HOME_CANVAS, "Starter Layout Templates", "Create Minimal, Productivity, or Widget Board pages with ready-made objects", listOf("template", "starter layout", "productivity page", "widget board")),
             ),
         ),
         section(
@@ -203,7 +206,7 @@ object LauncherSettingsCatalog {
             title = "Gestures & Shortcuts",
             keywords = listOf("swipe", "tap", "double tap", "long press"),
             entries = listOf(
-                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Assign Single/Double Tap, Swipes, and Two-Finger actions", listOf("gesture", "swipe up", "swipe down", "swipe left", "swipe right", "double tap", "two finger")),
+                entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures & Macros", "Assign tap, swipe, and multi-finger actions; build ordered macros with delays and per-page overrides", listOf("gesture", "macro", "macro steps", "swipe up", "swipe down", "swipe left", "swipe right", "double tap", "two finger", "page gesture")),
             ),
         ),
         section(
