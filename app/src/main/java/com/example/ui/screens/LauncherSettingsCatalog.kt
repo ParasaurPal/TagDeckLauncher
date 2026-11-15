@@ -188,7 +188,7 @@ object LauncherSettingsCatalog {
             title = "Page Indicators & Edge Handles",
             keywords = listOf("pages", "transitions", "dots", "handles"),
             entries = listOf(
-                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition, Indicator & Loop Style", "Slide, Depth, Fade, Zoom, Cube, Flip, Rotate, Parallax, Stack, Accordion, and Windmill transitions; customize indicator size, timing, and page looping", listOf("transition", "depth", "fade", "slide", "zoom", "cube", "flip", "rotate", "parallax", "stack", "accordion", "windmill", "loop", "indicator", "dots", "pill", "numbers", "size")),
+                entry("page_transitions", SECTION_INDICATORS_HANDLES, "Page Transition, Indicator & Loop Style", "Slide, Depth, Fade, Zoom, Cube, Flip, Rotate, Parallax, Stack, Accordion, and Windmill transitions; customize indicator size, timing, and page looping", listOf("transition", "depth", "fade", "slide", "zoom", "cube", "flip", "rotate", "parallax", "stack", "accordion", "windmill", "loop", "indicator", "dots", "pill", "numbers", "progress", "tabs", "size")),
                 entry("edge_handles", SECTION_INDICATORS_HANDLES, "Edge Sidebar Handles", "Toggle edge handles and customize opacity, thickness, and length", listOf("edge handle", "sidebar handle", "thickness", "length")),
                 entry("status_strip", SECTION_INDICATORS_HANDLES, "Custom Home Status Strip", "Show time, date, and battery status with a custom accent color", listOf("status strip", "hud", "clock strip", "battery strip", "date strip")),
             ),
