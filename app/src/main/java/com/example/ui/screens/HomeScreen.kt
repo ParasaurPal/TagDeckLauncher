@@ -293,25 +293,25 @@ fun HomeScreen(
                                         when {
                                             distanceDelta > 90f -> {
                                                 twoFingerGestureFired = true
-                                                onTriggerGesture("PINCH_OUT") { target ->
+                                                if (!executePageGesture("PINCH_OUT")) onTriggerGesture("PINCH_OUT") { target ->
                                                     scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                 }
                                             }
                                             distanceDelta < -90f -> {
                                                 twoFingerGestureFired = true
-                                                onTriggerGesture("PINCH_IN") { target ->
+                                                if (!executePageGesture("PINCH_IN")) onTriggerGesture("PINCH_IN") { target ->
                                                     scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                 }
                                             }
                                             moveY < -110f -> {
                                                 twoFingerGestureFired = true
-                                                onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
+                                                if (!executePageGesture("TWO_FINGER_SWIPE_UP")) onTriggerGesture("TWO_FINGER_SWIPE_UP") { target ->
                                                     scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                 }
                                             }
                                             moveY > 110f -> {
                                                 twoFingerGestureFired = true
-                                                onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
+                                                if (!executePageGesture("TWO_FINGER_SWIPE_DOWN")) onTriggerGesture("TWO_FINGER_SWIPE_DOWN") { target ->
                                                     scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                                 }
                                             }
@@ -319,7 +319,7 @@ fun HomeScreen(
                                     }
                                 } else if (pressed.isEmpty()) {
                                     if (trackingTwoFinger && !twoFingerGestureFired && !twoFingerMoved && System.currentTimeMillis() - twoFingerStartAt < 320L) {
-                                        onTriggerGesture("TWO_FINGER_TAP") { target ->
+                                        if (!executePageGesture("TWO_FINGER_TAP")) onTriggerGesture("TWO_FINGER_TAP") { target ->
                                             scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
                                         }
                                     }
