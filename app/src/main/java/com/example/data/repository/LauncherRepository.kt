@@ -621,7 +621,12 @@ class LauncherRepository(
     suspend fun saveBackgroundPreset(preset: BackgroundPresetEntity): Long = dao.upsertBackgroundPreset(preset)
     suspend fun deleteBackgroundPreset(presetId: Long) = dao.deleteBackgroundPreset(presetId)
     suspend fun saveCustomFont(font: CustomFontEntity): Long = dao.upsertCustomFont(font)
-    suspend fun deleteCustomFont(fontId: Long) = dao.deleteCustomFont(fontId)
+    suspend fun deleteCustomFont(fontId: Long) {
+        dao.getCustomFontsOnce().firstOrNull { it.fontId == fontId }?.localPath?.let { path ->
+            runCatching { java.io.File(path).delete() }
+        }
+        dao.deleteCustomFont(fontId)
+    }
     suspend fun saveThemeProfile(profile: ThemeProfileEntity): Long = dao.upsertThemeProfile(profile)
     suspend fun deleteThemeProfile(profileId: Long) = dao.deleteThemeProfile(profileId)
 
