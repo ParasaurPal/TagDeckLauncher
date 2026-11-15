@@ -967,23 +967,37 @@ class LauncherViewModel(
                 }
             }
             "TOGGLE_EDIT_MODE" -> setEditMode(!uiState.value.isEditMode)
-            "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM" -> {
+            "SHOW_OBJECT", "HIDE_OBJECT", "TOGGLE_OBJECT", "SHOW_GROUP", "HIDE_GROUP", "TOGGLE_GROUP", "NEXT_STACK_ITEM", "PREVIOUS_STACK_ITEM" -> {
                 targetElementId?.let { id ->
                     uiState.value.homeElements.firstOrNull { it.elementId == id }?.let { element ->
-                        val updated = when (actionType) {
-                            "SHOW_OBJECT" -> element.copy(visible = true)
-                            "HIDE_OBJECT" -> element.copy(visible = false)
-                            "TOGGLE_OBJECT" -> element.copy(visible = !element.visible)
-                            "NEXT_STACK_ITEM" -> {
-                                val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
-                                if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex + 1) % count) else element
+                        if (actionType.endsWith("_GROUP")) {
+                            val groupId = element.groupId
+                            if (!groupId.isNullOrBlank()) {
+                                uiState.value.homeElements.filter { it.groupId == groupId }.forEach { member ->
+                                    val visible = when (actionType) {
+                                        "SHOW_GROUP" -> true
+                                        "HIDE_GROUP" -> false
+                                        else -> !element.visible
+                                    }
+                                    if (member.visible != visible) saveHomeElement(member.copy(visible = visible), recordHistory = false)
+                                }
                             }
-                            else -> {
-                                val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
-                                if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex - 1 + count) % count) else element
+                        } else {
+                            val updated = when (actionType) {
+                                "SHOW_OBJECT" -> element.copy(visible = true)
+                                "HIDE_OBJECT" -> element.copy(visible = false)
+                                "TOGGLE_OBJECT" -> element.copy(visible = !element.visible)
+                                "NEXT_STACK_ITEM" -> {
+                                    val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
+                                    if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex + 1) % count) else element
+                                }
+                                else -> {
+                                    val count = element.widgetStackItemsJson.split(",").mapNotNull { it.trim().toLongOrNull() }.size
+                                    if (count > 0) element.copy(widgetStackIndex = (element.widgetStackIndex - 1 + count) % count) else element
+                                }
                             }
+                            if (updated != element) saveHomeElement(updated, recordHistory = false)
                         }
-                        if (updated != element) saveHomeElement(updated, recordHistory = false)
                     }
                 }
             }
