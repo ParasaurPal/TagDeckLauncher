@@ -249,12 +249,12 @@ fun CategoryEditorDialog(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CategoryBadgeIcon(preview, size = iconSizeDp.dp, isOpen = false)
+                                CategoryBadgeIcon(preview, size = 24.dp, isOpen = false)
                                 Text("Closed", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
                             }
                             Text("↔", color = Color(colorHex), fontWeight = FontWeight.Bold)
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CategoryBadgeIcon(preview, size = iconSizeDp.dp, isOpen = true)
+                                CategoryBadgeIcon(preview, size = 24.dp, isOpen = true)
                                 Text("Open", style = MaterialTheme.typography.labelSmall, color = Color(colorHex))
                             }
                             Column(modifier = Modifier.weight(1f)) {
@@ -429,13 +429,6 @@ fun CategoryEditorDialog(
                         }
                     }
                 }
-                Text("Category Icon Size: ${iconSizeDp}dp", style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = iconSizeDp.toFloat(),
-                    onValueChange = { iconSizeDp = it.roundToInt() },
-                    valueRange = 18f..42f,
-                )
-
                 if (initialCategory?.isSystemDockTab != true) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
