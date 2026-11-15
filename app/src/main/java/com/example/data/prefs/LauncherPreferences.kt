@@ -86,7 +86,7 @@ data class LauncherSettings(
     val editGridOpacity: Float = 0.08f,
     val editGridColorHex: Long = 0xFFFFFFFFL,
     val layoutLocked: Boolean = false,
-    val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE, ZOOM, CUBE, FLIP, ROTATE, PARALLAX
+    val pageTransitionStyle: String = "SLIDE", // SLIDE, DEPTH, FADE, ZOOM, CUBE, FLIP, ROTATE, PARALLAX, STACK, ACCORDION, WINDMILL
     val widgetFeedEnabled: Boolean = true,
     val widgetFeedTitleColor: String = "WHITE", // WHITE, BLACK
     val pageIndicatorStyle: String = "DOTS", // DOTS, PILL, NUMBERS, HIDDEN
