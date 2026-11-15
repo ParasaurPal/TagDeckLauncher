@@ -599,7 +599,33 @@ fun HomeElementBody(
 
                 "CONTAINER" -> {
                     val children = state.homeElements.filter { it.parentContainerId == element.elementId && it.visible }.sortedBy { it.zIndex }
-                    if (styleExtras.optBoolean("containerScrollable", false)) {
+                    val containerLayout = styleExtras.optString("containerLayoutMode", "FREEFORM")
+                    if (containerLayout == "GRID") {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5)),
+                            modifier = Modifier.fillMaxSize().padding(4.dp),
+                        ) {
+                            items(children, key = { it.elementId }) { child ->
+                                Box(modifier = Modifier.fillMaxWidth().height(child.heightDp.coerceIn(56f, 220f).dp).padding(3.dp)) {
+                                    HomeElementBody(
+                                        element = child.copy(widthDp = element.widthDp / styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5)),
+                                        state = state,
+                                        appDiscovery = appDiscovery,
+                                        widgetHost = widgetHost,
+                                        onLaunchApp = onLaunchApp,
+                                        onOpenTagSidebar = onOpenTagSidebar,
+                                        onOpenCategorySidebar = onOpenCategorySidebar,
+                                        onOpenRuleSidebar = onOpenRuleSidebar,
+                                        onOpenSidebar = onOpenSidebar,
+                                        onOpenWindow = onOpenWindow,
+                                        onOpenFolder = onOpenFolder,
+                                        onElementTrigger = onElementTrigger,
+                                        onUpdateElement = onUpdateElement,
+                                    )
+                                }
+                            }
+                        }
+                    } else if (styleExtras.optBoolean("containerScrollable", false)) {
                         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                             if (children.isEmpty()) Text("Assign objects to this container in Layout settings", color = Color(element.textColorHex))
                             children.forEach { child ->
@@ -2256,6 +2282,23 @@ fun ElementInspectorDialog(
                                 updated.put("labelBackdropEnabled", true)
                                 edited = edited.copy(fontSizeSp = maxOf(edited.fontSizeSp, 14f), styleExtrasJson = updated.toString())
                             }, modifier = Modifier.fillMaxWidth()) { Text("Apply High-Readability Preset") }
+                        }
+                        if (edited.type == "CONTAINER") {
+                            HorizontalDivider()
+                            Text("Container Layout", style = MaterialTheme.typography.titleSmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("FREEFORM", "GRID").forEach { mode ->
+                                    FilterChip(selected = styleExtras.optString("containerLayoutMode", "FREEFORM") == mode, onClick = { updateStyleExtraString("containerLayoutMode", mode) }, label = { Text(mode) })
+                                }
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Scrollable content")
+                                Switch(checked = styleExtras.optBoolean("containerScrollable", false), onCheckedChange = { updateStyleExtraBoolean("containerScrollable", it) })
+                            }
+                            if (styleExtras.optString("containerLayoutMode", "FREEFORM") == "GRID") {
+                                Text("Grid columns: ${styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5)}")
+                                Slider(value = styleExtras.optInt("containerGridColumns", 2).coerceIn(1, 5).toFloat(), onValueChange = { updateStyleExtra("containerGridColumns", it.roundToInt().toDouble()) }, valueRange = 1f..5f, steps = 3)
+                            }
                         }
                         if (edited.type == "APP_GROUP_WIDGET") {
                             HorizontalDivider()
