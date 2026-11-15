@@ -611,7 +611,7 @@ fun SettingsScreen(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Custom Font Library", style = MaterialTheme.typography.titleSmall)
-                            Text("Import TTF, OTF, or TTC files. Fonts stay in app storage.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Import TTF or OTF files. Fonts stay in app storage.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Button(onClick = { customFontPicker.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream", "*/*")) }) { Text("Import") }
                     }
