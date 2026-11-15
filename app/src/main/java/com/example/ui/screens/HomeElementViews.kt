@@ -1039,7 +1039,7 @@ fun HomeElementBody(
 
                 "FOLDER" -> {
                     val pkgSet = element.folderPackages().toSet()
-                    val previewApps = state.appsWithTags.map { it.app }.filter { it.packageName in pkgSet }.take(4)
+                    val previewApps = state.appsWithTags.map { it.app }.filter { it.packageName in pkgSet }.take(if (element.folderLayoutMode == "GRID_3X3") 9 else if (element.folderLayoutMode == "FAN") 5 else 4)
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -1061,6 +1061,21 @@ fun HomeElementBody(
                                 previewApps.take(4).forEachIndexed { index, app ->
                                     Box(modifier = Modifier.offset(x = (index * 18).dp)) {
                                         AppIconView(app, appDiscovery, 28.dp, state.settings.globalIconShape)
+                                    }
+                                }
+                            }
+                            "FAN" -> Box(modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                                previewApps.forEachIndexed { index, app ->
+                                    val rotation = (index - (previewApps.size - 1) / 2f) * 12f
+                                    Box(modifier = Modifier.offset(x = ((index - (previewApps.size - 1) / 2f) * 18f).dp, y = (kotlin.math.abs(rotation) * 0.12f).dp).graphicsLayer { rotationZ = rotation }) {
+                                        AppIconView(app, appDiscovery, 30.dp, state.settings.globalIconShape)
+                                    }
+                                }
+                            }
+                            "GRID_3X3" -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                previewApps.chunked(3).forEach { rowApps ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        rowApps.forEach { app -> AppIconView(app, appDiscovery, 18.dp, state.settings.globalIconShape) }
                                     }
                                 }
                             }
@@ -2036,7 +2051,7 @@ fun ElementInspectorDialog(
                             Text("Folder Studio", style = MaterialTheme.typography.titleSmall)
                             Text("Folder Layout", style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("GRID", "LIST", "STACK").forEach { mode ->
+                                listOf("GRID_2X2", "GRID_3X3", "LIST", "STACK", "FAN").forEach { mode ->
                                     FilterChip(selected = edited.folderLayoutMode == mode, onClick = { edited = edited.copy(folderLayoutMode = mode) }, label = { Text(mode) })
                                 }
                             }
