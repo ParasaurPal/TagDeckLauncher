@@ -3406,7 +3406,7 @@ fun LayerManagerDialog(
                             }
                             TextButton(onClick = { renamingElementId = element.elementId; renameValue = element.label.ifBlank { element.type.replace('_', ' ') } }) { Text("Name") }
                             TextButton(onClick = { onUpdate(element.copy(zIndex = element.zIndex + 1)) }) { Text("↑") }
-                            TextButton(onClick = { onUpdate(element.copy(zIndex = (element.zIndex - 1).coerceAtLeast(0))) }) { Text("↓") }
+                            TextButton(onClick = { onUpdate(element.copy(zIndex = element.zIndex - 1)) }) { Text("↓") }
                             TextButton(onClick = { onUpdate(element.copy(locked = !element.locked)) }) { Text(if (element.locked) "Unlock" else "Lock") }
                             Switch(checked = element.visible, onCheckedChange = { onUpdate(element.copy(visible = it)) })
                         }
