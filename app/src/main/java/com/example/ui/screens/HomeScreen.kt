@@ -219,6 +219,13 @@ fun HomeScreen(
         }
         return target.coerceIn(0, visiblePages.lastIndex)
     }
+    fun executePageGesture(trigger: String): Boolean {
+        val actions = currentPage.pageGesturesJson?.takeIf { it.isNotBlank() } ?: return false
+        val pageAction = HomeElementEntity(pageId = currentPage.pageId, type = "PAGE_ACTION", actionsConfigJson = actions)
+        return onExecuteElementAction(pageAction, trigger) { target ->
+            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+        }
+    }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
     val rightEdgeSidebar = state.sidebars.firstOrNull { it.side == "RIGHT" && it.edgeZoneEnabled }
     val topEdgeSidebar = state.sidebars.firstOrNull { it.side == "TOP" && it.edgeZoneEnabled }
@@ -498,27 +505,34 @@ val page = visiblePages[pageIdx]
                                 if (state.isEditMode) {
                                     onSelectElement(null)
                                 } else {
-                                    onTriggerGesture("SINGLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                    if (!executePageGesture("TAP")) {
+                                        onTriggerGesture("SINGLE_TAP") { target ->
+                                            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        }
                                     }
                                 }
                             },
                             onCanvasDoubleTap = {
                                 if (!state.isEditMode) {
-                                    onTriggerGesture("DOUBLE_TAP") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                    if (!executePageGesture("DOUBLE_TAP")) {
+                                        onTriggerGesture("DOUBLE_TAP") { target ->
+                                            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        }
                                     }
                                 }
                             },
                             onCanvasLongPress = {
-                                if (!state.isEditMode) {
+                                if (!state.isEditMode && !executePageGesture("LONG_PRESS")) {
                                     onToggleEditMode(true)
                                 }
                             },
                             onVerticalSwipe = { isUp ->
                                 if (!state.isEditMode) {
-                                    onTriggerGesture(if (isUp) "SWIPE_UP" else "SWIPE_DOWN") { target ->
-                                        scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                    val trigger = if (isUp) "SWIPE_UP" else "SWIPE_DOWN"
+                                    if (!executePageGesture(trigger)) {
+                                        onTriggerGesture(trigger) { target ->
+                                            scope.launch { pagerState.animateScrollToPage(resolvePageTarget(target), animationSpec = tween(durationMillis = activeTransitionDurationMs)) }
+                                        }
                                     }
                                 }
                             },
