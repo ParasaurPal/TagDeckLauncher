@@ -35,6 +35,7 @@ data class FullBackupPayload(
     val backgroundPresets: List<BackgroundPresetEntity> = emptyList(),
     val customFonts: List<CustomFontEntity> = emptyList(),
     val themeProfiles: List<ThemeProfileEntity> = emptyList(),
+    val embeddedFontsBase64: Map<String, String> = emptyMap(),
     val settings: LauncherSettings,
 )
 
@@ -274,6 +275,7 @@ object BackupManager {
                 put("isItalic", f.isItalic)
                 put("isFavorite", f.isFavorite)
                 put("createdAt", f.createdAt)
+                payload.embeddedFontsBase64[f.localPath]?.let { put("base64", it) }
             })
         }
         root.put("customFonts", fontsArr)
@@ -649,6 +651,7 @@ object BackupManager {
             ))
         }
 
+        val embeddedFonts = mutableMapOf<String, String>()
         val themeProfiles = mutableListOf<ThemeProfileEntity>()
         val themesArr = root.optJSONArray("themeProfiles") ?: JSONArray()
         for (i in 0 until themesArr.length()) {
@@ -767,6 +770,7 @@ object BackupManager {
             backgroundPresets = presets,
             customFonts = customFonts,
             themeProfiles = themeProfiles,
+            embeddedFontsBase64 = embeddedFonts,
             settings = settings,
         )
     }
