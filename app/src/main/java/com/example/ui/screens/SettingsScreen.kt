@@ -660,7 +660,7 @@ fun SettingsScreen(
                             }
                             ToggleRow("Automatic text contrast", s.autoContrastText) { value -> onUpdateSettings { it.copy(autoContrastText = value) } }
                             Text("Minimum label size: ${s.minLabelFontSp.roundToInt()}sp")
-                            Slider(value = s.minLabelFontSp, onValueChange = { value -> onUpdateSettings { it.copy(minLabelFontSp = value) } }, valueRange = 8f..24f)
+                            Slider(value = s.minLabelFontSp, onValueChange = { value -> onUpdateSettings { it.copy(minLabelFontSp = value) } }, valueRange = 11f..20f)
                             Text("Letter spacing: ${"%.2f".format(s.letterSpacingEm)}em")
                             Slider(value = s.letterSpacingEm, onValueChange = { value -> onUpdateSettings { it.copy(letterSpacingEm = value) } }, valueRange = -0.05f..0.25f)
                             Text("Line height: ${"%.2f".format(s.lineHeightMultiplier)}x")
