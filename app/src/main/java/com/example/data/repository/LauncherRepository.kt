@@ -780,7 +780,21 @@ class LauncherRepository(
                 )
             }
             dao.insertHomeElements(
-                payload.elements.map { e -> e.copy(imagePath = e.imagePath?.let { remappedPaths[it] ?: it }) }
+                payload.elements.map { e ->
+                    val remappedLayers = runCatching {
+                        val layers = JSONArray(e.extraImageLayersJson)
+                        JSONArray().apply {
+                            for (index in 0 until layers.length()) {
+                                val oldPath = layers.optString(index)
+                                put(remappedPaths[oldPath] ?: oldPath)
+                            }
+                        }.toString()
+                    }.getOrDefault(e.extraImageLayersJson)
+                    e.copy(
+                        imagePath = e.imagePath?.let { remappedPaths[it] ?: it },
+                        extraImageLayersJson = remappedLayers,
+                    )
+                }
             )
         }
         if (payload.sidebars.isNotEmpty()) {
