@@ -599,6 +599,21 @@ fun SettingsScreen(
                         matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_CATEGORY_ICONS].orEmpty() else emptyList(),
                     ) {
                         Text("Customize each category's closed and open-state badge, including custom images, emoji, and accent colors.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("All-Apps Category Dock Icon Size: ${s.categoryDockIconSizeDp}dp", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = s.categoryDockIconSizeDp.toFloat(),
+                            onValueChange = { value -> onUpdateSettings { it.copy(categoryDockIconSizeDp = value.roundToInt().coerceIn(12, 28)) } },
+                            valueRange = 12f..28f,
+                            modifier = Modifier.testTag("category_dock_icon_size_slider"),
+                        )
+                        Text("All-Apps Category Dock Text Size: ${s.categoryDockLabelSizeSp}sp", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = s.categoryDockLabelSizeSp.toFloat(),
+                            onValueChange = { value -> onUpdateSettings { it.copy(categoryDockLabelSizeSp = value.roundToInt().coerceIn(9, 18)) } },
+                            valueRange = 9f..18f,
+                            modifier = Modifier.testTag("category_dock_label_size_slider"),
+                        )
+                        Text("These two sizes apply uniformly to every category in both category rows, including Games and its subcategories.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Drawer / sidebar icon fill contrast", style = MaterialTheme.typography.labelMedium)
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
