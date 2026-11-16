@@ -906,6 +906,8 @@ fun SettingsScreen(
                             .put("wallpaperAmbientEffectType", s.wallpaperAmbientEffectType)
                             .put("sidebarTextColorMode", s.sidebarTextColorMode)
                             .put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
+                            .put("categoryDockIconSizeDp", s.categoryDockIconSizeDp)
+                            .put("categoryDockLabelSizeSp", s.categoryDockLabelSizeSp)
                             .put("showHomeAppLabels", s.showHomeAppLabels)
                             .put("appLabelOutlineEnabled", s.appLabelOutlineEnabled)
                             .put("allAppsSidebarEdge", s.allAppsSidebarEdge)
@@ -1037,6 +1039,8 @@ fun SettingsScreen(
                                     wallpaperAmbientEffectType = json.optString("wallpaperAmbientEffectType", current.wallpaperAmbientEffectType),
                                     sidebarTextColorMode = json.optString("sidebarTextColorMode", current.sidebarTextColorMode),
                                     sidebarCategoryIconStyle = json.optString("sidebarCategoryIconStyle", current.sidebarCategoryIconStyle),
+                                    categoryDockIconSizeDp = json.optInt("categoryDockIconSizeDp", current.categoryDockIconSizeDp).coerceIn(12, 28),
+                                    categoryDockLabelSizeSp = json.optInt("categoryDockLabelSizeSp", current.categoryDockLabelSizeSp).coerceIn(9, 18),
                                     showHomeAppLabels = json.optBoolean("showHomeAppLabels", current.showHomeAppLabels),
                                     appLabelOutlineEnabled = json.optBoolean("appLabelOutlineEnabled", current.appLabelOutlineEnabled),
                                     allAppsSidebarEdge = json.optString("allAppsSidebarEdge", current.allAppsSidebarEdge),
