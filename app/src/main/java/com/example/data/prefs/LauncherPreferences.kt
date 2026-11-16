@@ -34,6 +34,9 @@ data class LauncherSettings(
     val appLabelOutlineEnabled: Boolean = false,
     val wallpaperType: String = "BUILTIN_PRISM", // BUILTIN_PRISM, BUILTIN_TOPO, CUSTOM_IMAGE, GRADIENT, SOLID
     val wallpaperCustomPath: String? = null,
+    val wallpaperCropScale: Float = 1f,
+    val wallpaperCropX: Float = 0f,
+    val wallpaperCropY: Float = 0f,
     val wallpaperGradientStartHex: Long = 0xFF0A1124L,
     val wallpaperGradientEndHex: Long = 0xFF1A1038L,
     val wallpaperGradientDirection: String = "VERTICAL", // VERTICAL, HORIZONTAL, DIAGONAL
@@ -191,6 +194,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         val APP_LABEL_OUTLINE_ENABLED = booleanPreferencesKey("app_label_outline_enabled")
         val WALLPAPER_TYPE = stringPreferencesKey("wallpaper_type")
         val WALLPAPER_CUSTOM_PATH = stringPreferencesKey("wallpaper_custom_path")
+        val WALLPAPER_CROP_SCALE = floatPreferencesKey("wallpaper_crop_scale")
+        val WALLPAPER_CROP_X = floatPreferencesKey("wallpaper_crop_x")
+        val WALLPAPER_CROP_Y = floatPreferencesKey("wallpaper_crop_y")
         val WALLPAPER_GRADIENT_START = longPreferencesKey("wallpaper_gradient_start")
         val WALLPAPER_GRADIENT_END = longPreferencesKey("wallpaper_gradient_end")
         val WALLPAPER_GRADIENT_DIR = stringPreferencesKey("wallpaper_gradient_dir")
@@ -321,6 +327,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         appLabelOutlineEnabled = prefs[Keys.APP_LABEL_OUTLINE_ENABLED] ?: false,
         wallpaperType = prefs[Keys.WALLPAPER_TYPE] ?: "BUILTIN_PRISM",
         wallpaperCustomPath = prefs[Keys.WALLPAPER_CUSTOM_PATH],
+        wallpaperCropScale = prefs[Keys.WALLPAPER_CROP_SCALE] ?: 1f,
+        wallpaperCropX = prefs[Keys.WALLPAPER_CROP_X] ?: 0f,
+        wallpaperCropY = prefs[Keys.WALLPAPER_CROP_Y] ?: 0f,
         wallpaperGradientStartHex = prefs[Keys.WALLPAPER_GRADIENT_START] ?: 0xFF0A1124L,
         wallpaperGradientEndHex = prefs[Keys.WALLPAPER_GRADIENT_END] ?: 0xFF1A1038L,
         wallpaperGradientDirection = prefs[Keys.WALLPAPER_GRADIENT_DIR] ?: "VERTICAL",
@@ -453,6 +462,9 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.WALLPAPER_TYPE] = updated.wallpaperType
             if (updated.wallpaperCustomPath != null) prefs[Keys.WALLPAPER_CUSTOM_PATH] = updated.wallpaperCustomPath
             else prefs.remove(Keys.WALLPAPER_CUSTOM_PATH)
+            prefs[Keys.WALLPAPER_CROP_SCALE] = updated.wallpaperCropScale.coerceIn(1f, 4f)
+            prefs[Keys.WALLPAPER_CROP_X] = updated.wallpaperCropX.coerceIn(-1f, 1f)
+            prefs[Keys.WALLPAPER_CROP_Y] = updated.wallpaperCropY.coerceIn(-1f, 1f)
             prefs[Keys.WALLPAPER_GRADIENT_START] = updated.wallpaperGradientStartHex
             prefs[Keys.WALLPAPER_GRADIENT_END] = updated.wallpaperGradientEndHex
             prefs[Keys.WALLPAPER_GRADIENT_DIR] = updated.wallpaperGradientDirection
