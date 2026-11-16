@@ -52,6 +52,7 @@ fun ImageCropEditor(
     cropX: Float,
     cropY: Float,
     onCropChange: (scale: Float, x: Float, y: Float) -> Unit,
+    cropAspectRatio: Float = 0.42f,
     modifier: Modifier = Modifier,
 ) {
     val imageFile = imagePath?.let(::File)?.takeIf { it.exists() }
@@ -65,7 +66,7 @@ fun ImageCropEditor(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(9f / 16f)
+                    .aspectRatio(cropAspectRatio.coerceIn(0.25f, 1f))
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color.Black),
             )
@@ -84,6 +85,7 @@ fun ImageCropEditor(
             cropX = cropX,
             cropY = cropY,
             onCropChange = onCropChange,
+            cropAspectRatio = cropAspectRatio,
             onClose = { editorOpen = false },
         )
     }
@@ -96,6 +98,7 @@ private fun FullScreenImageCropDialog(
     cropX: Float,
     cropY: Float,
     onCropChange: (Float, Float, Float) -> Unit,
+    cropAspectRatio: Float,
     onClose: () -> Unit,
 ) {
     val currentScale by rememberUpdatedState(cropScale)
@@ -145,11 +148,12 @@ private fun FullScreenImageCropDialog(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
-                val previewWidth = minOf(maxWidth, maxHeight * (9f / 16f))
+                val ratio = cropAspectRatio.coerceIn(0.25f, 1f)
+                val previewWidth = minOf(maxWidth, maxHeight * ratio)
                 Box(
                     modifier = Modifier
                         .width(previewWidth)
-                        .aspectRatio(9f / 16f)
+                        .aspectRatio(ratio)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.Black)
                         .pointerInput(imageFile.absolutePath) {
