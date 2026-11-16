@@ -111,6 +111,9 @@ fun CategoryEditorDialog(
     var bgBlurDp by remember(initialCategory?.categoryId) {
         mutableFloatStateOf(initialCategory?.backgroundBlurDp ?: 0f)
     }
+    var bgCropScale by remember(initialCategory?.categoryId) { mutableFloatStateOf(initialCategory?.backgroundCropScale ?: 1f) }
+    var bgCropX by remember(initialCategory?.categoryId) { mutableFloatStateOf(initialCategory?.backgroundCropX ?: 0f) }
+    var bgCropY by remember(initialCategory?.categoryId) { mutableFloatStateOf(initialCategory?.backgroundCropY ?: 0f) }
     var bgAlpha by remember(initialCategory?.categoryId) {
         mutableFloatStateOf(initialCategory?.backgroundAlpha ?: 1f)
     }
@@ -194,6 +197,9 @@ fun CategoryEditorDialog(
         backgroundType = bgType,
         backgroundGradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
+        backgroundCropScale = bgCropScale,
+        backgroundCropX = bgCropX,
+        backgroundCropY = bgCropY,
         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
         backgroundAlpha = bgAlpha,
         showInMainBar = showInMainBar,
@@ -238,6 +244,9 @@ fun CategoryEditorDialog(
                             colorHex = if (bgType == "INHERIT") CategoryBackgroundPalette.first() else bgColorHex,
                             gradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
                             imagePath = if (bgType == "IMAGE") bgImagePath else null,
+                            cropScale = bgCropScale,
+                            cropX = bgCropX,
+                            cropY = bgCropY,
                             blurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
                             alpha = bgAlpha,
                         )
@@ -551,6 +560,13 @@ fun CategoryEditorDialog(
                             TextButton(onClick = { bgImagePath = null }) { Text("Clear") }
                         }
                     }
+                    Text("Image Crop / Zoom: ${String.format("%.1f", bgCropScale)}x", style = MaterialTheme.typography.bodyMedium)
+                    Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
+                    Text("Horizontal Position: ${(bgCropX * 100).roundToInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Slider(value = bgCropX, onValueChange = { bgCropX = it }, valueRange = -1f..1f)
+                    Text("Vertical Position: ${(bgCropY * 100).roundToInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Slider(value = bgCropY, onValueChange = { bgCropY = it }, valueRange = -1f..1f)
+                    TextButton(onClick = { bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Reset Crop") }
                     Text("Background Blur: ${bgBlurDp.roundToInt()}dp", style = MaterialTheme.typography.bodyMedium)
                     Slider(
                         value = bgBlurDp,
@@ -582,6 +598,9 @@ fun CategoryEditorDialog(
                         backgroundType = bgType,
                         backgroundGradientEndHex = if (bgType == "GRADIENT") bgGradientEndHex else null,
                         backgroundImagePath = if (bgType == "IMAGE") bgImagePath else null,
+                        backgroundCropScale = bgCropScale,
+                        backgroundCropX = bgCropX,
+                        backgroundCropY = bgCropY,
                         backgroundBlurDp = if (bgType == "IMAGE") bgBlurDp else 0f,
                         backgroundAlpha = bgAlpha,
                         showInMainBar = showInMainBar,
