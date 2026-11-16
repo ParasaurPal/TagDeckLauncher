@@ -145,6 +145,7 @@ import com.example.ui.components.IconStyleConfig
 import com.example.ui.components.CategoryBadgeIcon
 import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.ImageLibraryDialog
+import com.example.ui.components.KeyboardAppearanceSettingsCard
 import com.example.ui.components.StudioDarkSurfaceSwatches
 import com.example.ui.components.StudioNeutralAndAccentSwatches
 import com.example.ui.state.LauncherUiState
@@ -295,6 +296,7 @@ fun SettingsScreen(
         ),
         "Appearance & Icons" to listOf(
             LauncherSettingsCatalog.SECTION_THEME_TYPOGRAPHY,
+            LauncherSettingsCatalog.SECTION_KEYBOARD,
             LauncherSettingsCatalog.SECTION_PALETTE_SURFACES,
             LauncherSettingsCatalog.SECTION_WALLPAPER,
             LauncherSettingsCatalog.SECTION_ICON_PACKS,
@@ -365,6 +367,18 @@ fun SettingsScreen(
                 if (path != null) {
                     onUpdateSettings { it.copy(wallpaperType = "CUSTOM_IMAGE", wallpaperCustomPath = path) }
                     onShowMessage("Wallpaper updated")
+                }
+            }
+        }
+    }
+
+    val keyboardWallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val path = onImportImage(uri, "Keyboard Wallpapers", null)
+                if (path != null) {
+                    onUpdateSettings { it.copy(keyboardWallpaperPath = path) }
+                    onShowMessage("Keyboard wallpaper saved")
                 }
             }
         }
@@ -1043,6 +1057,25 @@ fun SettingsScreen(
                         onSelect = { c -> onUpdateSettings { it.copy(globalTextColorHex = c) } },
                         tagPrefix = "settings_text_color",
                     )
+                    }
+                }
+            }
+
+            // T9 Keyboard Appearance
+            if (LauncherSettingsCatalog.SECTION_KEYBOARD in visibleSections) {
+                item(key = LauncherSettingsCatalog.SECTION_KEYBOARD) {
+                    SettingsCard(
+                        title = "T9 Keyboard Appearance",
+                        icon = Icons.Rounded.Gesture,
+                        matchedEntries = if (searchQuery.isNotBlank()) visibleSections[LauncherSettingsCatalog.SECTION_KEYBOARD].orEmpty() else emptyList(),
+                    ) {
+                        KeyboardAppearanceSettingsCard(
+                            settings = s,
+                            onUpdateSettings = onUpdateSettings,
+                            onPickWallpaper = {
+                                keyboardWallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                        )
                     }
                 }
             }
