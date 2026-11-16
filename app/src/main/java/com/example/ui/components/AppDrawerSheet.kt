@@ -694,9 +694,10 @@ fun AppDrawerOverlay(
                                         item {
                                             CategoryDockChip(
                                                 label = "All Games",
+                                                labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                                 selected = selectedFilterId == FILTER_GAMES,
                                                 accent = Color(gamesCategory.colorHex),
-                                                leading = { CategoryBadgeIcon(gamesCategory, size = 16.dp, isOpen = selectedFilterId == FILTER_GAMES) },
+                                                leading = { CategoryBadgeIcon(gamesCategory, size = state.settings.categoryDockIconSizeDp.dp, isOpen = selectedFilterId == FILTER_GAMES) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = FILTER_GAMES
@@ -709,9 +710,10 @@ fun AppDrawerOverlay(
                                             val sel = selectedFilterId == sub.categoryId
                                             CategoryDockChip(
                                                 label = sub.name,
+                                                labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                                 selected = sel,
                                                 accent = Color(sub.colorHex),
-                                                leading = { CategoryBadgeIcon(sub, size = 16.dp, isOpen = sel) },
+                                                leading = { CategoryBadgeIcon(sub, size = state.settings.categoryDockIconSizeDp.dp, isOpen = sel) },
                                                 onClick = {
                                                     selectedTagFilterId = null
                                                     selectedFilterId = sub.categoryId
@@ -731,9 +733,10 @@ fun AppDrawerOverlay(
                                     item {
                                         CategoryDockChip(
                                             label = allCategory.name,
+                                            labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_ALL,
                                             accent = Color(allCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(allCategory, size = 18.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_ALL) },
+                                            leading = { CategoryBadgeIcon(allCategory, size = state.settings.categoryDockIconSizeDp.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_ALL) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_ALL
@@ -745,9 +748,10 @@ fun AppDrawerOverlay(
                                     item {
                                         CategoryDockChip(
                                             label = favoritesCategory.name,
+                                            labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                             selected = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES,
                                             accent = Color(favoritesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(favoritesCategory, size = 18.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES) },
+                                            leading = { CategoryBadgeIcon(favoritesCategory, size = state.settings.categoryDockIconSizeDp.dp, isOpen = selectedTagFilterId == null && selectedFilterId == FILTER_FAVORITES) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_FAVORITES
@@ -759,9 +763,10 @@ fun AppDrawerOverlay(
                                     item {
                                         CategoryDockChip(
                                             label = gamesCategory.name,
+                                            labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                             selected = isGamesContext,
                                             accent = Color(gamesCategory.colorHex),
-                                            leading = { CategoryBadgeIcon(gamesCategory, size = 18.dp, isOpen = isGamesContext) },
+                                            leading = { CategoryBadgeIcon(gamesCategory, size = state.settings.categoryDockIconSizeDp.dp, isOpen = isGamesContext) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = FILTER_GAMES
@@ -774,9 +779,10 @@ fun AppDrawerOverlay(
                                         val selected = selectedTagFilterId == null && selectedFilterId == cat.categoryId
                                         CategoryDockChip(
                                             label = cat.name,
+                                            labelSizeSp = state.settings.categoryDockLabelSizeSp,
                                             selected = selected,
                                             accent = Color(cat.colorHex),
-                                            leading = { CategoryBadgeIcon(cat, size = 18.dp, isOpen = selected) },
+                                            leading = { CategoryBadgeIcon(cat, size = state.settings.categoryDockIconSizeDp.dp, isOpen = selected) },
                                             onClick = {
                                                 selectedTagFilterId = null
                                                 selectedFilterId = cat.categoryId
@@ -885,6 +891,7 @@ fun AppDrawerOverlay(
 @Composable
 private fun CategoryDockChip(
     label: String,
+    labelSizeSp: Int,
     selected: Boolean,
     accent: Color,
     leading: (@Composable () -> Unit)? = null,
@@ -909,7 +916,8 @@ private fun CategoryDockChip(
             leading?.invoke()
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                fontSize = labelSizeSp.sp,
+                lineHeight = (labelSizeSp + 2).sp,
                 color = Color.White,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 modifier = Modifier
