@@ -1564,6 +1564,29 @@ fun SettingsScreen(
                         onValueChange = { v -> onUpdateSettings { it.copy(allAppsBgBlurDp = v) } },
                         valueRange = 0f..24f,
                     )
+                    if (s.allAppsBgImagePath != null) {
+                        Text("Drawer Image Zoom: ${String.format("%.1f", s.allAppsBgCropScale)}x")
+                        Slider(
+                            value = s.allAppsBgCropScale,
+                            onValueChange = { v -> onUpdateSettings { it.copy(allAppsBgCropScale = v) } },
+                            valueRange = 1f..4f,
+                        )
+                        Text("Horizontal Crop: ${(s.allAppsBgCropX * 100).roundToInt()}%")
+                        Slider(
+                            value = s.allAppsBgCropX,
+                            onValueChange = { v -> onUpdateSettings { it.copy(allAppsBgCropX = v) } },
+                            valueRange = -1f..1f,
+                        )
+                        Text("Vertical Crop: ${(s.allAppsBgCropY * 100).roundToInt()}%")
+                        Slider(
+                            value = s.allAppsBgCropY,
+                            onValueChange = { v -> onUpdateSettings { it.copy(allAppsBgCropY = v) } },
+                            valueRange = -1f..1f,
+                        )
+                        TextButton(onClick = { onUpdateSettings { it.copy(allAppsBgCropScale = 1f, allAppsBgCropX = 0f, allAppsBgCropY = 0f) } }) {
+                            Text("Reset Drawer Image Crop")
+                        }
+                    }
                     Text("Card Opacity: ${(s.drawerCardOpacity * 100).roundToInt()}%")
                     Slider(
                         value = s.drawerCardOpacity,
