@@ -53,9 +53,9 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_CATEGORY_ICONS,
             title = "Category Icons & Open States",
-            keywords = listOf("category icons", "open state", "active badge", "emoji", "custom icon"),
+            keywords = listOf("category icons", "category icon size", "category text size", "dock label size", "open state", "active badge", "emoji", "custom icon"),
             entries = listOf(
-                entry("category_icon_studio", SECTION_CATEGORY_ICONS, "Category Icon Studio", "Choose custom icons, emoji, accent colors, and alternate badges for open categories", listOf("category icon", "active icon", "open icon", "emoji", "custom image")),
+                entry("category_icon_studio", SECTION_CATEGORY_ICONS, "Category Icon Studio", "Choose custom icons, emoji, accent colors, alternate badges, and uniform drawer category icon and label sizes", listOf("category icon", "active icon", "open icon", "emoji", "custom image", "category icon size", "category label size", "dock text size", "dock icon size")),
             ),
         ),
         section(
