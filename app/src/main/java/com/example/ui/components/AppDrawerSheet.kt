@@ -139,6 +139,17 @@ fun AppDrawerOverlay(
         var selectedFilterId by remember { mutableLongStateOf(FILTER_ALL) }
         var selectedTagFilterId by remember { mutableStateOf<Long?>(null) }
         var showCustomizeDialog by remember { mutableStateOf(false) }
+        var showT9Search by remember { mutableStateOf(false) }
+        var t9Digits by remember { mutableStateOf("") }
+        BackHandler(showT9Search) { showT9Search = false }
+
+        val t9MatchingApps = remember(state.appsWithTags, t9Digits) {
+            val installed = state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }
+            if (t9Digits.isBlank()) installed.sortedByDescending { it.app.launchCount }.take(24)
+            else installed.filter { t9Encode(it.app.displayName).startsWith(t9Digits) }
+                .sortedBy { it.app.displayName.lowercase() }
+                .take(40)
+        }
 
         val allCategory = remember(state.categories) {
             state.categories.find { it.categoryId == FILTER_ALL }
@@ -616,6 +627,22 @@ fun AppDrawerOverlay(
                                     modifier = Modifier.align(if (niagaraLeft) Alignment.CenterStart else Alignment.CenterEnd),
                                 )
                             }
+                            IconButton(
+                                onClick = { t9Digits = ""; showT9Search = true },
+                                modifier = Modifier
+                                    .align(if (niagaraLeft) Alignment.BottomStart else Alignment.BottomEnd)
+                                    .padding(
+                                        start = if (niagaraLeft) 36.dp else 0.dp,
+                                        end = if (niagaraLeft) 0.dp else 36.dp,
+                                        bottom = 8.dp,
+                                    )
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Color.Black.copy(alpha = 0.72f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(50))
+                                    .testTag("drawer_t9_search_button"),
+                            ) {
+                                Icon(Icons.Rounded.Search, contentDescription = "T9 Search", tint = Color.White)
+                            }
                         }
 
                         if (state.settings.drawerSearchBarVisible && state.settings.drawerSearchBarPosition == "BOTTOM") {
@@ -760,6 +787,84 @@ fun AppDrawerOverlay(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                if (showT9Search) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize().testTag("drawer_t9_search_overlay"),
+                        color = Color(0xF20D111A),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .statusBarsPadding()
+                                .navigationBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("T9 Search", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text("Enter digits to find an app by its name", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
+                                }
+                                IconButton(onClick = { showT9Search = false; t9Digits = "" }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = "Close T9 search", tint = Color.White)
+                                }
+                            }
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color.White.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                            ) {
+                                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(t9Digits.ifBlank { "Type a number…" }, modifier = Modifier.weight(1f), color = if (t9Digits.isBlank()) Color.White.copy(alpha = 0.55f) else Color.White, style = MaterialTheme.typography.titleMedium)
+                                    if (t9Digits.isNotEmpty()) TextButton(onClick = { t9Digits = "" }) { Text("Clear") }
+                                }
+                            }
+                            Text(if (t9Digits.isBlank()) "Recently used apps" else "${t9MatchingApps.size} matching apps", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
+                            LazyColumn(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                items(t9MatchingApps, key = { it.app.packageName }) { item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                onLaunchApp(item.app)
+                                                showT9Search = false
+                                                onClose()
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        AppIconView(app = item.app, appDiscovery = appDiscovery, size = 38.dp, iconShapeKey = state.settings.globalIconShape)
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(item.app.displayName, color = Color.White, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(item.app.packageName, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                }
+                                if (t9Digits.isNotBlank() && t9MatchingApps.isEmpty()) {
+                                    item { Text("No apps match those digits.", color = Color.White.copy(alpha = 0.65f), modifier = Modifier.padding(12.dp)) }
+                                }
+                            }
+                            T9SearchKeyboardPad(
+                                settings = state.settings,
+                                onDigit = { digit -> t9Digits = (t9Digits + digit).take(24) },
+                                onDelete = { if (t9Digits.isNotEmpty()) t9Digits = t9Digits.dropLast(1) },
+                                onSearch = {
+                                    t9MatchingApps.firstOrNull()?.let { item ->
+                                        onLaunchApp(item.app)
+                                        showT9Search = false
+                                        onClose()
+                                    }
+                                },
+                            )
                         }
                     }
                 }
@@ -979,4 +1084,23 @@ private fun DrawerCustomizeQuickDialog(
             TextButton(onClick = onDismiss) { Text("Done") }
         },
     )
+}
+
+
+private fun t9Encode(value: String): String = buildString {
+    value.lowercase().forEach { char ->
+        val digit = when (char) {
+            in 'a'..'c' -> '2'
+            in 'd'..'f' -> '3'
+            in 'g'..'i' -> '4'
+            in 'j'..'l' -> '5'
+            in 'm'..'o' -> '6'
+            in 'p'..'s' -> '7'
+            in 't'..'v' -> '8'
+            in 'w'..'z' -> '9'
+            in '0'..'9' -> char
+            else -> null
+        }
+        if (digit != null) append(digit)
+    }
 }
