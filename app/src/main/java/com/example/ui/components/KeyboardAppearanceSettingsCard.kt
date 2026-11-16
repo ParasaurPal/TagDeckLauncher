@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -232,6 +234,91 @@ private fun T9KeyboardSurfacePreview(settings: LauncherSettings) {
             )
             if (glass && settings.keyboardGlassLiquidEnabled) {
                 Text("Liquid Glass enabled • ${(settings.keyboardGlassRefraction * 100).roundToInt()}% refraction", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
+            }
+        }
+    }
+}
+
+
+@Composable
+fun T9SearchKeyboardPad(
+    settings: LauncherSettings,
+    onDigit: (String) -> Unit,
+    onDelete: () -> Unit,
+    onSearch: () -> Unit,
+) {
+    val view = LocalView.current
+    val theme = settings.keyboardSurfaceTheme
+    val panelBrush = when (theme) {
+        "SKEUOMORPHISM" -> Brush.verticalGradient(listOf(Color(0xFF536174), Color(0xFF172131)))
+        "BLACKBERRY" -> Brush.verticalGradient(listOf(Color(0xFF1E3854), Color(0xFF0A1422)))
+        "GLASS" -> Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = settings.keyboardGlassOpacity.coerceIn(0.15f, 1f)),
+                Color(0xFF3D6C91).copy(alpha = settings.keyboardGlassOpacity.coerceIn(0.15f, 1f) * 0.58f),
+            ),
+        )
+        else -> Brush.verticalGradient(listOf(Color(0xFF292F3A), Color(0xFF171C25)))
+    }
+    val keyBrush = when (theme) {
+        "SKEUOMORPHISM" -> Brush.verticalGradient(listOf(Color(0xFF718096), Color(0xFF303C4D)))
+        "BLACKBERRY" -> Brush.verticalGradient(listOf(Color(0xFF3A526E), Color(0xFF172A40)))
+        "GLASS" -> Brush.verticalGradient(listOf(Color.White.copy(alpha = settings.keyboardGlassOpacity * 0.72f), Color(0xFF8AB6D9).copy(alpha = settings.keyboardGlassOpacity * 0.22f)))
+        else -> Brush.verticalGradient(listOf(Color(0xFF343B48), Color(0xFF252B36)))
+    }
+    val keyShape = RoundedCornerShape(if (theme == "BLACKBERRY") 7.dp else 12.dp)
+    val keys = listOf(
+        listOf("1" to "", "2" to "ABC", "3" to "DEF"),
+        listOf("4" to "GHI", "5" to "JKL", "6" to "MNO"),
+        listOf("7" to "PQRS", "8" to "TUV", "9" to "WXYZ"),
+        listOf("⌫" to "DELETE", "0" to "+", "↵" to "SEARCH"),
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(panelBrush)
+            .border(1.dp, Color.White.copy(alpha = if (theme == "GLASS") 0.46f else 0.18f), RoundedCornerShape(22.dp))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        keys.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                row.forEach { (digit, letters) ->
+                    val glow = settings.keyboardTouchEffectEnabled && settings.keyboardTouchEffect == "GLOW"
+                    val raised = theme == "SKEUOMORPHISM" || (settings.keyboardTouchEffectEnabled && settings.keyboardTouchEffect == "BOUNCE")
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .then(if (raised) Modifier.shadow(if (theme == "SKEUOMORPHISM") 4.dp else 2.dp, keyShape) else Modifier)
+                            .clip(keyShape)
+                            .background(keyBrush)
+                            .border(
+                                BorderStroke(
+                                    if (glow) 1.6.dp else 0.8.dp,
+                                    if (glow) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f) else Color.White.copy(alpha = if (theme == "MINIMALISM") 0.08f else 0.3f),
+                                ),
+                                keyShape,
+                            )
+                            .clickable {
+                                if (settings.keyboardHapticEnabled) view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                                if (settings.keyboardTouchSoundEnabled) view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+                                when (digit) {
+                                    "⌫" -> onDelete()
+                                    "↵" -> onSearch()
+                                    else -> onDigit(digit)
+                                }
+                            }
+                            .padding(vertical = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(digit, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 21.sp)
+                            if (letters.isNotEmpty()) Text(letters, color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp, lineHeight = 9.sp)
+                        }
+                    }
+                }
             }
         }
     }
