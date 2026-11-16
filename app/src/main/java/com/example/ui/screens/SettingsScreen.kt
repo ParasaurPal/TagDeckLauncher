@@ -862,6 +862,17 @@ fun SettingsScreen(
                             .put("animationSpeedScale", s.animationSpeedScale.toDouble())
                             .put("hapticFeedbackEnabled", s.hapticFeedbackEnabled)
                             .put("wallpaperType", s.wallpaperType)
+                            .put("keyboardSurfaceTheme", s.keyboardSurfaceTheme)
+                            .put("keyboardTouchEffect", s.keyboardTouchEffect)
+                            .put("keyboardTouchEffectEnabled", s.keyboardTouchEffectEnabled)
+                            .put("keyboardHapticEnabled", s.keyboardHapticEnabled)
+                            .put("keyboardTouchSoundEnabled", s.keyboardTouchSoundEnabled)
+                            .put("keyboardGlassLiquidEnabled", s.keyboardGlassLiquidEnabled)
+                            .put("keyboardGlassUseWallpaper", s.keyboardGlassUseWallpaper)
+                            .put("keyboardGlassOpacity", s.keyboardGlassOpacity.toDouble())
+                            .put("keyboardGlassBlurDp", s.keyboardGlassBlurDp.toDouble())
+                            .put("keyboardGlassRefraction", s.keyboardGlassRefraction.toDouble())
+                            .put("keyboardWallpaperPath", s.keyboardWallpaperPath ?: "")
                             .put("wallpaperCustomPath", s.wallpaperCustomPath ?: "")
                             .put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
                             .put("wallpaperGradientEndHex", s.wallpaperGradientEndHex)
@@ -982,6 +993,17 @@ fun SettingsScreen(
                                     animationSpeedScale = json.optDouble("animationSpeedScale", current.animationSpeedScale.toDouble()).toFloat(),
                                     hapticFeedbackEnabled = json.optBoolean("hapticFeedbackEnabled", current.hapticFeedbackEnabled),
                                     wallpaperType = json.optString("wallpaperType", current.wallpaperType),
+                                    keyboardSurfaceTheme = json.optString("keyboardSurfaceTheme", current.keyboardSurfaceTheme),
+                                    keyboardTouchEffect = json.optString("keyboardTouchEffect", current.keyboardTouchEffect),
+                                    keyboardTouchEffectEnabled = json.optBoolean("keyboardTouchEffectEnabled", current.keyboardTouchEffectEnabled),
+                                    keyboardHapticEnabled = json.optBoolean("keyboardHapticEnabled", current.keyboardHapticEnabled),
+                                    keyboardTouchSoundEnabled = json.optBoolean("keyboardTouchSoundEnabled", current.keyboardTouchSoundEnabled),
+                                    keyboardGlassLiquidEnabled = json.optBoolean("keyboardGlassLiquidEnabled", current.keyboardGlassLiquidEnabled),
+                                    keyboardGlassUseWallpaper = json.optBoolean("keyboardGlassUseWallpaper", current.keyboardGlassUseWallpaper),
+                                    keyboardGlassOpacity = json.optDouble("keyboardGlassOpacity", current.keyboardGlassOpacity.toDouble()).toFloat(),
+                                    keyboardGlassBlurDp = json.optDouble("keyboardGlassBlurDp", current.keyboardGlassBlurDp.toDouble()).toFloat(),
+                                    keyboardGlassRefraction = json.optDouble("keyboardGlassRefraction", current.keyboardGlassRefraction.toDouble()).toFloat(),
+                                    keyboardWallpaperPath = if (json.has("keyboardWallpaperPath")) json.optString("keyboardWallpaperPath", "").takeIf { it.isNotBlank() } else current.keyboardWallpaperPath,
                                     wallpaperCustomPath = if (json.has("wallpaperCustomPath")) json.optString("wallpaperCustomPath", "").takeIf { it.isNotBlank() } else current.wallpaperCustomPath,
                                     wallpaperGradientStartHex = json.optLong("wallpaperGradientStartHex", current.wallpaperGradientStartHex),
                                     wallpaperGradientEndHex = json.optLong("wallpaperGradientEndHex", current.wallpaperGradientEndHex),
