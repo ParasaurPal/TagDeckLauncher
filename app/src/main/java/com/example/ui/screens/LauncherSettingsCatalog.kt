@@ -23,6 +23,7 @@ object LauncherSettingsCatalog {
     const val SECTION_DEFAULT_HOME = "default_home"
     const val SECTION_MEDIA = "media"
     const val SECTION_THEME_TYPOGRAPHY = "theme_typography"
+    const val SECTION_KEYBOARD = "keyboard_appearance"
     const val SECTION_PALETTE_SURFACES = "palette_surfaces"
     const val SECTION_ICON_PACKS = "icon_packs"
     const val SECTION_LINE_ICONS = "line_icons"
@@ -86,6 +87,16 @@ object LauncherSettingsCatalog {
                 entry("font_scale", SECTION_THEME_TYPOGRAPHY, "Global Font Scale", "Scale typography size from 0.80x to 1.80x", listOf("text size", "font size", "zoom", "scale")),
                 entry("text_color", SECTION_THEME_TYPOGRAPHY, "Home Element Default Text Color", "Choose default label and widget text color", listOf("label color", "text color", "foreground")),
                 entry("readability", SECTION_THEME_TYPOGRAPHY, "Global & Per-Object Readability", "Set global high-readability defaults and override fonts, minimum label size, bold boost, spacing, wrapping, contrast, outlines, shadows, and backdrops per object", listOf("readability", "high readability", "minimum label size", "text outline", "auto contrast", "drop shadow", "backdrop", "letter spacing", "line height", "two line wrap")),
+            ),
+        ),
+        section(
+            id = SECTION_KEYBOARD,
+            title = "T9 Keyboard Appearance",
+            keywords = listOf("t9", "keyboard", "keypad", "keys", "touch effect", "skeuomorphism", "blackberry", "glass", "liquid glass", "blur", "refraction"),
+            entries = listOf(
+                entry("keyboard_surface_theme", SECTION_KEYBOARD, "Keyboard Surface Theme", "Choose Minimalism, Skeuomorphism, BlackBerry, or Glass key surfaces", listOf("keyboard theme", "key style", "surface")),
+                entry("keyboard_touch_effect", SECTION_KEYBOARD, "Key Touch Effect", "Choose Standard, Ripple, Glow, Bounce, or None and configure haptics and sound", listOf("key press", "touch feedback", "ripple", "glow", "bounce", "haptic", "sound")),
+                entry("keyboard_liquid_glass", SECTION_KEYBOARD, "Liquid Glass Effects", "Enable experimental glass treatment, wallpaper backdrop, blur, opacity, and refraction", listOf("liquid glass", "frosted glass", "transparency", "wallpaper", "blur", "opacity", "refraction")),
             ),
         ),
         section(
