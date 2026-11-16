@@ -81,6 +81,18 @@ data class LauncherSettings(
     val drawerCornerRadiusDp: Float = 26f,
     val drawerSearchBarVisible: Boolean = true,
     val drawerSearchBarPosition: String = "TOP", // TOP, BOTTOM
+    // T9 keyboard appearance and interaction
+    val keyboardSurfaceTheme: String = "MINIMALISM", // MINIMALISM, SKEUOMORPHISM, BLACKBERRY, GLASS
+    val keyboardTouchEffect: String = "STANDARD", // STANDARD, RIPPLE, GLOW, BOUNCE, NONE
+    val keyboardTouchEffectEnabled: Boolean = true,
+    val keyboardHapticEnabled: Boolean = true,
+    val keyboardTouchSoundEnabled: Boolean = false,
+    val keyboardGlassLiquidEnabled: Boolean = false,
+    val keyboardGlassUseWallpaper: Boolean = true,
+    val keyboardGlassOpacity: Float = 0.78f,
+    val keyboardGlassBlurDp: Float = 18f,
+    val keyboardGlassRefraction: Float = 0.45f,
+    val keyboardWallpaperPath: String? = null,
     val drawerCardShadowDp: Float = 4f,
     val drawerCardBorderWidthDp: Float = 0f,
     val drawerCardBorderColorHex: Long = 0x55FFFFFFL,
@@ -242,6 +254,17 @@ class LauncherPreferencesRepository(private val context: Context) {
         val DRAWER_CORNER_RADIUS = floatPreferencesKey("drawer_corner_radius")
         val DRAWER_SEARCH_BAR_VISIBLE = booleanPreferencesKey("drawer_search_bar_visible")
         val DRAWER_SEARCH_BAR_POSITION = stringPreferencesKey("drawer_search_bar_position")
+        val KEYBOARD_SURFACE_THEME = stringPreferencesKey("keyboard_surface_theme")
+        val KEYBOARD_TOUCH_EFFECT = stringPreferencesKey("keyboard_touch_effect")
+        val KEYBOARD_TOUCH_EFFECT_ENABLED = booleanPreferencesKey("keyboard_touch_effect_enabled")
+        val KEYBOARD_HAPTIC_ENABLED = booleanPreferencesKey("keyboard_haptic_enabled")
+        val KEYBOARD_TOUCH_SOUND_ENABLED = booleanPreferencesKey("keyboard_touch_sound_enabled")
+        val KEYBOARD_GLASS_LIQUID_ENABLED = booleanPreferencesKey("keyboard_glass_liquid_enabled")
+        val KEYBOARD_GLASS_USE_WALLPAPER = booleanPreferencesKey("keyboard_glass_use_wallpaper")
+        val KEYBOARD_GLASS_OPACITY = floatPreferencesKey("keyboard_glass_opacity")
+        val KEYBOARD_GLASS_BLUR = floatPreferencesKey("keyboard_glass_blur")
+        val KEYBOARD_GLASS_REFRACTION = floatPreferencesKey("keyboard_glass_refraction")
+        val KEYBOARD_WALLPAPER_PATH = stringPreferencesKey("keyboard_wallpaper_path")
         val DRAWER_CARD_SHADOW = floatPreferencesKey("drawer_card_shadow")
         val DRAWER_CARD_BORDER_WIDTH = floatPreferencesKey("drawer_card_border_width")
         val DRAWER_CARD_BORDER_COLOR = longPreferencesKey("drawer_card_border_color")
@@ -375,6 +398,17 @@ class LauncherPreferencesRepository(private val context: Context) {
         drawerCornerRadiusDp = prefs[Keys.DRAWER_CORNER_RADIUS] ?: 26f,
         drawerSearchBarVisible = prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] ?: true,
         drawerSearchBarPosition = prefs[Keys.DRAWER_SEARCH_BAR_POSITION] ?: "TOP",
+        keyboardSurfaceTheme = prefs[Keys.KEYBOARD_SURFACE_THEME] ?: "MINIMALISM",
+        keyboardTouchEffect = prefs[Keys.KEYBOARD_TOUCH_EFFECT] ?: "STANDARD",
+        keyboardTouchEffectEnabled = prefs[Keys.KEYBOARD_TOUCH_EFFECT_ENABLED] ?: true,
+        keyboardHapticEnabled = prefs[Keys.KEYBOARD_HAPTIC_ENABLED] ?: true,
+        keyboardTouchSoundEnabled = prefs[Keys.KEYBOARD_TOUCH_SOUND_ENABLED] ?: false,
+        keyboardGlassLiquidEnabled = prefs[Keys.KEYBOARD_GLASS_LIQUID_ENABLED] ?: false,
+        keyboardGlassUseWallpaper = prefs[Keys.KEYBOARD_GLASS_USE_WALLPAPER] ?: true,
+        keyboardGlassOpacity = prefs[Keys.KEYBOARD_GLASS_OPACITY] ?: 0.78f,
+        keyboardGlassBlurDp = prefs[Keys.KEYBOARD_GLASS_BLUR] ?: 18f,
+        keyboardGlassRefraction = prefs[Keys.KEYBOARD_GLASS_REFRACTION] ?: 0.45f,
+        keyboardWallpaperPath = prefs[Keys.KEYBOARD_WALLPAPER_PATH],
         drawerCardShadowDp = prefs[Keys.DRAWER_CARD_SHADOW] ?: 4f,
         drawerCardBorderWidthDp = prefs[Keys.DRAWER_CARD_BORDER_WIDTH] ?: 0f,
         drawerCardBorderColorHex = prefs[Keys.DRAWER_CARD_BORDER_COLOR] ?: 0x55FFFFFFL,
@@ -515,6 +549,18 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.DRAWER_CORNER_RADIUS] = updated.drawerCornerRadiusDp
             prefs[Keys.DRAWER_SEARCH_BAR_VISIBLE] = updated.drawerSearchBarVisible
             prefs[Keys.DRAWER_SEARCH_BAR_POSITION] = updated.drawerSearchBarPosition
+            prefs[Keys.KEYBOARD_SURFACE_THEME] = updated.keyboardSurfaceTheme
+            prefs[Keys.KEYBOARD_TOUCH_EFFECT] = updated.keyboardTouchEffect
+            prefs[Keys.KEYBOARD_TOUCH_EFFECT_ENABLED] = updated.keyboardTouchEffectEnabled
+            prefs[Keys.KEYBOARD_HAPTIC_ENABLED] = updated.keyboardHapticEnabled
+            prefs[Keys.KEYBOARD_TOUCH_SOUND_ENABLED] = updated.keyboardTouchSoundEnabled
+            prefs[Keys.KEYBOARD_GLASS_LIQUID_ENABLED] = updated.keyboardGlassLiquidEnabled
+            prefs[Keys.KEYBOARD_GLASS_USE_WALLPAPER] = updated.keyboardGlassUseWallpaper
+            prefs[Keys.KEYBOARD_GLASS_OPACITY] = updated.keyboardGlassOpacity
+            prefs[Keys.KEYBOARD_GLASS_BLUR] = updated.keyboardGlassBlurDp
+            prefs[Keys.KEYBOARD_GLASS_REFRACTION] = updated.keyboardGlassRefraction
+            if (updated.keyboardWallpaperPath != null) prefs[Keys.KEYBOARD_WALLPAPER_PATH] = updated.keyboardWallpaperPath
+            else prefs.remove(Keys.KEYBOARD_WALLPAPER_PATH)
             prefs[Keys.DRAWER_CARD_SHADOW] = updated.drawerCardShadowDp
             prefs[Keys.DRAWER_CARD_BORDER_WIDTH] = updated.drawerCardBorderWidthDp
             prefs[Keys.DRAWER_CARD_BORDER_COLOR] = updated.drawerCardBorderColorHex
