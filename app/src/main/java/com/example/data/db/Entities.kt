@@ -50,6 +50,9 @@ data class CategoryEntity(
     val backgroundType: String = "INHERIT", // INHERIT, SOLID, GRADIENT, IMAGE
     val backgroundGradientEndHex: Long? = null,
     val backgroundImagePath: String? = null,
+    val backgroundCropScale: Float = 1f,
+    val backgroundCropX: Float = 0f,
+    val backgroundCropY: Float = 0f,
     val backgroundBlurDp: Float = 0f,
     val backgroundAlpha: Float = 1f,
     val showInMainBar: Boolean = true,
@@ -201,6 +204,9 @@ data class HomePageEntity(
     val backgroundGradientEndHex: Long? = null,
     val backgroundImagePath: String? = null,
     val landscapeBackgroundImagePath: String? = null,
+    val backgroundCropScale: Float = 1f,
+    val backgroundCropX: Float = 0f,
+    val backgroundCropY: Float = 0f,
     val backgroundBlurDp: Float = 0f,
     val backgroundAlpha: Float = 0.85f,
     val pageTapActionJson: String? = null,
@@ -219,6 +225,9 @@ data class LauncherWindowEntity(
     val alignment: String = "CENTER", // CENTER, TOP, BOTTOM, LEFT, RIGHT
     val backgroundColorHex: Long = 0xEE0D1526L,
     val backgroundImagePath: String? = null,
+    val backgroundCropScale: Float = 1f,
+    val backgroundCropX: Float = 0f,
+    val backgroundCropY: Float = 0f,
     val blurBehindDp: Float = 8f,
     val cornerRadiusDp: Float = 28f,
     val animationStyle: String = "SCALE", // SCALE, SLIDE, FADE
@@ -322,6 +331,9 @@ data class SidebarConfigEntity(
     val backgroundColorHex: Long = 0xEA0C1220L,
     val backgroundGradientEndHex: Long? = null,
     val backgroundImagePath: String? = null,
+    val backgroundCropScale: Float = 1f,
+    val backgroundCropX: Float = 0f,
+    val backgroundCropY: Float = 0f,
     val backgroundBlurDp: Float = 0f,
     val cornerRadiusDp: Float = 28f,
     val layoutMode: String = "GRID", // GRID or LIST
@@ -373,6 +385,9 @@ data class BackgroundPresetEntity(
     val colorHex: Long = 0xFF0A1124L,
     val gradientEndHex: Long = 0xFF1A1038L,
     val imagePath: String? = null,
+    val cropScale: Float = 1f,
+    val cropX: Float = 0f,
+    val cropY: Float = 0f,
     val blurDp: Float = 0f,
     val alpha: Float = 1f,
 )
