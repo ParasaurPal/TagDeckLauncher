@@ -537,6 +537,14 @@ fun WallpaperFxStudioControls(
     if (settings.wallpaperType == "CUSTOM_IMAGE" && !settings.wallpaperCustomPath.isNullOrBlank()) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
         Text("Custom Wallpaper Crop & Position", style = MaterialTheme.typography.labelLarge)
+        Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+        ImageCropEditor(
+            imagePath = settings.wallpaperCustomPath,
+            cropScale = settings.wallpaperCropScale,
+            cropX = settings.wallpaperCropX,
+            cropY = settings.wallpaperCropY,
+            onCropChange = { scale, x, y -> onUpdateSettings { it.copy(wallpaperCropScale = scale, wallpaperCropX = x, wallpaperCropY = y) } },
+        )
         Text("Zoom: ${String.format("%.1f", settings.wallpaperCropScale)}x")
         Slider(
             value = settings.wallpaperCropScale,
