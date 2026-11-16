@@ -108,7 +108,13 @@ fun WallpaperBackground(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         colorFilter = colorFilter,
-                        modifier = Modifier.fillMaxSize().then(parallaxMod).then(blurMod),
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            val zoom = settings.wallpaperCropScale.coerceIn(1f, 4f)
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = size.width * settings.wallpaperCropX.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                            translationY = size.height * settings.wallpaperCropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                        }.then(parallaxMod).then(blurMod),
                     )
                 } else {
                     Image(
@@ -214,7 +220,13 @@ fun WallpaperBackground(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         alpha = resolvedAlpha,
-                        modifier = Modifier.fillMaxSize().then(pageBlur),
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            val zoom = currentPage?.backgroundCropScale?.coerceIn(1f, 4f) ?: 1f
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = size.width * (currentPage?.backgroundCropX ?: 0f).coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                            translationY = size.height * (currentPage?.backgroundCropY ?: 0f).coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                        }.then(pageBlur),
                     )
                 }
             }
@@ -344,6 +356,9 @@ fun SurfaceBackgroundLayer(
     imagePath: String? = null,
     blurDp: Float = 0f,
     alpha: Float = 1f,
+    cropScale: Float = 1f,
+    cropX: Float = 0f,
+    cropY: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
     val opacity = alpha.coerceIn(0f, 1f)
@@ -374,7 +389,13 @@ fun SurfaceBackgroundLayer(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         alpha = opacity,
-                        modifier = Modifier.fillMaxSize().then(blurMod),
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            val zoom = cropScale.coerceIn(1f, 4f)
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = size.width * cropX.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                            translationY = size.height * cropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                        }.then(blurMod),
                     )
                     Box(
                         modifier = Modifier
