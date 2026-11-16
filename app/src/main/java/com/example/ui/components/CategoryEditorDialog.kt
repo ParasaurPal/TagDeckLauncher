@@ -560,6 +560,16 @@ fun CategoryEditorDialog(
                             TextButton(onClick = { bgImagePath = null }) { Text("Clear") }
                         }
                     }
+                    if (bgImagePath != null) {
+                        Text("Drag the image to reposition it. Pinch to zoom.", style = MaterialTheme.typography.bodySmall)
+                        ImageCropEditor(
+                            imagePath = bgImagePath,
+                            cropScale = bgCropScale,
+                            cropX = bgCropX,
+                            cropY = bgCropY,
+                            onCropChange = { scale, x, y -> bgCropScale = scale; bgCropX = x; bgCropY = y },
+                        )
+                    }
                     Text("Image Crop / Zoom: ${String.format("%.1f", bgCropScale)}x", style = MaterialTheme.typography.bodyMedium)
                     Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
                     Text("Horizontal Position: ${(bgCropX * 100).roundToInt()}%", style = MaterialTheme.typography.bodyMedium)
