@@ -549,6 +549,9 @@ fun ActiveOverlayHost(
                                     backgroundGradientEndHex = cfg.backgroundGradientEndHex,
                                     backgroundImagePath = cfg.backgroundImagePath,
                                     backgroundBlurDp = cfg.backgroundBlurDp,
+                                    backgroundCropScale = cfg.backgroundCropScale,
+                                    backgroundCropX = cfg.backgroundCropX,
+                                    backgroundCropY = cfg.backgroundCropY,
                                     side = cfg.side,
                                     widthFraction = cfg.widthFraction,
                                     heightFraction = cfg.heightFraction,
@@ -659,7 +662,13 @@ private fun WindowPopupHost(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         alpha = 0.35f,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            val zoom = window.backgroundCropScale.coerceIn(1f, 4f)
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = size.width * window.backgroundCropX.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                            translationY = size.height * window.backgroundCropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                        },
                     )
                 }
                 Column(modifier = Modifier.fillMaxSize().padding(14.dp)) {
