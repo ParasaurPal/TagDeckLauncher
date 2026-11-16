@@ -76,6 +76,8 @@ data class LauncherSettings(
     val drawerColumns: Int = 4,
     val drawerIconSizeDp: Int = 50,
     val drawerLabelSizeSp: Int = 12,
+    val categoryDockIconSizeDp: Int = 18,
+    val categoryDockLabelSizeSp: Int = 12,
     val drawerSortOrder: String = "ALPHABETICAL", // ALPHABETICAL, MANUAL, MOST_USED, RECENTLY_INSTALLED
     val drawerCardOpacity: Float = 0.88f,
     val drawerCornerRadiusDp: Float = 26f,
@@ -249,6 +251,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val DRAWER_COLUMNS = intPreferencesKey("drawer_columns")
         val DRAWER_ICON_SIZE_DP = intPreferencesKey("drawer_icon_size_dp")
         val DRAWER_LABEL_SIZE_SP = intPreferencesKey("drawer_label_size_sp")
+        val CATEGORY_DOCK_ICON_SIZE_DP = intPreferencesKey("category_dock_icon_size_dp")
+        val CATEGORY_DOCK_LABEL_SIZE_SP = intPreferencesKey("category_dock_label_size_sp")
         val DRAWER_SORT_ORDER = stringPreferencesKey("drawer_sort_order")
         val DRAWER_CARD_OPACITY = floatPreferencesKey("drawer_card_opacity")
         val DRAWER_CORNER_RADIUS = floatPreferencesKey("drawer_corner_radius")
@@ -393,6 +397,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         drawerColumns = prefs[Keys.DRAWER_COLUMNS] ?: 4,
         drawerIconSizeDp = prefs[Keys.DRAWER_ICON_SIZE_DP] ?: 50,
         drawerLabelSizeSp = prefs[Keys.DRAWER_LABEL_SIZE_SP] ?: 12,
+        categoryDockIconSizeDp = prefs[Keys.CATEGORY_DOCK_ICON_SIZE_DP] ?: 18,
+        categoryDockLabelSizeSp = prefs[Keys.CATEGORY_DOCK_LABEL_SIZE_SP] ?: 12,
         drawerSortOrder = prefs[Keys.DRAWER_SORT_ORDER] ?: "ALPHABETICAL",
         drawerCardOpacity = prefs[Keys.DRAWER_CARD_OPACITY] ?: 0.88f,
         drawerCornerRadiusDp = prefs[Keys.DRAWER_CORNER_RADIUS] ?: 26f,
@@ -544,6 +550,8 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.DRAWER_COLUMNS] = updated.drawerColumns
             prefs[Keys.DRAWER_ICON_SIZE_DP] = updated.drawerIconSizeDp
             prefs[Keys.DRAWER_LABEL_SIZE_SP] = updated.drawerLabelSizeSp
+            prefs[Keys.CATEGORY_DOCK_ICON_SIZE_DP] = updated.categoryDockIconSizeDp.coerceIn(12, 28)
+            prefs[Keys.CATEGORY_DOCK_LABEL_SIZE_SP] = updated.categoryDockLabelSizeSp.coerceIn(9, 18)
             prefs[Keys.DRAWER_SORT_ORDER] = updated.drawerSortOrder
             prefs[Keys.DRAWER_CARD_OPACITY] = updated.drawerCardOpacity
             prefs[Keys.DRAWER_CORNER_RADIUS] = updated.drawerCornerRadiusDp
