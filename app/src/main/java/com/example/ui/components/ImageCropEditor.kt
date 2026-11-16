@@ -1,11 +1,11 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -65,7 +65,7 @@ fun ImageCropEditor(
                 model = imageFile,
                 contentDescription = "Drag or pinch to crop background image",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().graphicsLayer {
+                modifier = Modifier.fillMaxSize().graphicsLayer {
                     val zoom = cropScale.coerceIn(1f, 4f)
                     scaleX = zoom
                     scaleY = zoom
