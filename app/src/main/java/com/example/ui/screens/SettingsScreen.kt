@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.ImageCropEditor
 import android.Manifest
 import android.app.AppOpsManager
 import android.content.Context
