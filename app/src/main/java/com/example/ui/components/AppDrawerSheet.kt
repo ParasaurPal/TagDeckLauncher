@@ -268,6 +268,9 @@ fun AppDrawerOverlay(
         val resolvedBgGradEnd = if (useCategoryBg) activeCategory!!.backgroundGradientEndHex else state.settings.allAppsBgGradientEndHex
         val resolvedBgImage = if (useCategoryBg) activeCategory!!.backgroundImagePath else state.settings.allAppsBgImagePath
         val resolvedBgBlur = if (useCategoryBg) activeCategory!!.backgroundBlurDp else state.settings.allAppsBgBlurDp
+        val resolvedCropScale = if (useCategoryBg) activeCategory!!.backgroundCropScale else state.settings.allAppsBgCropScale
+        val resolvedCropX = if (useCategoryBg) activeCategory!!.backgroundCropX else state.settings.allAppsBgCropX
+        val resolvedCropY = if (useCategoryBg) activeCategory!!.backgroundCropY else state.settings.allAppsBgCropY
 
         val drawerFraction = if (edge == "BOTTOM") 1f else state.settings.allAppsSidebarWidthFraction.coerceIn(0.60f, 1f)
         val boxAlignment = when (edge) {
@@ -308,6 +311,9 @@ fun AppDrawerOverlay(
                         gradientEndHex = resolvedBgGradEnd,
                         imagePath = resolvedBgImage,
                         blurDp = resolvedBgBlur,
+                        cropScale = resolvedCropScale,
+                        cropX = resolvedCropX,
+                        cropY = resolvedCropY,
                         modifier = Modifier.testTag(
                             if (useCategoryBg) "drawer_bg_custom_${activeCategory!!.backgroundType}" else "drawer_bg_global"
                         ),
