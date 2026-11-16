@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,14 +58,15 @@ fun ImageCropEditor(
     val onChange by rememberUpdatedState(onCropChange)
     val imageFile = remember(imagePath) { imagePath?.let(::File)?.takeIf { it.exists() } }
     var imageAspect by remember(imagePath) { mutableFloatStateOf(16f / 9f) }
+    var cropAspect by remember { mutableFloatStateOf(9f / 16f) }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .aspectRatio(cropAspect)
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF17151D))
-            .pointerInput(imagePath, imageAspect) {
+            .pointerInput(imagePath, imageAspect, cropAspect) {
                 detectTransformGestures { _, pan, zoomChange, _ ->
                     val viewportAspect = size.width / size.height
                     val fittedWidth: Float
@@ -184,6 +186,40 @@ fun ImageCropEditor(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Choose a background image to preview its crop", color = Color.White)
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.82f))
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "PORTRAIT",
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (cropAspect < 1f) Color(0xFF7657A5) else Color.Transparent)
+                    .clickable { cropAspect = 9f / 16f }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "LANDSCAPE",
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (cropAspect > 1f) Color(0xFF7657A5) else Color.Transparent)
+                    .clickable { cropAspect = 16f / 9f }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+            )
         }
 
         Row(
