@@ -66,6 +66,8 @@ class CustomizationSettingsAndEditModeTest {
             drawerCardOpacity = 0.70f,
             drawerCornerRadiusDp = 14f,
             drawerSearchBarVisible = false,
+            categoryDockIconSizeDp = 24,
+            categoryDockLabelSizeSp = 15,
             alignmentGuideColorHex = 0xFFFBBF24L,
             editGridVisible = false,
             editGridOpacity = 0.22f,
@@ -112,6 +114,8 @@ class CustomizationSettingsAndEditModeTest {
         assertEquals(0.70f, s.drawerCardOpacity, 0.01f)
         assertEquals(14f, s.drawerCornerRadiusDp, 0.01f)
         assertFalse(s.drawerSearchBarVisible)
+        assertEquals(24, s.categoryDockIconSizeDp)
+        assertEquals(15, s.categoryDockLabelSizeSp)
         assertEquals(0xFFFBBF24L, s.alignmentGuideColorHex)
         assertFalse(s.editGridVisible)
         assertEquals(0.22f, s.editGridOpacity, 0.01f)
