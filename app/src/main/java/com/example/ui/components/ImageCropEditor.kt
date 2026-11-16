@@ -27,7 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -38,8 +41,9 @@ import coil.compose.AsyncImage
 import java.io.File
 
 /**
- * Full-screen portrait crop workspace shared by every background editor.
- * The source image is fitted in its entirety; drag and pinch directly on it.
+ * Crop workspace for image-backed surfaces. The crop viewport uses the same
+ * ContentScale.Crop and normalized zoom/pan transform as SurfaceBackgroundLayer.
+ * This keeps the editor result and the All Apps drawer rendering in sync.
  */
 @Composable
 fun ImageCropEditor(
@@ -66,7 +70,7 @@ fun ImageCropEditor(
                     .background(Color.Black),
             )
             Button(onClick = { editorOpen = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Open Full-Screen Image Editor")
+                Text("Open Traditional Crop Editor")
             }
         } else {
             Text("The selected image could not be found.", color = MaterialTheme.colorScheme.error)
@@ -115,33 +119,42 @@ private fun FullScreenImageCropDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Position Background Image", style = MaterialTheme.typography.titleLarge)
+                Text("Crop Drawer Background", style = MaterialTheme.typography.titleLarge)
                 TextButton(onClick = onClose) { Text("Done") }
             }
             Text(
-                "Full image view • Drag to reposition • Pinch to zoom",
+                "Drag the image to choose the visible area. Pinch to zoom. The frame shows the final drawer crop.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            // Keep the complete source visible as a reference while editing the
+            // exact cropped viewport below.
+            AsyncImage(
+                model = imageFile,
+                contentDescription = "Entire original image",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.22f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black),
             )
 
             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
-                // Keep the editing canvas portrait even on devices with unusual
-                // window sizes; it never stretches into a landscape crop viewport.
                 val previewWidth = minOf(maxWidth, maxHeight * (9f / 16f))
                 Box(
                     modifier = Modifier
                         .width(previewWidth)
                         .aspectRatio(9f / 16f)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(Color.Black)
                         .pointerInput(imageFile.absolutePath) {
                             detectTransformGestures { _, pan, zoomChange, _ ->
                                 val nextScale = (currentScale * zoomChange).coerceIn(1f, 4f)
-                                // Match the normalized pan mapping used by the
-                                // wallpaper, drawer, sidebar and window renderers.
                                 val maxPanX = size.width * (nextScale - 1f) / 2f
                                 val maxPanY = size.height * (nextScale - 1f) / 2f
                                 val nextX = if (maxPanX > 0f) {
@@ -157,8 +170,8 @@ private fun FullScreenImageCropDialog(
                 ) {
                     AsyncImage(
                         model = imageFile,
-                        contentDescription = "Full image crop preview. Drag to reposition or pinch to zoom.",
-                        contentScale = ContentScale.Fit,
+                        contentDescription = "Live cropped drawer image. Drag to reposition or pinch to zoom.",
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().graphicsLayer {
                             val zoom = cropScale.coerceIn(1f, 4f)
                             scaleX = zoom
@@ -167,6 +180,7 @@ private fun FullScreenImageCropDialog(
                             translationY = size.height * cropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
                         },
                     )
+                    CropGridOverlay()
                 }
             }
 
@@ -195,9 +209,40 @@ private fun FullScreenImageCropDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = { onCropChange(1f, 0f, 0f) }) { Text("Reset crop") }
-                Button(onClick = onClose) { Text("Apply") }
+                TextButton(onClick = { onCropChange(1f, 0f, 0f) }) { Text("Reset Crop") }
+                Button(onClick = onClose) { Text("Apply Crop") }
             }
+        }
+    }
+}
+
+@Composable
+private fun CropGridOverlay() {
+    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+        val lineColor = Color.White.copy(alpha = 0.72f)
+        val thirdsX = size.width / 3f
+        val thirdsY = size.height / 3f
+        for (i in 1..2) {
+            drawLine(lineColor, Offset(thirdsX * i, 0f), Offset(thirdsX * i, size.height), 1.dp.toPx())
+            drawLine(lineColor, Offset(0f, thirdsY * i), Offset(size.width, thirdsY * i), 1.dp.toPx())
+        }
+        drawRect(Color.White, style = Stroke(width = 2.dp.toPx()))
+        val corner = size.minDimension * 0.055f
+        val stroke = 3.dp.toPx()
+        val points = listOf(
+            Offset(0f, 0f), Offset(size.width, 0f),
+            Offset(0f, size.height), Offset(size.width, size.height),
+        )
+        points.forEachIndexed { index, point ->
+            val path = Path().apply {
+                when (index) {
+                    0 -> { moveTo(point.x, point.y + corner); lineTo(point.x, point.y); lineTo(point.x + corner, point.y) }
+                    1 -> { moveTo(point.x - corner, point.y); lineTo(point.x, point.y); lineTo(point.x, point.y + corner) }
+                    2 -> { moveTo(point.x, point.y - corner); lineTo(point.x, point.y); lineTo(point.x + corner, point.y) }
+                    else -> { moveTo(point.x - corner, point.y); lineTo(point.x, point.y); lineTo(point.x, point.y - corner) }
+                }
+            }
+            drawPath(path, Color.White, style = Stroke(width = stroke))
         }
     }
 }
