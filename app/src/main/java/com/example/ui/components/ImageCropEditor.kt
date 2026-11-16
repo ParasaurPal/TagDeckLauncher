@@ -4,13 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -123,42 +124,50 @@ private fun FullScreenImageCropDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Black)
-                    .pointerInput(imageFile.absolutePath) {
-                        detectTransformGestures { _, pan, zoomChange, _ ->
-                            val nextScale = (currentScale * zoomChange).coerceIn(1f, 4f)
-                            // Match the exact normalized pan mapping used by the
-                            // wallpaper, drawer, sidebar and window background renderers.
-                            val maxPanX = size.width * (nextScale - 1f) / 2f
-                            val maxPanY = size.height * (nextScale - 1f) / 2f
-                            val nextX = if (maxPanX > 0f) {
-                                (currentX + pan.x / maxPanX).coerceIn(-1f, 1f)
-                            } else 0f
-                            val nextY = if (maxPanY > 0f) {
-                                (currentY + pan.y / maxPanY).coerceIn(-1f, 1f)
-                            } else 0f
-                            onChange(nextScale, nextX, nextY)
-                        }
-                    },
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = imageFile,
-                    contentDescription = "Full image crop preview. Drag to reposition or pinch to zoom.",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().graphicsLayer {
-                        val zoom = cropScale.coerceIn(1f, 4f)
-                        scaleX = zoom
-                        scaleY = zoom
-                        translationX = size.width * cropX.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
-                        translationY = size.height * cropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
-                    },
-                )
+                // Keep the editing canvas portrait even on devices with unusual
+                // window sizes; it never stretches into a landscape crop viewport.
+                val previewWidth = minOf(maxWidth, maxHeight * (9f / 16f))
+                Box(
+                    modifier = Modifier
+                        .width(previewWidth)
+                        .aspectRatio(9f / 16f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.Black)
+                        .pointerInput(imageFile.absolutePath) {
+                            detectTransformGestures { _, pan, zoomChange, _ ->
+                                val nextScale = (currentScale * zoomChange).coerceIn(1f, 4f)
+                                // Match the normalized pan mapping used by the
+                                // wallpaper, drawer, sidebar and window renderers.
+                                val maxPanX = size.width * (nextScale - 1f) / 2f
+                                val maxPanY = size.height * (nextScale - 1f) / 2f
+                                val nextX = if (maxPanX > 0f) {
+                                    (currentX + pan.x / maxPanX).coerceIn(-1f, 1f)
+                                } else 0f
+                                val nextY = if (maxPanY > 0f) {
+                                    (currentY + pan.y / maxPanY).coerceIn(-1f, 1f)
+                                } else 0f
+                                onChange(nextScale, nextX, nextY)
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = imageFile,
+                        contentDescription = "Full image crop preview. Drag to reposition or pinch to zoom.",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            val zoom = cropScale.coerceIn(1f, 4f)
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = size.width * cropX.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                            translationY = size.height * cropY.coerceIn(-1f, 1f) * (zoom - 1f) / 2f
+                        },
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
