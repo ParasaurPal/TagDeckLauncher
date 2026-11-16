@@ -468,6 +468,9 @@ private fun SidebarEditorDialog(
     var showHandle by remember { mutableStateOf(initial?.showHandle ?: true) }
     var pinned by remember { mutableStateOf(initial?.pinned ?: false) }
     var bgImagePath by remember { mutableStateOf(initial?.backgroundImagePath) }
+    var bgCropScale by remember { mutableFloatStateOf(initial?.backgroundCropScale ?: 1f) }
+    var bgCropX by remember { mutableFloatStateOf(initial?.backgroundCropX ?: 0f) }
+    var bgCropY by remember { mutableFloatStateOf(initial?.backgroundCropY ?: 0f) }
 
     var sourceMenuExpanded by remember { mutableStateOf(false) }
 
@@ -642,6 +645,16 @@ private fun SidebarEditorDialog(
                     }
                 }
 
+                if (bgImagePath != null) {
+                    Text("Background Zoom: ${String.format("%.1f", bgCropScale)}x")
+                    Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
+                    Text("Horizontal Crop: ${(bgCropX * 100).roundToInt()}%")
+                    Slider(value = bgCropX, onValueChange = { bgCropX = it }, valueRange = -1f..1f)
+                    Text("Vertical Crop: ${(bgCropY * 100).roundToInt()}%")
+                    Slider(value = bgCropY, onValueChange = { bgCropY = it }, valueRange = -1f..1f)
+                    TextButton(onClick = { bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Reset Crop") }
+                }
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Edge swipe activation zone")
                     Switch(checked = edgeEnabled, onCheckedChange = { edgeEnabled = it })
@@ -679,6 +692,9 @@ private fun SidebarEditorDialog(
                         showHandle = showHandle,
                         pinned = pinned,
                         backgroundImagePath = bgImagePath,
+                        backgroundCropScale = bgCropScale,
+                        backgroundCropX = bgCropX,
+                        backgroundCropY = bgCropY,
                     )
                     onSave(saved)
                 },
@@ -714,6 +730,9 @@ private fun WindowEditorDialog(
     var cornerRadiusDp by remember { mutableFloatStateOf(initial?.cornerRadiusDp ?: 28f) }
     var animStyle by remember { mutableStateOf(initial?.animationStyle ?: "SCALE") }
     var bgImagePath by remember { mutableStateOf(initial?.backgroundImagePath) }
+    var bgCropScale by remember { mutableFloatStateOf(initial?.backgroundCropScale ?: 1f) }
+    var bgCropX by remember { mutableFloatStateOf(initial?.backgroundCropX ?: 0f) }
+    var bgCropY by remember { mutableFloatStateOf(initial?.backgroundCropY ?: 0f) }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -771,6 +790,15 @@ private fun WindowEditorDialog(
                         TextButton(onClick = { bgImagePath = null }) { Text("Clear") }
                     }
                 }
+                if (bgImagePath != null) {
+                    Text("Background Zoom: ${String.format("%.1f", bgCropScale)}x")
+                    Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
+                    Text("Horizontal Crop: ${(bgCropX * 100).roundToInt()}%")
+                    Slider(value = bgCropX, onValueChange = { bgCropX = it }, valueRange = -1f..1f)
+                    Text("Vertical Crop: ${(bgCropY * 100).roundToInt()}%")
+                    Slider(value = bgCropY, onValueChange = { bgCropY = it }, valueRange = -1f..1f)
+                    TextButton(onClick = { bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Reset Crop") }
+                }
             }
         },
         confirmButton = {
@@ -786,6 +814,9 @@ private fun WindowEditorDialog(
                         cornerRadiusDp = cornerRadiusDp,
                         animationStyle = animStyle,
                         backgroundImagePath = bgImagePath,
+                        backgroundCropScale = bgCropScale,
+                        backgroundCropX = bgCropX,
+                        backgroundCropY = bgCropY,
                     )
                     onSave(saved)
                 },
