@@ -51,6 +51,9 @@ data class LauncherSettings(
     val allAppsBgColorHex: Long = 0xF2090D16L,
     val allAppsBgGradientEndHex: Long = 0xF2151E34L,
     val allAppsBgImagePath: String? = null,
+    val allAppsBgCropScale: Float = 1f,
+    val allAppsBgCropX: Float = 0f,
+    val allAppsBgCropY: Float = 0f,
     val allAppsBgBlurDp: Float = 0f,
     val drawerLayoutMode: String = "GRID", // GRID, LIST
     val drawerColumns: Int = 4,
@@ -211,6 +214,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         val ALL_APPS_BG_COLOR = longPreferencesKey("all_apps_bg_color")
         val ALL_APPS_BG_GRAD_END = longPreferencesKey("all_apps_bg_grad_end")
         val ALL_APPS_BG_IMAGE = stringPreferencesKey("all_apps_bg_image")
+        val ALL_APPS_BG_CROP_SCALE = floatPreferencesKey("all_apps_bg_crop_scale")
+        val ALL_APPS_BG_CROP_X = floatPreferencesKey("all_apps_bg_crop_x")
+        val ALL_APPS_BG_CROP_Y = floatPreferencesKey("all_apps_bg_crop_y")
         val ALL_APPS_BG_BLUR = floatPreferencesKey("all_apps_bg_blur")
 
         val DRAWER_LAYOUT_MODE = stringPreferencesKey("drawer_layout_mode")
@@ -343,6 +349,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         allAppsBgColorHex = prefs[Keys.ALL_APPS_BG_COLOR] ?: 0xF2090D16L,
         allAppsBgGradientEndHex = prefs[Keys.ALL_APPS_BG_GRAD_END] ?: 0xF2151E34L,
         allAppsBgImagePath = prefs[Keys.ALL_APPS_BG_IMAGE],
+        allAppsBgCropScale = prefs[Keys.ALL_APPS_BG_CROP_SCALE] ?: 1f,
+        allAppsBgCropX = prefs[Keys.ALL_APPS_BG_CROP_X] ?: 0f,
+        allAppsBgCropY = prefs[Keys.ALL_APPS_BG_CROP_Y] ?: 0f,
         allAppsBgBlurDp = prefs[Keys.ALL_APPS_BG_BLUR] ?: 0f,
         drawerLayoutMode = prefs[Keys.DRAWER_LAYOUT_MODE] ?: "GRID",
         drawerColumns = prefs[Keys.DRAWER_COLUMNS] ?: 4,
@@ -480,6 +489,9 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.ALL_APPS_BG_GRAD_END] = updated.allAppsBgGradientEndHex
             if (updated.allAppsBgImagePath != null) prefs[Keys.ALL_APPS_BG_IMAGE] = updated.allAppsBgImagePath
             else prefs.remove(Keys.ALL_APPS_BG_IMAGE)
+            prefs[Keys.ALL_APPS_BG_CROP_SCALE] = updated.allAppsBgCropScale.coerceIn(1f, 4f)
+            prefs[Keys.ALL_APPS_BG_CROP_X] = updated.allAppsBgCropX.coerceIn(-1f, 1f)
+            prefs[Keys.ALL_APPS_BG_CROP_Y] = updated.allAppsBgCropY.coerceIn(-1f, 1f)
             prefs[Keys.ALL_APPS_BG_BLUR] = updated.allAppsBgBlurDp
 
             prefs[Keys.DRAWER_LAYOUT_MODE] = updated.drawerLayoutMode
