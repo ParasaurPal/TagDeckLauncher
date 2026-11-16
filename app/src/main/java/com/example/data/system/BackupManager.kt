@@ -363,6 +363,8 @@ object BackupManager {
             put("wallpaperAmbientEffectType", s.wallpaperAmbientEffectType)
             put("sidebarTextColorMode", s.sidebarTextColorMode)
             put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
+            put("categoryDockIconSizeDp", s.categoryDockIconSizeDp)
+            put("categoryDockLabelSizeSp", s.categoryDockLabelSizeSp)
             put("allAppsSidebarEdge", s.allAppsSidebarEdge)
             put("allAppsSidebarWidthFraction", s.allAppsSidebarWidthFraction.toDouble())
             put("allAppsBgType", s.allAppsBgType)
@@ -800,6 +802,8 @@ object BackupManager {
             wallpaperAmbientEffectType = so.optString("wallpaperAmbientEffectType", "RADIAL"),
             sidebarTextColorMode = so.optString("sidebarTextColorMode", "AUTO"),
             sidebarCategoryIconStyle = so.optString("sidebarCategoryIconStyle", "BLACK_WHITE"),
+            categoryDockIconSizeDp = so.optInt("categoryDockIconSizeDp", 18).coerceIn(12, 28),
+            categoryDockLabelSizeSp = so.optInt("categoryDockLabelSizeSp", 12).coerceIn(9, 18),
             allAppsSidebarEdge = so.optString("allAppsSidebarEdge", "RIGHT"),
             allAppsSidebarWidthFraction = so.optDouble("allAppsSidebarWidthFraction", 0.90).toFloat(),
             allAppsBgType = so.optString("allAppsBgType", "SOLID"),
