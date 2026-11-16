@@ -115,6 +115,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -1573,6 +1574,11 @@ fun SettingsScreen(
                             cropX = s.allAppsBgCropX,
                             cropY = s.allAppsBgCropY,
                             onCropChange = { scale, x, y -> onUpdateSettings { it.copy(allAppsBgCropScale = scale, allAppsBgCropX = x, allAppsBgCropY = y) } },
+                            cropAspectRatio = (
+                                LocalConfiguration.current.screenWidthDp.toFloat() *
+                                    (if (s.allAppsSidebarEdge == "BOTTOM") 1f else s.allAppsSidebarWidthFraction)
+                                    / LocalConfiguration.current.screenHeightDp.toFloat()
+                                ).coerceIn(0.25f, 1f),
                         )
                         Text("Drawer Image Zoom: ${String.format("%.1f", s.allAppsBgCropScale)}x")
                         Slider(
