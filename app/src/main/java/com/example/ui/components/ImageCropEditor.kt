@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,8 +21,11 @@ import coil.compose.AsyncImage
 import java.io.File
 
 /**
- * Visual crop surface shared by every background editor.
- * Drag with one finger to reposition; pinch with two fingers to zoom and reposition.
+ * Portrait crop workspace shared by every background editor.
+ *
+ * The complete source image is visible at the default zoom (Fit), rather than
+ * being cut off inside a landscape preview. Drag to reposition and pinch to
+ * zoom; the same scale and position values are used by the background renderer.
  */
 @Composable
 fun ImageCropEditor(
@@ -42,7 +45,7 @@ fun ImageCropEditor(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .aspectRatio(9f / 16f)
             .clip(RoundedCornerShape(14.dp))
             .background(Color.Black)
             .pointerInput(imagePath) {
@@ -63,8 +66,8 @@ fun ImageCropEditor(
         if (imageFile != null) {
             AsyncImage(
                 model = imageFile,
-                contentDescription = "Drag or pinch to crop background image",
-                contentScale = ContentScale.Crop,
+                contentDescription = "Full image preview. Drag to reposition or pinch to zoom.",
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize().graphicsLayer {
                     val zoom = cropScale.coerceIn(1f, 4f)
                     scaleX = zoom
