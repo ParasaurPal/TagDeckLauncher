@@ -3,6 +3,9 @@ package com.example.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,11 +26,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -285,23 +291,42 @@ fun T9SearchKeyboardPad(
         keys.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 row.forEach { (digit, letters) ->
-                    val glow = settings.keyboardTouchEffectEnabled && settings.keyboardTouchEffect == "GLOW"
-                    val raised = theme == "SKEUOMORPHISM" || (settings.keyboardTouchEffectEnabled && settings.keyboardTouchEffect == "BOUNCE")
+                    val effect = if (settings.keyboardTouchEffectEnabled) settings.keyboardTouchEffect else "NONE"
+                    val interactionSource = androidx.compose.runtime.remember { MutableInteractionSource() }
+                    val pressed by interactionSource.collectIsPressedAsState()
+                    val bounceScale by animateFloatAsState(
+                        targetValue = if (pressed && effect == "BOUNCE") 0.93f else 1f,
+                        animationSpec = spring(dampingRatio = 0.48f, stiffness = 520f),
+                        label = "t9_key_bounce",
+                    )
+                    val glow = effect == "GLOW" && pressed
+                    val raised = theme == "SKEUOMORPHISM" || (effect == "BOUNCE" && pressed)
+                    val indication = when (effect) {
+                        "RIPPLE" -> LocalIndication.current
+                        else -> null
+                    }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp)
-                            .then(if (raised) Modifier.shadow(if (theme == "SKEUOMORPHISM") 4.dp else 2.dp, keyShape) else Modifier)
+                            .graphicsLayer {
+                                scaleX = bounceScale
+                                scaleY = bounceScale
+                            }
+                            .then(if (raised) Modifier.shadow(if (theme == "SKEUOMORPHISM") 4.dp else 7.dp, keyShape) else Modifier)
                             .clip(keyShape)
-                            .background(keyBrush)
+                            .background(if (pressed && effect == "STANDARD") Color.White.copy(alpha = 0.12f) else keyBrush)
                             .border(
                                 BorderStroke(
-                                    if (glow) 1.6.dp else 0.8.dp,
-                                    if (glow) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f) else Color.White.copy(alpha = if (theme == "MINIMALISM") 0.08f else 0.3f),
+                                    if (glow) 2.dp else 0.8.dp,
+                                    if (glow) MaterialTheme.colorScheme.primary.copy(alpha = 0.95f) else Color.White.copy(alpha = if (theme == "MINIMALISM") 0.08f else 0.3f),
                                 ),
                                 keyShape,
                             )
-                            .clickable {
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = indication,
+                            ) {
                                 if (settings.keyboardHapticEnabled) view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
                                 if (settings.keyboardTouchSoundEnabled) view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
                                 when (digit) {
