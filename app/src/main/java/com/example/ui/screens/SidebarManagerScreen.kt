@@ -503,6 +503,43 @@ private fun SidebarEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("SIDEBAR BACKGROUND", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text("Choose the image shown behind this sidebar. This is separate from its app icons and content.", style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }) { Text(if (bgImagePath == null) "Choose Background Image" else "Change Background Image") }
+                            if (bgImagePath != null) {
+                                TextButton(onClick = { bgImagePath = null; bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Remove") }
+                            }
+                        }
+                        if (bgImagePath != null) {
+                            Text("Drag the preview to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+                            ImageCropEditor(
+                                imagePath = bgImagePath,
+                                cropScale = bgCropScale,
+                                cropX = bgCropX,
+                                cropY = bgCropY,
+                                onCropChange = { scale, x, y -> bgCropScale = scale; bgCropX = x; bgCropY = y },
+                            )
+                            Text("Zoom: ${String.format("%.1f", bgCropScale)}x")
+                            Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
+                            Text("Horizontal: ${(bgCropX * 100).roundToInt()}%")
+                            Slider(value = bgCropX, onValueChange = { bgCropX = it }, valueRange = -1f..1f)
+                            Text("Vertical: ${(bgCropY * 100).roundToInt()}%")
+                            Slider(value = bgCropY, onValueChange = { bgCropY = it }, valueRange = -1f..1f)
+                            TextButton(onClick = { bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Reset Image Crop") }
+                        }
+                    }
+                }
+
                 Text("Opening Edge (4-Side Drawer)", style = MaterialTheme.typography.labelLarge)
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     listOf("LEFT", "RIGHT", "TOP", "BOTTOM").forEachIndexed { idx, edge ->
@@ -637,32 +674,6 @@ private fun SidebarEditorDialog(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text("Background Image") }
-                    if (bgImagePath != null) {
-                        TextButton(onClick = { bgImagePath = null }) { Text("Clear") }
-                    }
-                }
-
-                if (bgImagePath != null) {
-                    Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
-                    ImageCropEditor(
-                        imagePath = bgImagePath,
-                        cropScale = bgCropScale,
-                        cropX = bgCropX,
-                        cropY = bgCropY,
-                        onCropChange = { scale, x, y -> bgCropScale = scale; bgCropX = x; bgCropY = y },
-                    )
-                    Text("Background Zoom: ${String.format("%.1f", bgCropScale)}x")
-                    Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
-                    Text("Horizontal Crop: ${(bgCropX * 100).roundToInt()}%")
-                    Slider(value = bgCropX, onValueChange = { bgCropX = it }, valueRange = -1f..1f)
-                    Text("Vertical Crop: ${(bgCropY * 100).roundToInt()}%")
-                    Slider(value = bgCropY, onValueChange = { bgCropY = it }, valueRange = -1f..1f)
-                    TextButton(onClick = { bgCropScale = 1f; bgCropX = 0f; bgCropY = 0f }) { Text("Reset Crop") }
-                }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Edge swipe activation zone")
