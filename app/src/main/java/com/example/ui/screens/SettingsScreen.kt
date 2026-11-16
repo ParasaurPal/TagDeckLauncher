@@ -1565,6 +1565,14 @@ fun SettingsScreen(
                         valueRange = 0f..24f,
                     )
                     if (s.allAppsBgImagePath != null) {
+                        Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+                        ImageCropEditor(
+                            imagePath = s.allAppsBgImagePath,
+                            cropScale = s.allAppsBgCropScale,
+                            cropX = s.allAppsBgCropX,
+                            cropY = s.allAppsBgCropY,
+                            onCropChange = { scale, x, y -> onUpdateSettings { it.copy(allAppsBgCropScale = scale, allAppsBgCropX = x, allAppsBgCropY = y) } },
+                        )
                         Text("Drawer Image Zoom: ${String.format("%.1f", s.allAppsBgCropScale)}x")
                         Slider(
                             value = s.allAppsBgCropScale,
