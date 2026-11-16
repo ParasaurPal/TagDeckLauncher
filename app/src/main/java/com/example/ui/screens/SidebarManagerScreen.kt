@@ -646,6 +646,14 @@ private fun SidebarEditorDialog(
                 }
 
                 if (bgImagePath != null) {
+                    Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+                    ImageCropEditor(
+                        imagePath = bgImagePath,
+                        cropScale = bgCropScale,
+                        cropX = bgCropX,
+                        cropY = bgCropY,
+                        onCropChange = { scale, x, y -> bgCropScale = scale; bgCropX = x; bgCropY = y },
+                    )
                     Text("Background Zoom: ${String.format("%.1f", bgCropScale)}x")
                     Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
                     Text("Horizontal Crop: ${(bgCropX * 100).roundToInt()}%")
@@ -791,6 +799,14 @@ private fun WindowEditorDialog(
                     }
                 }
                 if (bgImagePath != null) {
+                    Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+                    ImageCropEditor(
+                        imagePath = bgImagePath,
+                        cropScale = bgCropScale,
+                        cropX = bgCropX,
+                        cropY = bgCropY,
+                        onCropChange = { scale, x, y -> bgCropScale = scale; bgCropX = x; bgCropY = y },
+                    )
                     Text("Background Zoom: ${String.format("%.1f", bgCropScale)}x")
                     Slider(value = bgCropScale, onValueChange = { bgCropScale = it }, valueRange = 1f..4f)
                     Text("Horizontal Crop: ${(bgCropX * 100).roundToInt()}%")
