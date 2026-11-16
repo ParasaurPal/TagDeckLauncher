@@ -1917,6 +1917,30 @@ fun PagesAndSnapshotsDialog(
                             Text("Clear Page Background Images")
                         }
                     }
+                    if (working.backgroundImagePath != null || working.landscapeBackgroundImagePath != null) {
+                        HorizontalDivider()
+                        Text("Background Image Zoom: ${String.format("%.1f", working.backgroundCropScale)}x")
+                        Slider(
+                            value = working.backgroundCropScale,
+                            onValueChange = { working = working.copy(backgroundCropScale = it) },
+                            valueRange = 1f..4f,
+                        )
+                        Text("Horizontal Crop: ${(working.backgroundCropX * 100).roundToInt()}%")
+                        Slider(
+                            value = working.backgroundCropX,
+                            onValueChange = { working = working.copy(backgroundCropX = it) },
+                            valueRange = -1f..1f,
+                        )
+                        Text("Vertical Crop: ${(working.backgroundCropY * 100).roundToInt()}%")
+                        Slider(
+                            value = working.backgroundCropY,
+                            onValueChange = { working = working.copy(backgroundCropY = it) },
+                            valueRange = -1f..1f,
+                        )
+                        TextButton(onClick = {
+                            working = working.copy(backgroundCropScale = 1f, backgroundCropX = 0f, backgroundCropY = 0f)
+                        }) { Text("Reset Page Image Crop") }
+                    }
                     Text("Page Blur: ${working.backgroundBlurDp.roundToInt()}dp")
                     Slider(value = working.backgroundBlurDp, onValueChange = { working = working.copy(backgroundBlurDp = it) }, valueRange = 0f..24f)
                     Text("Background Opacity: ${(working.backgroundAlpha * 100).roundToInt()}%")
