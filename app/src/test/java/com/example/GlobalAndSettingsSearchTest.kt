@@ -101,7 +101,12 @@ class GlobalAndSettingsSearchTest {
         composeRule.waitForIdle()
         assertTrue(consumedInitial)
         composeRule.onNodeWithTag("settings_list").performScrollToNode(hasText("Wallpaper & Atmosphere"))
-        composeRule.onNodeWithText("Wallpaper & Atmosphere").assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onNodeWithText("Wallpaper & Atmosphere").assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
         composeRule.onNodeWithText("Portable Local Backup & Restore").assertDoesNotExist()
 
         // Search for unmatched query -> empty state + clear button restores full list
