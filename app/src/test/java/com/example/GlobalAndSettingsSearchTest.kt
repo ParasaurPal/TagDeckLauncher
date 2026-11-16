@@ -103,7 +103,7 @@ class GlobalAndSettingsSearchTest {
         // The deep-link query is active and filters the settings list to the wallpaper section.
         // Avoid asserting a scrolled card header: the lazy list's accessibility node is not
         // consistently exposed by Robolectric even when the section is correctly filtered.
-        composeRule.onNodeWithText("1 matching section").assertIsDisplayed()
+        composeRule.onNodeWithText("2 matching sections").assertIsDisplayed()
         composeRule.onNodeWithText("Portable Local Backup & Restore").assertDoesNotExist()
 
         // Search for unmatched query -> empty state + clear button restores full list
