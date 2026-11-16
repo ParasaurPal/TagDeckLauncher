@@ -1919,6 +1919,14 @@ fun PagesAndSnapshotsDialog(
                     }
                     if (working.backgroundImagePath != null || working.landscapeBackgroundImagePath != null) {
                         HorizontalDivider()
+                        Text("Drag to reposition • pinch to zoom", style = MaterialTheme.typography.bodySmall)
+                        ImageCropEditor(
+                            imagePath = working.backgroundImagePath ?: working.landscapeBackgroundImagePath,
+                            cropScale = working.backgroundCropScale,
+                            cropX = working.backgroundCropX,
+                            cropY = working.backgroundCropY,
+                            onCropChange = { scale, x, y -> working = working.copy(backgroundCropScale = scale, backgroundCropX = x, backgroundCropY = y) },
+                        )
                         Text("Background Image Zoom: ${String.format("%.1f", working.backgroundCropScale)}x")
                         Slider(
                             value = working.backgroundCropScale,
