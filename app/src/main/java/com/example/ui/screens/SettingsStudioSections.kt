@@ -534,6 +534,32 @@ fun WallpaperFxStudioControls(
         }
     }
 
+    if (settings.wallpaperType == "CUSTOM_IMAGE" && !settings.wallpaperCustomPath.isNullOrBlank()) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        Text("Custom Wallpaper Crop & Position", style = MaterialTheme.typography.labelLarge)
+        Text("Zoom: ${String.format("%.1f", settings.wallpaperCropScale)}x")
+        Slider(
+            value = settings.wallpaperCropScale,
+            onValueChange = { v -> onUpdateSettings { it.copy(wallpaperCropScale = v) } },
+            valueRange = 1f..4f,
+        )
+        Text("Horizontal: ${(settings.wallpaperCropX * 100).roundToInt()}%")
+        Slider(
+            value = settings.wallpaperCropX,
+            onValueChange = { v -> onUpdateSettings { it.copy(wallpaperCropX = v) } },
+            valueRange = -1f..1f,
+        )
+        Text("Vertical: ${(settings.wallpaperCropY * 100).roundToInt()}%")
+        Slider(
+            value = settings.wallpaperCropY,
+            onValueChange = { v -> onUpdateSettings { it.copy(wallpaperCropY = v) } },
+            valueRange = -1f..1f,
+        )
+        TextButton(onClick = { onUpdateSettings { it.copy(wallpaperCropScale = 1f, wallpaperCropX = 0f, wallpaperCropY = 0f) } }) {
+            Text("Reset Wallpaper Crop")
+        }
+    }
+
     Text("Page Parallax Depth: ${(settings.wallpaperParallax * 100).roundToInt()}%")
     Slider(
         value = settings.wallpaperParallax,
