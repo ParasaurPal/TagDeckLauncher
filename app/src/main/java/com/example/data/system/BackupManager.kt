@@ -334,6 +334,17 @@ object BackupManager {
             put("showHomeAppLabels", s.showHomeAppLabels)
             put("appLabelOutlineEnabled", s.appLabelOutlineEnabled)
             put("wallpaperType", s.wallpaperType)
+            put("keyboardSurfaceTheme", s.keyboardSurfaceTheme)
+            put("keyboardTouchEffect", s.keyboardTouchEffect)
+            put("keyboardTouchEffectEnabled", s.keyboardTouchEffectEnabled)
+            put("keyboardHapticEnabled", s.keyboardHapticEnabled)
+            put("keyboardTouchSoundEnabled", s.keyboardTouchSoundEnabled)
+            put("keyboardGlassLiquidEnabled", s.keyboardGlassLiquidEnabled)
+            put("keyboardGlassUseWallpaper", s.keyboardGlassUseWallpaper)
+            put("keyboardGlassOpacity", s.keyboardGlassOpacity.toDouble())
+            put("keyboardGlassBlurDp", s.keyboardGlassBlurDp.toDouble())
+            put("keyboardGlassRefraction", s.keyboardGlassRefraction.toDouble())
+            put("keyboardWallpaperPath", s.keyboardWallpaperPath ?: JSONObject.NULL)
             put("wallpaperCustomPath", s.wallpaperCustomPath ?: JSONObject.NULL)
             put("wallpaperGradientStartHex", s.wallpaperGradientStartHex)
             put("wallpaperGradientEndHex", s.wallpaperGradientEndHex)
@@ -760,6 +771,17 @@ object BackupManager {
             showHomeAppLabels = so.optBoolean("showHomeAppLabels", true),
             appLabelOutlineEnabled = so.optBoolean("appLabelOutlineEnabled", false),
             wallpaperType = so.optString("wallpaperType", "BUILTIN_PRISM"),
+            keyboardSurfaceTheme = so.optString("keyboardSurfaceTheme", "MINIMALISM"),
+            keyboardTouchEffect = so.optString("keyboardTouchEffect", "STANDARD"),
+            keyboardTouchEffectEnabled = so.optBoolean("keyboardTouchEffectEnabled", true),
+            keyboardHapticEnabled = so.optBoolean("keyboardHapticEnabled", true),
+            keyboardTouchSoundEnabled = so.optBoolean("keyboardTouchSoundEnabled", false),
+            keyboardGlassLiquidEnabled = so.optBoolean("keyboardGlassLiquidEnabled", false),
+            keyboardGlassUseWallpaper = so.optBoolean("keyboardGlassUseWallpaper", true),
+            keyboardGlassOpacity = so.optDouble("keyboardGlassOpacity", 0.78).toFloat(),
+            keyboardGlassBlurDp = so.optDouble("keyboardGlassBlurDp", 18.0).toFloat(),
+            keyboardGlassRefraction = so.optDouble("keyboardGlassRefraction", 0.45).toFloat(),
+            keyboardWallpaperPath = so.optNullableString("keyboardWallpaperPath"),
             wallpaperCustomPath = so.optNullableString("wallpaperCustomPath"),
             wallpaperGradientStartHex = so.optLong("wallpaperGradientStartHex", 0xFF0A1124L),
             wallpaperGradientEndHex = so.optLong("wallpaperGradientEndHex", 0xFF1A1038L),
