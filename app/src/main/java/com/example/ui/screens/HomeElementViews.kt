@@ -524,6 +524,7 @@ fun HomeElementBody(
                     "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                     "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
                     "NOTIFICATION_FEED" -> NotificationFeedWidget()
+                    "RSS_BRIEFING" -> RssBriefingWidget()
 
                     "WIDGET_STACK" -> WidgetStackCard(
                         element = element,
