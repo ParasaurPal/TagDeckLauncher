@@ -658,7 +658,7 @@ fun HomeScreen(
                             }
                             .sortedBy { it.zIndex }
                     }
-                    if (!onFeedPage && pinnedElements.isNotEmpty()) {
+                    if (pinnedElements.isNotEmpty()) {
                         PinnedElementsOverlay(
                             page = currentPage,
                             elements = pinnedElements,
