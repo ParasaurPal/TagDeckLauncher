@@ -73,7 +73,7 @@ data class LauncherSettings(
     val niagaraAccentColorHex: Long = 0xFF38BDF8L,
     val niagaraHapticFeedback: Boolean = true,
     // Edit Mode & Canvas
-    val gridSnapEnabled: Boolean = false,
+    val gridSnapEnabled: Boolean = true,
     val alignmentGuidesEnabled: Boolean = true,
     val alignmentGuideColorHex: Long = 0xFF38BDF8L,
     val gridSnapStepDp: Int = 16,
@@ -369,7 +369,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         niagaraSelectedFontSp = prefs[Keys.NIAGARA_SELECTED_FONT] ?: 24f,
         niagaraAccentColorHex = prefs[Keys.NIAGARA_ACCENT] ?: 0xFF38BDF8L,
         niagaraHapticFeedback = prefs[Keys.NIAGARA_HAPTIC] ?: true,
-        gridSnapEnabled = prefs[Keys.GRID_SNAP] ?: false,
+        gridSnapEnabled = prefs[Keys.GRID_SNAP] ?: true,
         alignmentGuidesEnabled = prefs[Keys.ALIGNMENT_GUIDES] ?: true,
         alignmentGuideColorHex = prefs[Keys.ALIGNMENT_GUIDE_COLOR] ?: 0xFF38BDF8L,
         gridSnapStepDp = prefs[Keys.GRID_SNAP_STEP] ?: 16,
