@@ -1734,7 +1734,7 @@ fun GenericSidebarContent(
                 Spacer(Modifier.height(10.dp))
 
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    if (visibleApps.isEmpty()) {
+                    if (apps.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 text = "No apps match this sidebar yet.",
@@ -1783,7 +1783,7 @@ fun GenericSidebarContent(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),
                         ) {
-                            items(visibleApps, key = { it.packageName }) { app ->
+                            items(apps, key = { it.packageName }) { app ->
                                 Column(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(14.dp))
