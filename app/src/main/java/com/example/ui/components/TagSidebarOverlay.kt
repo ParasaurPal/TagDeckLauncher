@@ -1544,15 +1544,6 @@ fun TagTriggeredSidebarContent(
                 }
             }
 
-            if (allTags.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                TagIconDock(
-                    tags = allTags,
-                    selectedTagId = tag.tagId,
-                    onSelect = onSwitchToTag,
-                    isRightSide = isRightSide,
-                )
-            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(8.dp))
             Row(
@@ -1899,7 +1890,7 @@ fun GenericSidebarContent(
                         tags = allTags,
                         selectedTagId = null,
                         onSelect = onSwitchToTag,
-                        isRightSide = side == "RIGHT",
+                        isRightSide = side.equals("RIGHT", ignoreCase = true),
                     )
                 }
 
