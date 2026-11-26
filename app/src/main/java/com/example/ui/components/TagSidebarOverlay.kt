@@ -448,6 +448,8 @@ fun ActiveOverlayHost(
                                     isPinned = false,
                                     canPin = false,
                                     allTags = state.allTags,
+                                    categoryOptions = if (cfg.sourceType == "FAVORITES") state.categories.filter { it.categoryType != "GAME_SUB" }.sortedBy { it.name.lowercase() } else emptyList(),
+                                    showCategoryDropdown = cfg.sourceType == "FAVORITES",
                                     apps = matchingApps,
                                     appDiscovery = appDiscovery,
                                     iconShapeKey = state.settings.globalIconShape,
@@ -1552,6 +1554,8 @@ fun GenericSidebarContent(
     isPinned: Boolean,
     canPin: Boolean,
     allTags: List<TagEntity>,
+    categoryOptions: List<CategoryEntity> = emptyList(),
+    showCategoryDropdown: Boolean = false,
     quickCategories: List<CategoryEntity> = emptyList(),
     onClickSubChip: (Long) -> Unit = {},
     sidebarButtons: List<HomeElementEntity> = emptyList(),
@@ -1582,6 +1586,13 @@ fun GenericSidebarContent(
 
     var layoutMode by remember(title) { mutableStateOf("LIST") }
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
+    var selectedCategoryId by remember(title) { mutableStateOf<Long?>(null) }
+    var categoryMenuExpanded by remember(title) { mutableStateOf(false) }
+    val visibleApps = remember(apps, selectedCategoryId) {
+        if (selectedCategoryId == null) apps
+        else apps.filter { it.primaryCategoryId == selectedCategoryId }
+    }
+    val selectedCategoryName = categoryOptions.firstOrNull { it.categoryId == selectedCategoryId }?.name ?: "All favorites"
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
     val shape = when (side) {
         "RIGHT" -> RoundedCornerShape(topStart = radius, bottomStart = radius)
@@ -1689,7 +1700,7 @@ fun GenericSidebarContent(
                 Spacer(Modifier.height(10.dp))
 
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    if (apps.isEmpty()) {
+                    if (visibleApps.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 text = "No apps match this sidebar yet.",
@@ -1703,7 +1714,7 @@ fun GenericSidebarContent(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),
                         ) {
-                            items(apps, key = { it.packageName }) { app ->
+                            items(visibleApps, key = { it.packageName }) { app ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1738,7 +1749,7 @@ fun GenericSidebarContent(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),
                         ) {
-                            items(apps, key = { it.packageName }) { app ->
+                            items(visibleApps, key = { it.packageName }) { app ->
                                 Column(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(14.dp))
@@ -1825,6 +1836,51 @@ fun GenericSidebarContent(
                     Spacer(Modifier.height(6.dp))
                 }
 
+
+                if (showCategoryDropdown && categoryOptions.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { categoryMenuExpanded = true }
+                                .testTag("favorites_category_dropdown"),
+                            color = Color.Black.copy(alpha = 0.42f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.55f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = selectedCategoryName,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text("⌄", color = accentColor, fontSize = 22.sp)
+                            }
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = categoryMenuExpanded,
+                            onDismissRequest = { categoryMenuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("All favorites") },
+                                onClick = { selectedCategoryId = null; categoryMenuExpanded = false },
+                            )
+                            categoryOptions.forEach { category ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = { selectedCategoryId = category.categoryId; categoryMenuExpanded = false },
+                                )
+                            }
+                        }
+                    }
+                }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(6.dp))
