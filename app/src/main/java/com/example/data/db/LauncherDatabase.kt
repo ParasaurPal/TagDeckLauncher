@@ -26,7 +26,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CustomFontEntity::class,
         ThemeProfileEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -114,6 +114,44 @@ abstract class LauncherDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // The former Widget Feed is replaced by vertically scrollable home pages.
+                // Preserve its contents by moving the old feed items onto the first page.
+                db.execSQL(
+                    """
+                    INSERT INTO home_pages (
+                        title, pageOrder, isDefaultHome, isHidden, isLocked,
+                        verticallyScrollable, paddingDp, backgroundType,
+                        backgroundCropScale, backgroundCropX, backgroundCropY,
+                        backgroundBlurDp, backgroundAlpha
+                    )
+                    SELECT 'Main Deck', 0, 1, 0, 0, 1, 0, 'INHERIT',
+                           1.0, 0.0, 0.0, 0.0, 0.85
+                    WHERE NOT EXISTS (SELECT 1 FROM home_pages)
+                    """.trimIndent()
+                )
+                val firstPage = "(SELECT pageId FROM home_pages ORDER BY isDefaultHome DESC, pageOrder ASC, pageId ASC LIMIT 1)"
+                db.execSQL("UPDATE home_pages SET verticallyScrollable = 1 WHERE pageId = $firstPage")
+                db.execSQL(
+                    """
+                    UPDATE home_elements
+                    SET ownerType = 'PAGE',
+                        pageId = $firstPage,
+                        xFraction = 0.05,
+                        yFraction = 0.03 + (
+                                SELECT COALESCE(SUM(previous.heightDp + 24.0), 0.0)
+                                FROM home_elements AS previous
+                                WHERE previous.ownerType = 'FEED'
+                                  AND previous.parentContainerId IS NULL
+                                  AND previous.elementId < home_elements.elementId
+                            ) / 800.0
+                    WHERE ownerType = 'FEED'
+                    """.trimIndent()
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: LauncherDatabase? = null
 
@@ -123,7 +161,7 @@ abstract class LauncherDatabase : RoomDatabase() {
                     context.applicationContext,
                     LauncherDatabase::class.java,
                     "tagdeck_launcher.db"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     // Preserve launcher layouts, tags, images, and settings if a migration is missing.
                     // Add an explicit Room Migration before increasing the schema version.
                     .build()

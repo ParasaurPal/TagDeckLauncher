@@ -1137,7 +1137,52 @@ private fun TagIconDock(
     selectedTagId: Long?,
     onSelect: (Long) -> Unit,
     darkSurface: Boolean = false,
+    isRightSide: Boolean = false,
 ) {
+    if (isRightSide) {
+        var expanded by remember(tags) { mutableStateOf(false) }
+        val selectedTag = tags.firstOrNull { it.tagId == selectedTagId }
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { expanded = true }
+                    .testTag("sidebar_tag_dropdown"),
+                color = Color.Black.copy(alpha = 0.42f),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = selectedTag?.name ?: "Switch tag",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text("⌄", color = MaterialTheme.colorScheme.primary, fontSize = 22.sp)
+                }
+            }
+            androidx.compose.material3.DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            ) {
+                tags.forEach { item ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(item.name) },
+                        onClick = {
+                            expanded = false
+                            onSelect(item.tagId)
+                        },
+                    )
+                }
+            }
+        }
+    } else {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1183,6 +1228,7 @@ private fun TagIconDock(
             }
         }
     }
+    }
 }
 
 
@@ -1190,24 +1236,69 @@ private fun TagIconDock(
 private fun CategoryIconDock(
     categories: List<CategoryEntity>,
     contrastStyle: String,
+    isRightSide: Boolean,
     onSelect: (Long) -> Unit,
 ) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-    ) {
-        items(categories, key = { "category_dock_${it.categoryId}" }) { category ->
-            Column(
+    if (isRightSide) {
+        var expanded by remember(categories) { mutableStateOf(false) }
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Surface(
                 modifier = Modifier
-                    .widthIn(min = 48.dp)
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .clickable { onSelect(category.categoryId) }
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                    .testTag("sidebar_category_icon_${category.categoryId}"),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .clickable { expanded = true }
+                    .testTag("sidebar_category_dropdown"),
+                color = Color.Black.copy(alpha = 0.42f),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
             ) {
-                CategoryBadgeIcon(category = category, size = 40.dp, contrastStyle = contrastStyle)
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Switch category",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text("⌄", color = MaterialTheme.colorScheme.primary, fontSize = 22.sp)
+                }
+            }
+            androidx.compose.material3.DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            ) {
+                categories.forEach { category ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(category.name) },
+                        onClick = {
+                            expanded = false
+                            onSelect(category.categoryId)
+                        },
+                    )
+                }
+            }
+        }
+    } else {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+        ) {
+            items(categories, key = { "category_dock_${it.categoryId}" }) { category ->
+                Column(
+                    modifier = Modifier
+                        .widthIn(min = 48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onSelect(category.categoryId) }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .testTag("sidebar_category_icon_${category.categoryId}"),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CategoryBadgeIcon(category = category, size = 40.dp, contrastStyle = contrastStyle)
+                }
             }
         }
     }
@@ -1793,11 +1884,22 @@ fun GenericSidebarContent(
                 }
 
 
+                if (allTags.isNotEmpty()) {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                    TagIconDock(
+                        tags = allTags,
+                        selectedTagId = null,
+                        onSelect = onSwitchToTag,
+                        isRightSide = side.equals("RIGHT", ignoreCase = true),
+                    )
+                }
+
                 if (quickCategories.isNotEmpty()) {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                     CategoryIconDock(
                         categories = quickCategories,
                         contrastStyle = sidebarCategoryIconStyle,
+                        isRightSide = side == "RIGHT",
                         onSelect = onClickSubChip,
                     )
                 }

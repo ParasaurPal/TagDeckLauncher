@@ -1,10 +1,14 @@
 package com.example.data.system
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.LruCache
+import java.io.File
+import java.security.MessageDigest
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -103,12 +107,40 @@ data class LineIconProfile(
 
 object LineIconProcessor {
     const val PREVIEW_SIZE = 192
-    private val renderedCache = LruCache<String, Bitmap>(64)
+    private val renderedCache = LruCache<String, Bitmap>(512)
     private data class EdgeMap(val width: Int, val height: Int, val pixels: IntArray, val edges: BooleanArray)
 
     fun render(source: ImageBitmap, profile: LineIconProfile): Bitmap =
         render(source.asAndroidBitmap(), profile)
 
+    fun getCached(cacheKey: String, profile: LineIconProfile): Bitmap? {
+        val key = "$cacheKey|${profile.hashCode()}"
+        return synchronized(renderedCache) { renderedCache.get(key) }
+    }
+
+    /** Persist generated line art so lazy-list scrolling never has to regenerate it. */
+    fun renderCached(context: Context, cacheKey: String, source: ImageBitmap, profile: LineIconProfile): Bitmap {
+        getCached(cacheKey, profile)?.let { return it }
+        val key = "$cacheKey|${profile.hashCode()}"
+        val safeName = MessageDigest.getInstance("SHA-256")
+            .digest(key.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val cacheDir = File(context.cacheDir, "line-icons").apply { mkdirs() }
+        val file = File(cacheDir, "$safeName.png")
+        if (file.isFile) {
+            BitmapFactory.decodeFile(file.absolutePath)?.let { cached ->
+                synchronized(renderedCache) { renderedCache.put(key, cached) }
+                return cached
+            }
+        }
+        val rendered = render(source, profile)
+        runCatching {
+            val temp = File(cacheDir, "$safeName.tmp")
+            temp.outputStream().use { output -> rendered.compress(Bitmap.CompressFormat.PNG, 100, output) }
+            if (!temp.renameTo(file)) { temp.copyTo(file, overwrite = true); temp.delete() }
+        }
+        return rendered
+    }
     fun render(cacheKey: String, source: ImageBitmap, profile: LineIconProfile): Bitmap {
         val key = "$cacheKey|${profile.hashCode()}"
         synchronized(renderedCache) { renderedCache.get(key) }?.let { return it }

@@ -207,9 +207,8 @@ fun HomeScreen(
         val list = if (state.isEditMode) state.homePages else state.homePages.filter { !it.isHidden }
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
     }
-    val feedEnabled = state.settings.widgetFeedEnabled
-    val loopActive = !feedEnabled && state.settings.infinitePageLoop && visiblePages.size > 1 && !state.isEditMode
-    val virtualPageCount = if (loopActive) visiblePages.size * 200 else (visiblePages.size + if (feedEnabled) 1 else 0)
+    val loopActive = state.settings.infinitePageLoop && visiblePages.size > 1 && !state.isEditMode
+    val virtualPageCount = if (loopActive) visiblePages.size * 200 else visiblePages.size
     val loopBaseOffset = if (loopActive) (virtualPageCount / 2) - ((virtualPageCount / 2) % visiblePages.size) else 0
 
     fun realPageIndex(virtualIdx: Int): Int {
@@ -252,10 +251,10 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(state.currentPageIndex, visiblePages.size, feedEnabled, loopActive) {
+    LaunchedEffect(state.currentPageIndex, visiblePages.size, loopActive) {
         val target = state.currentPageIndex.coerceIn(0, visiblePages.lastIndex)
         val curReal = realPageIndex(pagerState.currentPage)
-        if ((!feedEnabled || pagerState.currentPage < visiblePages.size) && curReal != target) {
+        if (curReal != target) {
             pagerState.animateScrollToPage(resolveVirtualTarget(target))
         }
     }
@@ -263,7 +262,6 @@ fun HomeScreen(
     var showAddElementDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
     var showWidgetPicker by remember { mutableStateOf(false) }
-    var showFeedWidgetPicker by remember { mutableStateOf(false) }
     var showStyleDialog by remember { mutableStateOf(false) }
     var showLayerDrawer by remember { mutableStateOf(false) }
     var showTemplateGallery by remember { mutableStateOf(false) }
@@ -276,7 +274,6 @@ fun HomeScreen(
     }
 
     val currentRealPageIdx = realPageIndex(pagerState.currentPage).coerceAtMost(visiblePages.lastIndex)
-    val onFeedPage = feedEnabled && !loopActive && pagerState.currentPage == visiblePages.size
     val currentPage = visiblePages.getOrElse(currentRealPageIdx) { visiblePages.first() }
     val leftEdgeSidebar = state.sidebars.firstOrNull { it.side == "LEFT" && it.edgeZoneEnabled }
     val rightEdgeSidebar = state.sidebars.firstOrNull { it.side == "RIGHT" && it.edgeZoneEnabled }
@@ -473,7 +470,7 @@ fun HomeScreen(
                     )
                 }
 
-                val totalPagerPages = visiblePages.size + if (feedEnabled) 1 else 0
+                val totalPagerPages = visiblePages.size
                 val swipeLeftAction = state.gestures["SWIPE_LEFT"]?.actionType ?: "NEXT_PAGE"
                 val swipeRightAction = state.gestures["SWIPE_RIGHT"]?.actionType ?: "PREV_PAGE"
                 val hasCustomHorizontalSwipeOverride =
@@ -485,109 +482,12 @@ fun HomeScreen(
                     HorizontalPager(
                         state = pagerState,
                         key = { idx ->
-                            when {
-                                loopActive -> "loop_$idx"
-                                feedEnabled && idx == visiblePages.size -> "WIDGET_FEED"
-                                else -> visiblePages[idx].pageId
-                            }
+                            if (loopActive) "loop_$idx" else visiblePages[idx].pageId
                         },
                         userScrollEnabled = !state.isEditMode && totalPagerPages > 1 && !hasCustomHorizontalSwipeOverride,
                         modifier = Modifier.fillMaxSize(),
                     ) { virtualIdx ->
-                        if (feedEnabled && !loopActive && virtualIdx == visiblePages.size) {
-                            val feedElements = state.homeElements
-                                .filter { it.ownerType == "FEED" && it.parentContainerId == null && it.visible }
-                                .sortedBy { it.zIndex }
-
-                            val feedScrollState = rememberScrollState()
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(feedScrollState) {
-                                        awaitEachGesture {
-                                            val down = awaitFirstDown(
-                                                requireUnconsumed = false,
-                                                pass = PointerEventPass.Initial,
-                                            )
-                                            var last = down.position
-                                            var total = Offset.Zero
-                                            var verticalDrag = false
-
-                                            while (true) {
-                                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                                if (!change.pressed) break
-
-                                                val delta = change.position - last
-                                                total += delta
-
-                                                if (!verticalDrag && total.getDistance() > viewConfiguration.touchSlop) {
-                                                    if (kotlin.math.abs(total.y) > kotlin.math.abs(total.x)) {
-                                                        verticalDrag = true
-                                                    } else {
-                                                        break
-                                                    }
-                                                }
-
-                                                if (verticalDrag) {
-                                                    change.consume()
-                                                    feedScrollState.dispatchRawDelta(-delta.y)
-                                                }
-                                                last = change.position
-                                            }
-                                        }
-                                    }
-                                    .verticalScroll(feedScrollState)
-                                    .padding(16.dp),
-                            ) {
-                                Text(
-                                    text = "Widget Feed",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = if (state.settings.widgetFeedTitleColor == "BLACK") Color.Black else Color.White,
-                                )
-                                Button(
-                                    onClick = { showFeedWidgetPicker = true },
-                                    modifier = Modifier.padding(vertical = 12.dp),
-                                ) {
-                                    Text("Add widget")
-                                }
-
-                                feedElements.forEach { element ->
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .width(element.widthDp.coerceIn(120f, 600f).dp)
-                                                .height(element.heightDp.coerceIn(80f, 600f).dp),
-                                        ) {
-                                            HomeElementBody(
-                                                element = element,
-                                                state = state.copy(isEditMode = false),
-                                                appDiscovery = appDiscovery,
-                                                widgetHost = widgetHost,
-                                                onLaunchApp = onLaunchApp,
-                                                onOpenTagSidebar = onOpenTagSidebar,
-                                                onOpenCategorySidebar = onOpenCategorySidebar,
-                                                onOpenRuleSidebar = onOpenRuleSidebar,
-                                                onOpenSidebar = onOpenConfiguredSidebar,
-                                                onOpenWindow = onOpenWindow,
-                                                onOpenFolder = onOpenFolder,
-                                                onElementTrigger = { elem, trigger ->
-                                                    onExecuteElementAction(elem, trigger) { target -> scrollToRealPage(target) }
-                                                },
-                                                onOpenSearch = onOpenSearch,
-                                                onJumpToPage = scrollToRealPage,
-                                                onSaveElement = onSaveElement,
-                                                onCycleStack = onCycleWidgetStack,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            val pageIdx = realPageIndex(virtualIdx)
+                        val pageIdx = realPageIndex(virtualIdx)
                             val page = visiblePages[pageIdx]
                             val pageOffset = ((pagerState.currentPage - virtualIdx) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
                             val effectiveTransition = page.transitionOverride ?: state.settings.pageTransitionStyle
@@ -735,10 +635,10 @@ fun HomeScreen(
                                     onSaveElement = onSaveElement,
                                 )
                             }
-                        }
+                        
                     }
 
-                    // Sticky Pinned Overlay Layer across all non-feed home pages
+                    // Sticky Pinned Overlay Layer across all home pages
                     val pinnedElements = remember(
                         state.homeElements,
                         state.isEditMode,
@@ -758,7 +658,7 @@ fun HomeScreen(
                             }
                             .sortedBy { it.zIndex }
                     }
-                    if (!onFeedPage && pinnedElements.isNotEmpty()) {
+                    if (pinnedElements.isNotEmpty()) {
                         PinnedElementsOverlay(
                             page = currentPage,
                             elements = pinnedElements,
@@ -788,7 +688,7 @@ fun HomeScreen(
                     }
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && leftEdgeSidebar != null) {
+                    if (!state.isEditMode && leftEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterStart)
@@ -818,7 +718,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && rightEdgeSidebar != null) {
+                    if (!state.isEditMode && rightEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -1008,53 +908,7 @@ fun HomeScreen(
         )
     }
 
-    if (showFeedWidgetPicker) {
-        val providers = remember { widgetHost.getInstalledProviders() }
-        WidgetPickerDialog(
-            providers = providers,
-            tags = state.allTags,
-            onPickSystemWidget = { provider ->
-                showFeedWidgetPicker = false
-                onStartSystemWidgetBind(provider, 0L, "FEED")
-            },
-            onPickBuiltinType = { type, label, wDp, hDp ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = type,
-                        xFraction = 0.08f,
-                        yFraction = 0.08f,
-                        widthDp = wDp,
-                        heightDp = hDp,
-                        label = label,
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onPickBuiltinTagWidget = { tag ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = "TAG_COLLECTION_WIDGET",
-                        xFraction = 0.06f,
-                        yFraction = 0.08f,
-                        widthDp = 310f,
-                        heightDp = 240f,
-                        label = tag.name,
-                        targetTagId = tag.tagId,
-                        backgroundColorHex = 0x660F172AL,
-                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onDismiss = { showFeedWidgetPicker = false },
-        )
-    }
+
 
     if (showWidgetPicker) {
         val providers = remember { widgetHost.getInstalledProviders() }
@@ -1638,10 +1492,10 @@ private fun FreeformPageCanvas(
         val canvasHeightPx = with(density) { viewportHeightDp.toPx().coerceAtLeast(1f) }
         val snapStepPx = with(density) { state.settings.gridSnapStepDp.dp.toPx().coerceAtLeast(8f) }
 
-        val scrollContainerMod = if (page.verticallyScrollable && !state.isEditMode) {
+        val scrollContainerMod = if (page.verticallyScrollable) {
             Modifier.verticalScroll(rememberScrollState())
         } else Modifier
-        val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
+        val contentHeightDp = if (page.verticallyScrollable) {
             val maxElemBottomDp = elements.maxOfOrNull { el ->
                 val yf = if (isLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
                 val eh = if (isLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
@@ -1927,13 +1781,13 @@ private fun EditableCanvasElementBox(
 
     val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
     val dragModifier = if (canMove) {
-        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
+        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, page.verticallyScrollable, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
             detectDragGestures(
                 onDragStart = { onSelectElement(latestElem.elementId) },
                 onDrag = { change, dragAmount ->
                     change.consume()
                     var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
-                    var nextY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+                    var nextY = (dragY + dragAmount.y).coerceIn(0f, ((if (page.verticallyScrollable) canvasHeightPx * 12f else canvasHeightPx) - 40f).coerceAtLeast(0f))
 
                     if (state.settings.gridSnapEnabled) {
                         nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
@@ -1969,7 +1823,7 @@ private fun EditableCanvasElementBox(
                 onDragEnd = {
                     onGuideChanged(null, null)
                     val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
-                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                    val fy = (dragY / canvasHeightPx).coerceIn(0f, if (page.verticallyScrollable) 11.9f else 0.92f)
                     val cur = latestElem
                     val updated = if (latestIsLandscape) {
                         cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)

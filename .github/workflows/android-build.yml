@@ -2,7 +2,7 @@ name: Android APK Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feature/**']
   workflow_dispatch:
 
 permissions:
@@ -71,7 +71,11 @@ jobs:
       - name: Package source code
         run: git archive --format=zip --output=TagDeckLauncher-source.zip HEAD
 
+      # GitHub Actions artifact storage is quota-limited. Keep the release upload
+      # independent so a full Actions artifact quota cannot block APK publishing.
       - name: Upload APK and source artifacts
+        id: actions_artifacts
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: TagDeckLauncher-${{ github.run_number }}
@@ -79,7 +83,7 @@ jobs:
             TagDeck.apk
             TagDeckLauncher-source.zip
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       - name: Publish downloadable GitHub release
         uses: softprops/action-gh-release@v2
