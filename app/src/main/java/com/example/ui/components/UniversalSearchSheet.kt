@@ -482,7 +482,7 @@ fun UniversalSearchOverlay(
                         item {
                             PhoneSearchResults(query, activeScope) { uri, mime ->
                                 runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, uri).setType(mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                                    context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                                 }
                             }
                         }
