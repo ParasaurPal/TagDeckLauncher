@@ -139,16 +139,13 @@ abstract class LauncherDatabase : RoomDatabase() {
                     SET ownerType = 'PAGE',
                         pageId = $firstPage,
                         xFraction = 0.05,
-                        yFraction = MIN(
-                            0.92,
-                            0.03 + (
+                        yFraction = 0.03 + (
                                 SELECT COALESCE(SUM(previous.heightDp + 24.0), 0.0)
                                 FROM home_elements AS previous
                                 WHERE previous.ownerType = 'FEED'
                                   AND previous.parentContainerId IS NULL
                                   AND previous.elementId < home_elements.elementId
                             ) / 800.0
-                        )
                     WHERE ownerType = 'FEED'
                     """.trimIndent()
                 )
