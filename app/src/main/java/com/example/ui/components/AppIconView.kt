@@ -138,20 +138,23 @@ fun AppIconView(
         }
     }
     val lineBaseBitmap = customLineSource ?: rawBitmap
-    val lineIconCacheKey = remember(app.packageName, app.componentName, app.customIconPath, iconPackOrder, lineProfile, lineBaseBitmap) {
-        "${app.packageName}|${app.componentName}|${app.customIconPath.orEmpty()}|${iconPackOrder.joinToString(",")}|${System.identityHashCode(lineBaseBitmap)}"
+    // Stable across recomposition and lazy-list recycling; bitmap identity is transient.
+    val lineIconCacheKey = remember(app.packageName, app.componentName, app.customIconPath, iconPackOrder, lineProfile) {
+        "${app.packageName}|${app.componentName}|${app.customIconPath.orEmpty()}|${iconPackOrder.joinToString(",")}"
+    }
+    val cachedLineBitmap = remember(lineIconCacheKey, lineProfile) {
+        if (lineProfile != null) LineIconProcessor.getCached(lineIconCacheKey, lineProfile)?.asImageBitmap() else null
     }
     val lineDisplayedBitmap: ImageBitmap? by produceState(
-        initialValue = null,
+        initialValue = cachedLineBitmap,
         lineBaseBitmap,
         lineProfile,
         lineIconCacheKey,
     ) {
-        value = if (lineBaseBitmap == null || lineProfile == null) {
-            null
-        } else {
-            withContext(Dispatchers.Default) {
-                runCatching { LineIconProcessor.render(lineIconCacheKey, lineBaseBitmap, lineProfile).asImageBitmap() }.getOrNull()
+        value = cachedLineBitmap
+        if (lineBaseBitmap != null && lineProfile != null && value == null) {
+            value = withContext(Dispatchers.Default) {
+                runCatching { LineIconProcessor.renderCached(context, lineIconCacheKey, lineBaseBitmap, lineProfile).asImageBitmap() }.getOrNull()
             }
         }
     }
@@ -191,18 +194,21 @@ fun AppIconView(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            lineProfile != null && lineDisplayedBitmap != null -> {
-                Image(
-                    bitmap = lineDisplayedBitmap!!,
-                    contentDescription = app.displayName,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
+            lineProfile != null -> {
+                if (lineDisplayedBitmap != null) {
+                    Image(
+                        bitmap = lineDisplayedBitmap!!,
+                        contentDescription = app.displayName,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
                             scaleX = app.iconScale
                             scaleY = app.iconScale
                         },
-                )
+                    )
+                } else {
+                    // Do not flash the regular icon while disk cache/generation is loading.
+                    Box(Modifier.fillMaxSize().background(Color(0xFF252532)))
+                }
             }
             customFile != null -> {
                 val request = remember(customFile, iconStyle) {
