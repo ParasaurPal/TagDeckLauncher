@@ -449,6 +449,20 @@ fun ActiveOverlayHost(
                                     canPin = false,
                                     allTags = state.allTags,
                                     categoryOptions = if (cfg.sourceType == "FAVORITES") state.categories.filter { it.categoryType != "GAME_SUB" }.sortedBy { it.name.lowercase() } else emptyList(),
+                                    categoryApps = if (cfg.sourceType == "FAVORITES") state.categories
+                                        .filter { it.categoryType != "GAME_SUB" }
+                                        .associate { category ->
+                                            category.categoryId to state.appsWithTags
+                                                .filter { item ->
+                                                    item.app.isInstalled && !item.app.hidden && (
+                                                        item.app.primaryCategoryId == category.categoryId ||
+                                                            item.categories.any { it.categoryId == category.categoryId }
+                                                    )
+                                                }
+                                                .map { it.app }
+                                                .distinctBy { it.packageName }
+                                                .sortedBy { it.displayName.lowercase() }
+                                        } else emptyMap(),
                                     showCategoryDropdown = cfg.sourceType == "FAVORITES",
                                     apps = matchingApps,
                                     appDiscovery = appDiscovery,
@@ -1555,6 +1569,7 @@ fun GenericSidebarContent(
     canPin: Boolean,
     allTags: List<TagEntity>,
     categoryOptions: List<CategoryEntity> = emptyList(),
+    categoryApps: Map<Long, List<AppEntity>> = emptyMap(),
     showCategoryDropdown: Boolean = false,
     quickCategories: List<CategoryEntity> = emptyList(),
     onClickSubChip: (Long) -> Unit = {},
@@ -1588,9 +1603,9 @@ fun GenericSidebarContent(
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
     var selectedCategoryId by remember(title) { mutableStateOf<Long?>(null) }
     var categoryMenuExpanded by remember(title) { mutableStateOf(false) }
-    val visibleApps = remember(apps, selectedCategoryId) {
+    val visibleApps = remember(apps, categoryApps, selectedCategoryId) {
         if (selectedCategoryId == null) apps
-        else apps.filter { it.primaryCategoryId == selectedCategoryId }
+        else categoryApps[selectedCategoryId].orEmpty()
     }
     val selectedCategoryName = categoryOptions.firstOrNull { it.categoryId == selectedCategoryId }?.name ?: "All favorites"
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
