@@ -1729,10 +1729,10 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                    ToggleRow("Grid Snap", s.gridSnapEnabled) { v ->
+                    ToggleRow("Snap Icons & Widgets to Grid", s.gridSnapEnabled) { v ->
                         onUpdateSettings { it.copy(gridSnapEnabled = v) }
                     }
-                    Text("Grid Snap Step: ${s.gridSnapStepDp}dp")
+                    Text("Placement snaps icons, shortcuts, and widgets to this spacing while editing: ${s.gridSnapStepDp}dp")
                     Slider(
                         value = s.gridSnapStepDp.toFloat(),
                         onValueChange = { v -> onUpdateSettings { it.copy(gridSnapStepDp = v.roundToInt().coerceIn(8, 48)) } },
@@ -1783,25 +1783,6 @@ fun SettingsScreen(
                     ExtendedPagingAndIndicatorControls(
                         settings = s,
                         onUpdateSettings = onUpdateSettings,
-                    )
-
-                    ToggleRow("Enable Widget Feed", s.widgetFeedEnabled) { v ->
-                        onUpdateSettings { it.copy(widgetFeedEnabled = v) }
-                    }
-                    Text("Widget Feed Title Color", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("WHITE", "BLACK").forEach { color ->
-                            FilterChip(
-                                selected = s.widgetFeedTitleColor == color,
-                                onClick = { onUpdateSettings { it.copy(widgetFeedTitleColor = color) } },
-                                label = { Text(color.lowercase().replaceFirstChar { it.uppercase() }) },
-                            )
-                        }
-                    }
-                    Text(
-                        "Swipe left past your last home page to open the separate widget feed. Disabling it keeps your feed widgets saved.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
                     Text("Page Indicator Style", style = MaterialTheme.typography.labelLarge)
