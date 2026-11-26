@@ -207,7 +207,7 @@ fun HomeScreen(
         val list = if (state.isEditMode) state.homePages else state.homePages.filter { !it.isHidden }
         list.ifEmpty { listOf(HomePageEntity(pageId = 1L, title = "Main Deck", pageOrder = 0)) }
     }
-    val feedEnabled = state.settings.widgetFeedEnabled
+    val feedEnabled = false // Widgets now belong to ordinary home pages.
     val loopActive = !feedEnabled && state.settings.infinitePageLoop && visiblePages.size > 1 && !state.isEditMode
     val virtualPageCount = if (loopActive) visiblePages.size * 200 else (visiblePages.size + if (feedEnabled) 1 else 0)
     val loopBaseOffset = if (loopActive) (virtualPageCount / 2) - ((virtualPageCount / 2) % visiblePages.size) else 0
