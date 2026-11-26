@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,15 +55,22 @@ internal fun PhoneSearchResults(query: String, scope: String, onOpen: (Uri, Stri
     val context = LocalContext.current
     val wantsContacts = scope == "ALL" || scope == "CONTACTS"
     val wantsFiles = scope == "ALL" || scope == "FILES"
-    val contactsPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+    var permissionRefresh by remember { mutableIntStateOf(0) }
+    val contactsPermission = remember(permissionRefresh) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+    }
     val filePermissions = remember {
         if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
         else listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
-    val hasFilePermission = filePermissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    val hasFilePermission = remember(permissionRefresh) {
+        filePermissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    }
     var contacts by remember { mutableStateOf(emptyList<PhoneSearchHit>()) }
     var files by remember { mutableStateOf(emptyList<PhoneSearchHit>()) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        permissionRefresh++
+    }
 
     LaunchedEffect(query, wantsContacts, wantsFiles, contactsPermission, hasFilePermission) {
         if (query.isBlank()) {
