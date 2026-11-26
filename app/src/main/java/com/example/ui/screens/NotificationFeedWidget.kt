@@ -79,6 +79,7 @@ fun NotificationFeedWidget() {
 
 @Composable
 private fun NotificationFeedCard(item: LauncherNotification) {
+    val context = LocalContext.current
     Surface(color = Color(0x663B465A), contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable {
             runCatching {
                 context.packageManager.getLaunchIntentForPackage(item.packageName)?.let { context.startActivity(it) }
