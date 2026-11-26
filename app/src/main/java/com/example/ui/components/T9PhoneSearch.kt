@@ -81,7 +81,8 @@ internal fun PhoneSearchResults(query: String, scope: String, onOpen: (Uri, Stri
                             val id = cursor.getString(idCol) ?: continue
                             val name = cursor.getString(nameCol).orEmpty()
                             val number = cursor.getString(numberCol).orEmpty()
-                            if (seen.add(id) && (matchesT9(name, query) || number.filter(Char::isDigit).contains(query.filter(Char::isDigit)))) {
+                            val digits = query.filter(Char::isDigit)
+                            if (seen.add(id) && (matchesT9(name, query) || (digits.isNotEmpty() && number.filter(Char::isDigit).contains(digits)))) {
                                 found += PhoneSearchHit(id, name, number, Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id), "vnd.android.cursor.item/contact")
                             }
                         }
@@ -94,12 +95,13 @@ internal fun PhoneSearchResults(query: String, scope: String, onOpen: (Uri, Stri
                 val found = mutableListOf<PhoneSearchHit>()
                 runCatching {
                     val collection = MediaStore.Files.getContentUri("external")
-                    val projection = arrayOf(MediaStore.Files.FileColumns._ID, MediaStore.Files.FileColumns.DISPLAY_NAME, MediaStore.Files.FileColumns.MIME_TYPE, MediaStore.Files.FileColumns.RELATIVE_PATH)
+                    val pathColumn = if (Build.VERSION.SDK_INT >= 29) MediaStore.Files.FileColumns.RELATIVE_PATH else MediaStore.Files.FileColumns.DATA
+                    val projection = arrayOf(MediaStore.Files.FileColumns._ID, MediaStore.Files.FileColumns.DISPLAY_NAME, MediaStore.Files.FileColumns.MIME_TYPE, pathColumn)
                     context.contentResolver.query(collection, projection, null, null, MediaStore.Files.FileColumns.DATE_MODIFIED + " DESC")?.use { cursor ->
                         val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
                         val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
                         val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
-                        val pathCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.RELATIVE_PATH)
+                        val pathCol = cursor.getColumnIndex(pathColumn)
                         while (cursor.moveToNext() && found.size < 40) {
                             val name = cursor.getString(nameCol).orEmpty()
                             if (!matchesT9(name, query)) continue
