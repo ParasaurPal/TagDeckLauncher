@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -78,7 +79,11 @@ fun NotificationFeedWidget() {
 
 @Composable
 private fun NotificationFeedCard(item: LauncherNotification) {
-    Surface(color = Color(0x663B465A), contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Color(0x663B465A), contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable {
+            runCatching {
+                context.packageManager.getLaunchIntentForPackage(item.packageName)?.let { context.startActivity(it) }
+            }
+        }) {
         Row(modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
