@@ -583,8 +583,43 @@ class LauncherRepository(
     suspend fun saveHomeElement(element: HomeElementEntity): Long = dao.upsertHomeElement(element)
     suspend fun deleteHomeElement(elementId: Long) = dao.deleteHomeElementById(elementId)
 
-    suspend fun getHomeLayoutOnce(): Pair<List<HomePageEntity>, List<HomeElementEntity>> =
-        dao.getHomePagesOnce() to dao.getHomeElementsOnce()
+    suspend fun getHomeLayoutOnce(): Pair<List<HomePageEntity>, List<HomeElementEntity>> {
+        var pages = dao.getHomePagesOnce().sortedBy { it.pageOrder }
+        var elements = dao.getHomeElementsOnce()
+        val legacyFeed = elements.filter { it.ownerType == "FEED" && it.parentContainerId == null }
+        if (legacyFeed.isNotEmpty()) {
+            val targetPage = pages.firstOrNull() ?: HomePageEntity(
+                title = "Main Deck",
+                pageOrder = 0,
+                isDefaultHome = true,
+                verticallyScrollable = true,
+            ).let { page ->
+                val id = dao.upsertHomePage(page)
+                page.copy(pageId = id)
+            }
+            val scrollPage = if (targetPage.verticallyScrollable) targetPage else targetPage.copy(verticallyScrollable = true)
+            if (scrollPage != targetPage) dao.upsertHomePage(scrollPage)
+            var nextTopDp = 24f
+            val migrated = legacyFeed.sortedBy { it.zIndex }.map { element ->
+                val width = element.widthDp.coerceIn(120f, 600f)
+                val height = element.heightDp.coerceIn(80f, 600f)
+                val migratedElement = element.copy(
+                    ownerType = "PAGE",
+                    pageId = scrollPage.pageId,
+                    xFraction = 0.05f,
+                    yFraction = (nextTopDp / 800f).coerceIn(0f, 0.92f),
+                    widthDp = width,
+                    heightDp = height,
+                )
+                nextTopDp += height + 24f
+                migratedElement
+            }
+            migrated.forEach { dao.upsertHomeElement(it) }
+            pages = dao.getHomePagesOnce().sortedBy { it.pageOrder }
+            elements = dao.getHomeElementsOnce()
+        }
+        return pages to elements
+    }
 
     suspend fun replaceHomeLayout(pages: List<HomePageEntity>, elements: List<HomeElementEntity>) {
         if (pages.isNotEmpty()) {
