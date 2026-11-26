@@ -607,7 +607,7 @@ class LauncherRepository(
                     ownerType = "PAGE",
                     pageId = scrollPage.pageId,
                     xFraction = 0.05f,
-                    yFraction = (nextTopDp / 800f).coerceIn(0f, 0.92f),
+                    yFraction = nextTopDp / 800f,
                     widthDp = width,
                     heightDp = height,
                 )
