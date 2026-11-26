@@ -1638,10 +1638,10 @@ private fun FreeformPageCanvas(
         val canvasHeightPx = with(density) { viewportHeightDp.toPx().coerceAtLeast(1f) }
         val snapStepPx = with(density) { state.settings.gridSnapStepDp.dp.toPx().coerceAtLeast(8f) }
 
-        val scrollContainerMod = if (page.verticallyScrollable && !state.isEditMode) {
+        val scrollContainerMod = if (page.verticallyScrollable) {
             Modifier.verticalScroll(rememberScrollState())
         } else Modifier
-        val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
+        val contentHeightDp = if (page.verticallyScrollable) {
             val maxElemBottomDp = elements.maxOfOrNull { el ->
                 val yf = if (isLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
                 val eh = if (isLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
@@ -1927,13 +1927,13 @@ private fun EditableCanvasElementBox(
 
     val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
     val dragModifier = if (canMove) {
-        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
+        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, page.verticallyScrollable, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
             detectDragGestures(
                 onDragStart = { onSelectElement(latestElem.elementId) },
                 onDrag = { change, dragAmount ->
                     change.consume()
                     var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
-                    var nextY = (dragY + dragAmount.y).coerceIn(0f, (canvasHeightPx - 40f).coerceAtLeast(0f))
+                    var nextY = (dragY + dragAmount.y).coerceIn(0f, ((if (page.verticallyScrollable) canvasHeightPx * 12f else canvasHeightPx) - 40f).coerceAtLeast(0f))
 
                     if (state.settings.gridSnapEnabled) {
                         nextX = (nextX / snapStepPx).roundToInt() * snapStepPx
@@ -1969,7 +1969,7 @@ private fun EditableCanvasElementBox(
                 onDragEnd = {
                     onGuideChanged(null, null)
                     val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
-                    val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
+                    val fy = (dragY / canvasHeightPx).coerceIn(0f, if (page.verticallyScrollable) 11.9f else 0.92f)
                     val cur = latestElem
                     val updated = if (latestIsLandscape) {
                         cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
