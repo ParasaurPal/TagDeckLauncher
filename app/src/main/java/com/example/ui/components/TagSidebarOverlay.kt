@@ -1544,6 +1544,15 @@ fun TagTriggeredSidebarContent(
                 }
             }
 
+            if (allTags.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                TagIconDock(
+                    tags = allTags,
+                    selectedTagId = tag.tagId,
+                    onSelect = onSwitchToTag,
+                    isRightSide = isRightSide,
+                )
+            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(8.dp))
             Row(
