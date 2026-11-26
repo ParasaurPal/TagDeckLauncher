@@ -448,22 +448,6 @@ fun ActiveOverlayHost(
                                     isPinned = false,
                                     canPin = false,
                                     allTags = state.allTags,
-                                    categoryOptions = if (cfg.sourceType == "FAVORITES") state.categories.filter { it.categoryType != "GAME_SUB" }.sortedBy { it.name.lowercase() } else emptyList(),
-                                    categoryApps = if (cfg.sourceType == "FAVORITES") state.categories
-                                        .filter { it.categoryType != "GAME_SUB" }
-                                        .associate { category ->
-                                            category.categoryId to state.appsWithTags
-                                                .filter { item ->
-                                                    item.app.isInstalled && !item.app.hidden && (
-                                                        item.app.primaryCategoryId == category.categoryId ||
-                                                            item.categories.any { it.categoryId == category.categoryId }
-                                                    )
-                                                }
-                                                .map { it.app }
-                                                .distinctBy { it.packageName }
-                                                .sortedBy { it.displayName.lowercase() }
-                                        } else emptyMap(),
-                                    showCategoryDropdown = cfg.sourceType == "FAVORITES",
                                     apps = matchingApps,
                                     appDiscovery = appDiscovery,
                                     iconShapeKey = state.settings.globalIconShape,
@@ -1206,24 +1190,69 @@ private fun TagIconDock(
 private fun CategoryIconDock(
     categories: List<CategoryEntity>,
     contrastStyle: String,
+    isRightSide: Boolean,
     onSelect: (Long) -> Unit,
 ) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-    ) {
-        items(categories, key = { "category_dock_${it.categoryId}" }) { category ->
-            Column(
+    if (isRightSide) {
+        var expanded by remember(categories) { mutableStateOf(false) }
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Surface(
                 modifier = Modifier
-                    .widthIn(min = 48.dp)
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .clickable { onSelect(category.categoryId) }
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                    .testTag("sidebar_category_icon_${category.categoryId}"),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .clickable { expanded = true }
+                    .testTag("sidebar_category_dropdown"),
+                color = Color.Black.copy(alpha = 0.42f),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
             ) {
-                CategoryBadgeIcon(category = category, size = 40.dp, contrastStyle = contrastStyle)
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Switch category",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text("⌄", color = MaterialTheme.colorScheme.primary, fontSize = 22.sp)
+                }
+            }
+            androidx.compose.material3.DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            ) {
+                categories.forEach { category ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(category.name) },
+                        onClick = {
+                            expanded = false
+                            onSelect(category.categoryId)
+                        },
+                    )
+                }
+            }
+        }
+    } else {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+        ) {
+            items(categories, key = { "category_dock_${it.categoryId}" }) { category ->
+                Column(
+                    modifier = Modifier
+                        .widthIn(min = 48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onSelect(category.categoryId) }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .testTag("sidebar_category_icon_${category.categoryId}"),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CategoryBadgeIcon(category = category, size = 40.dp, contrastStyle = contrastStyle)
+                }
             }
         }
     }
@@ -1568,9 +1597,6 @@ fun GenericSidebarContent(
     isPinned: Boolean,
     canPin: Boolean,
     allTags: List<TagEntity>,
-    categoryOptions: List<CategoryEntity> = emptyList(),
-    categoryApps: Map<Long, List<AppEntity>> = emptyMap(),
-    showCategoryDropdown: Boolean = false,
     quickCategories: List<CategoryEntity> = emptyList(),
     onClickSubChip: (Long) -> Unit = {},
     sidebarButtons: List<HomeElementEntity> = emptyList(),
@@ -1601,13 +1627,6 @@ fun GenericSidebarContent(
 
     var layoutMode by remember(title) { mutableStateOf("LIST") }
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
-    var selectedCategoryId by remember(title) { mutableStateOf<Long?>(null) }
-    var categoryMenuExpanded by remember(title) { mutableStateOf(false) }
-    val visibleApps = remember(apps, categoryApps, selectedCategoryId) {
-        if (selectedCategoryId == null) apps
-        else categoryApps[selectedCategoryId].orEmpty()
-    }
-    val selectedCategoryName = categoryOptions.firstOrNull { it.categoryId == selectedCategoryId }?.name ?: "All favorites"
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
     val shape = when (side) {
         "RIGHT" -> RoundedCornerShape(topStart = radius, bottomStart = radius)
@@ -1729,7 +1748,7 @@ fun GenericSidebarContent(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),
                         ) {
-                            items(visibleApps, key = { it.packageName }) { app ->
+                            items(apps, key = { it.packageName }) { app ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1824,6 +1843,7 @@ fun GenericSidebarContent(
                     CategoryIconDock(
                         categories = quickCategories,
                         contrastStyle = sidebarCategoryIconStyle,
+                        isRightSide = side == "RIGHT",
                         onSelect = onClickSubChip,
                     )
                 }
@@ -1851,51 +1871,6 @@ fun GenericSidebarContent(
                     Spacer(Modifier.height(6.dp))
                 }
 
-
-                if (showCategoryDropdown && categoryOptions.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { categoryMenuExpanded = true }
-                                .testTag("favorites_category_dropdown"),
-                            color = Color.Black.copy(alpha = 0.42f),
-                            shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.55f)),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = selectedCategoryName,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text("⌄", color = accentColor, fontSize = 22.sp)
-                            }
-                        }
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = categoryMenuExpanded,
-                            onDismissRequest = { categoryMenuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                        ) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text("All favorites") },
-                                onClick = { selectedCategoryId = null; categoryMenuExpanded = false },
-                            )
-                            categoryOptions.forEach { category ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(category.name) },
-                                    onClick = { selectedCategoryId = category.categoryId; categoryMenuExpanded = false },
-                                )
-                            }
-                        }
-                    }
-                }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
                 Spacer(Modifier.height(6.dp))
