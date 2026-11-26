@@ -145,6 +145,7 @@ import com.example.data.db.HomePageEntity
 import com.example.data.db.LayoutSnapshotEntity
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.LauncherWidgetHost
+import com.example.data.system.NotificationBadgeStore
 import com.example.ui.components.AppIconView
 import com.example.ui.components.CategoryBadgeIcon
 import com.example.ui.components.ColorSwatchRow
@@ -522,6 +523,7 @@ fun HomeElementBody(
                     "APP_USAGE_WIDGET" -> AppUsageWidgetContent(element)
                     "RECENT_APPS_WIDGET" -> RecentAppsWidgetContent(state.appsWithTags, onLaunchApp)
                     "PHOTO_SLIDESHOW" -> PhotoSlideshowWidgetContent(element, state.imageResources)
+                    "NOTIFICATION_FEED" -> NotificationFeedWidget()
 
                     "WIDGET_STACK" -> WidgetStackCard(
                         element = element,
