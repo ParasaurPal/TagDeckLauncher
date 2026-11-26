@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -62,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -116,6 +119,8 @@ fun UniversalSearchOverlay(
     ) {
         var query by remember { mutableStateOf(state.pendingGlobalSearchQuery) }
         var activeScope by remember { mutableStateOf("ALL") }
+        var showT9Keypad by remember { mutableStateOf(false) }
+        val context = LocalContext.current
 
         LaunchedEffect(visible, state.pendingGlobalSearchQuery) {
             if (visible && state.pendingGlobalSearchQuery.isNotBlank()) {
@@ -210,6 +215,7 @@ fun UniversalSearchOverlay(
             val base = state.appsWithTags.filter { it.app.isInstalled && !it.app.hidden }
             if (q.isEmpty()) base.sortedByDescending { it.app.launchCount }.take(8)
             else base.filter { item ->
+                if (q.all(Char::isDigit)) return@filter toT9Digits(item.app.displayName).contains(q)
                 val hay = buildString {
                     append(item.app.displayName.lowercase()).append(' ')
                     append(item.app.appName.lowercase()).append(' ')
@@ -325,7 +331,8 @@ fun UniversalSearchOverlay(
             matchingSidebars.isNotEmpty() ||
             matchingFolders.isNotEmpty() ||
             matchingWidgetsAndElements.isNotEmpty() ||
-            matchingPages.isNotEmpty()
+            matchingPages.isNotEmpty() ||
+            (q.isNotEmpty() && activeScope in listOf("ALL", "CONTACTS", "FILES"))
 
         Surface(
             color = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
@@ -388,8 +395,33 @@ fun UniversalSearchOverlay(
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.weight(1f).testTag("universal_search_input"),
                     )
+                    OutlinedButton(onClick = { showT9Keypad = !showT9Keypad }, modifier = Modifier.testTag("universal_search_t9_toggle")) {
+                        Text("T9")
+                    }
                     IconButton(onClick = onClose, modifier = Modifier.testTag("universal_search_close")) {
                         Icon(Icons.Rounded.Close, contentDescription = "Close search")
+                    }
+                }
+
+                if (showT9Keypad) {
+                    val keys = listOf("1", "2 ABC", "3 DEF", "4 GHI", "5 JKL", "6 MNO", "7 PQRS", "8 TUV", "9 WXYZ", "Clear", "0", "⌫")
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        keys.forEach { key ->
+                            OutlinedButton(
+                                onClick = {
+                                    when (key) {
+                                        "Clear" -> query = ""
+                                        "⌫" -> query = query.dropLast(1)
+                                        else -> query += key.substringBefore(" ")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) { Text(key) }
+                        }
                     }
                 }
 
@@ -405,6 +437,8 @@ fun UniversalSearchOverlay(
                         "SETTINGS" to "Settings",
                         "TAGS" to "Tags",
                         "LAYOUT" to "Pages & Panels",
+                        "CONTACTS" to "Contacts",
+                        "FILES" to "Files",
                     )
                     items(scopes, key = { it.first }) { (scopeKey, label) ->
                         FilterChip(
@@ -439,6 +473,16 @@ fun UniversalSearchOverlay(
                                         leadingIcon = { Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                         label = { Text(prev) },
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    if (q.isNotEmpty() && activeScope in listOf("ALL", "CONTACTS", "FILES")) {
+                        item {
+                            PhoneSearchResults(query, activeScope) { uri, mime ->
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, uri).setType(mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                                 }
                             }
                         }
@@ -796,7 +840,7 @@ fun UniversalSearchOverlay(
                                     Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                                     Text("No results for \"$query\"", fontWeight = FontWeight.SemiBold)
                                     Text(
-                                        "Try searching an app name, setting, tag, category, sidebar, window, or page title.",
+                                        "Try an app, contact name or number, file name, setting, tag, category, sidebar, window, or page title.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
