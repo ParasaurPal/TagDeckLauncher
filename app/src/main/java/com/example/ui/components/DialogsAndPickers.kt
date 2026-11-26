@@ -989,6 +989,7 @@ fun WidgetPickerDialog(
         Triple("RECENT_APPS_WIDGET", "Recently Used Apps", 200f to 190f),
         Triple("PHOTO_SLIDESHOW", "Photo Slideshow Frame", 220f to 148f),
         Triple("NOTIFICATION_FEED", "Glass Notification Feed", 320f to 420f),
+        Triple("RSS_BRIEFING", "RSS News Briefing", 320f to 420f),
     )
 
     AlertDialog(
