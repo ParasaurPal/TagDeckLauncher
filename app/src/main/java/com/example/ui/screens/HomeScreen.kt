@@ -688,7 +688,7 @@ fun HomeScreen(
                     }
 
                     // 4-Edge Activation Zones (Left / Right / Top / Bottom)
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && leftEdgeSidebar != null) {
+                    if (!state.isEditMode && leftEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterStart)
@@ -718,7 +718,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (!state.isEditMode && !(feedEnabled && pagerState.currentPage == visiblePages.size) && rightEdgeSidebar != null) {
+                    if (!state.isEditMode && rightEdgeSidebar != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -908,53 +908,7 @@ fun HomeScreen(
         )
     }
 
-    if (showFeedWidgetPicker) {
-        val providers = remember { widgetHost.getInstalledProviders() }
-        WidgetPickerDialog(
-            providers = providers,
-            tags = state.allTags,
-            onPickSystemWidget = { provider ->
-                showFeedWidgetPicker = false
-                onStartSystemWidgetBind(provider, 0L, "FEED")
-            },
-            onPickBuiltinType = { type, label, wDp, hDp ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = type,
-                        xFraction = 0.08f,
-                        yFraction = 0.08f,
-                        widthDp = wDp,
-                        heightDp = hDp,
-                        label = label,
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onPickBuiltinTagWidget = { tag ->
-                onSaveElement(
-                    HomeElementEntity(
-                        pageId = 0L,
-                        ownerType = "FEED",
-                        type = "TAG_COLLECTION_WIDGET",
-                        xFraction = 0.06f,
-                        yFraction = 0.08f,
-                        widthDp = 310f,
-                        heightDp = 240f,
-                        label = tag.name,
-                        targetTagId = tag.tagId,
-                        backgroundColorHex = 0x660F172AL,
-                        borderColorHex = (0x88000000L or (tag.colorHex and 0x00FFFFFFL)),
-                    ),
-                    false,
-                )
-                showFeedWidgetPicker = false
-            },
-            onDismiss = { showFeedWidgetPicker = false },
-        )
-    }
+
 
     if (showWidgetPicker) {
         val providers = remember { widgetHost.getInstalledProviders() }
