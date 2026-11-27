@@ -157,22 +157,6 @@ fun AppIconView(
             }
         }
     }
-    val anyconsSource = lineDisplayedBitmap ?: displayedBitmap
-    val anyconsBitmap: ImageBitmap? by produceState(
-        initialValue = null,
-        anyconsSource,
-        anyconsConfig,
-    ) {
-        value = if (anyconsSource == null || anyconsConfig.style == "NONE") {
-            null
-        } else {
-            withContext(Dispatchers.Default) {
-                runCatching {
-                    AnyconsRenderer.render(anyconsSource.asAndroidBitmap(), anyconsConfig).asImageBitmap()
-                }.getOrNull()
-            }
-        }
-    }
 
     val bitmapKey = remember(app.packageName, app.componentName, iconPackOrder, packIcon != null, app.isInstalled) {
         if (packIcon != null) {
@@ -201,6 +185,23 @@ fun AppIconView(
                 ?: IconOutlineProcessor.processImageBitmap(bitmapKey, rawBitmap, iconStyle)
         }
     }
+    val anyconsSource = lineDisplayedBitmap ?: displayedBitmap
+    val anyconsBitmap: ImageBitmap? by produceState(
+        initialValue = null,
+        anyconsSource,
+        anyconsConfig,
+    ) {
+        value = if (anyconsSource == null || anyconsConfig.style == "NONE") {
+            null
+        } else {
+            withContext(Dispatchers.Default) {
+                runCatching {
+                    AnyconsRenderer.render(anyconsSource.asAndroidBitmap(), anyconsConfig).asImageBitmap()
+                }.getOrNull()
+            }
+        }
+    }
+
 
     Box(
         modifier = modifier
