@@ -103,6 +103,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -2104,7 +2105,8 @@ private fun EditableCanvasElementBox(
                     )
                 } else Modifier
             )
-            .testTag("home_element_${elem.elementId}"),
+            .testTag("home_element_${elem.elementId}")
+            .semantics(mergeDescendants = true) {},
     ) {
         HomeElementBody(
             element = elem,
