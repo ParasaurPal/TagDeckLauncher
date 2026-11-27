@@ -64,6 +64,8 @@ import com.example.ui.components.LineIconStudioDialog
 import com.example.ui.components.LocalCustomFonts
 import com.example.ui.components.LocalDefaultLineIconProfile
 import com.example.ui.components.LocalIconStyleConfig
+import com.example.ui.components.LocalAnyconsConfig
+import com.example.ui.components.AnyconsConfig
 import com.example.ui.components.LocalReadabilityConfig
 import com.example.ui.components.ReadabilityConfig
 import com.example.ui.components.TagEditorDialog
@@ -337,6 +339,7 @@ private fun TagDeckRoot(
     CompositionLocalProvider(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
+        LocalAnyconsConfig provides AnyconsConfig(style = state.settings.anyconsStyle),
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
         LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
         LocalDefaultLineIconProfile provides if (state.settings.lineIconsEnabled) state.settings.defaultLineIconProfile() else null,
