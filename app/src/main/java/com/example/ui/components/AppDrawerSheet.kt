@@ -236,10 +236,15 @@ fun AppDrawerOverlay(
                 byCategoryOrTag
             } else {
                 val q = query.trim().lowercase()
-                byCategoryOrTag.filter {
-                    it.app.displayName.lowercase().contains(q) ||
-                        it.app.packageName.lowercase().contains(q) ||
-                        it.tags.any { t -> t.name.lowercase().contains(q) }
+                byCategoryOrTag.filter { item ->
+                    if (q.all { it.isDigit() }) {
+                        T9Search.matches(q, item.app.displayName, item.app.appName, item.app.packageName) ||
+                            item.tags.any { tag -> T9Search.matches(q, tag.name) }
+                    } else {
+                        item.app.displayName.lowercase().contains(q) ||
+                            item.app.packageName.lowercase().contains(q) ||
+                            item.tags.any { tag -> tag.name.lowercase().contains(q) }
+                    }
                 }
             }
             when (state.settings.drawerSortOrder) {
