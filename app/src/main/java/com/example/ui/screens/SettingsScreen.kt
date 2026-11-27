@@ -1682,6 +1682,14 @@ fun SettingsScreen(
                         tagPrefix = "settings_wp_dim",
                     )
 
+                    ToggleRow(
+                        label = "Scroll Wallpaper Across Pages",
+                        checked = s.wallpaperScrollingEnabled,
+                        switchModifier = Modifier.testTag("settings_wallpaper_scrolling_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(wallpaperScrollingEnabled = v) }
+                    }
+
                     WallpaperFxStudioControls(
                         settings = s,
                         onUpdateSettings = onUpdateSettings,
@@ -1752,7 +1760,21 @@ fun SettingsScreen(
                     ToggleRow("Show Search Bar in Drawer", s.drawerSearchBarVisible) { v ->
                         onUpdateSettings { it.copy(drawerSearchBarVisible = v) }
                     }
+                    ToggleRow(
+                        label = "Close Drawer on App Launch",
+                        checked = s.closeDrawerOnLaunch,
+                        switchModifier = Modifier.testTag("settings_drawer_close_on_launch_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(closeDrawerOnLaunch = v) }
+                    }
                     if (s.drawerSearchBarVisible) {
+                        ToggleRow(
+                            label = "Auto-Focus Drawer Search",
+                            checked = s.autoFocusDrawerSearch,
+                            switchModifier = Modifier.testTag("settings_drawer_autofocus_switch"),
+                        ) { v ->
+                            onUpdateSettings { it.copy(autoFocusDrawerSearch = v) }
+                        }
                         Text("Search Bar Position", style = MaterialTheme.typography.labelLarge)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("TOP", "BOTTOM").forEach { pos ->
@@ -1967,6 +1989,93 @@ fun SettingsScreen(
                     ToggleRow("Lock Entire Home Layout", s.layoutLocked) { v ->
                         onUpdateSettings { it.copy(layoutLocked = v) }
                     }
+                    ToggleRow(
+                        label = "Close Folder When Launching App",
+                        checked = s.closeFolderOnLaunch,
+                        switchModifier = Modifier.testTag("settings_close_folder_on_launch_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(closeFolderOnLaunch = v) }
+                    }
+                    ToggleRow(
+                        label = "Return to Default Page on Home Press",
+                        checked = s.returnToDefaultPageOnHome,
+                        switchModifier = Modifier.testTag("settings_return_default_home_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(returnToDefaultPageOnHome = v) }
+                    }
+                    ToggleRow(
+                        label = "Separate Landscape Layout",
+                        checked = s.landscapeSeparateLayout,
+                        switchModifier = Modifier.testTag("settings_landscape_separate_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(landscapeSeparateLayout = v) }
+                    }
+                    ToggleRow(
+                        label = "Allow Overlapping Elements",
+                        checked = s.allowOverlappingElements,
+                        switchModifier = Modifier.testTag("settings_allow_overlap_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(allowOverlappingElements = v) }
+                    }
+
+                    Text("Double-Tap Empty Page Behavior", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf(
+                            "GESTURE" to "Gesture Binding",
+                            "EDIT_MODE" to "Toggle Edit",
+                            "OPEN_DRAWER" to "Drawer",
+                            "OPEN_SEARCH" to "Search",
+                            "NONE" to "None",
+                        ).forEach { (key, label) ->
+                            FilterChip(
+                                selected = s.doubleTapPageBehavior == key,
+                                onClick = { onUpdateSettings { it.copy(doubleTapPageBehavior = key) } },
+                                label = { Text(label) },
+                                modifier = Modifier.testTag("settings_double_tap_behavior_$key"),
+                            )
+                        }
+                    }
+
+                    Text("Dock Bar Height: ${s.dockHeightDp.roundToInt()}dp")
+                    Slider(
+                        value = s.dockHeightDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(dockHeightDp = v) } },
+                        valueRange = 40f..80f,
+                    )
+                    Text("Dock Bar Opacity: ${(s.dockBackgroundAlpha * 100).roundToInt()}%")
+                    Slider(
+                        value = s.dockBackgroundAlpha,
+                        onValueChange = { v -> onUpdateSettings { it.copy(dockBackgroundAlpha = v) } },
+                        valueRange = 0f..1f,
+                    )
+                    Text("Canvas Horizontal Margin: ${s.homePaddingHorizontalDp.roundToInt()}dp")
+                    Slider(
+                        value = s.homePaddingHorizontalDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(homePaddingHorizontalDp = v) } },
+                        valueRange = 0f..32f,
+                    )
+                    Text("Canvas Vertical Margin: ${s.homePaddingVerticalDp.roundToInt()}dp")
+                    Slider(
+                        value = s.homePaddingVerticalDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(homePaddingVerticalDp = v) } },
+                        valueRange = 0f..32f,
+                    )
+                    Text("Default Shortcut Width: ${s.defaultShortcutWidthDp.roundToInt()}dp")
+                    Slider(
+                        value = s.defaultShortcutWidthDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(defaultShortcutWidthDp = v) } },
+                        valueRange = 56f..140f,
+                    )
+                    Text("Default Shortcut Height: ${s.defaultShortcutHeightDp.roundToInt()}dp")
+                    Slider(
+                        value = s.defaultShortcutHeightDp,
+                        onValueChange = { v -> onUpdateSettings { it.copy(defaultShortcutHeightDp = v) } },
+                        valueRange = 56f..160f,
+                    )
 
                     FolderAndChromeStudioControls(
                         settings = s,
@@ -2117,6 +2226,50 @@ fun SettingsScreen(
                     }
                     ToggleRow("Show System Navigation Bar", s.showNavBar) { v ->
                         onUpdateSettings { it.copy(showNavBar = v) }
+                    }
+                    ToggleRow(
+                        label = "Keep Screen On",
+                        checked = s.keepScreenOn,
+                        switchModifier = Modifier.testTag("settings_keep_screen_on_switch"),
+                    ) { v ->
+                        onUpdateSettings { it.copy(keepScreenOn = v) }
+                    }
+                    Text("Screen Orientation", style = MaterialTheme.typography.labelLarge)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf("SYSTEM", "PORTRAIT", "LANDSCAPE", "SENSOR").forEach { mode ->
+                            FilterChip(
+                                selected = s.screenOrientationMode == mode,
+                                onClick = { onUpdateSettings { it.copy(screenOrientationMode = mode) } },
+                                label = { Text(mode) },
+                                modifier = Modifier.testTag("settings_orientation_$mode"),
+                            )
+                        }
+                    }
+                    Text("Status Bar Icon Contrast", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("AUTO", "LIGHT", "DARK").forEach { st ->
+                            FilterChip(
+                                selected = s.statusBarIconStyle == st,
+                                onClick = { onUpdateSettings { it.copy(statusBarIconStyle = st) } },
+                                label = { Text(st) },
+                                modifier = Modifier.testTag("settings_statusbar_style_$st"),
+                            )
+                        }
+                    }
+                    Text("Navigation Bar Icon Contrast", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("AUTO", "LIGHT", "DARK").forEach { st ->
+                            FilterChip(
+                                selected = s.navBarIconStyle == st,
+                                onClick = { onUpdateSettings { it.copy(navBarIconStyle = st) } },
+                                label = { Text(st) },
+                                modifier = Modifier.testTag("settings_navbar_style_$st"),
+                            )
+                        }
                     }
                     ToggleRow("Haptic Feedback", s.hapticFeedbackEnabled) { v ->
                         onUpdateSettings { it.copy(hapticFeedbackEnabled = v) }
@@ -2285,6 +2438,29 @@ fun SettingsScreen(
                             Text("Reset Defaults")
                         }
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Text("Long-Press Hold Delay: ${s.longPressDelayMs}ms")
+                    Slider(
+                        value = s.longPressDelayMs.toFloat(),
+                        onValueChange = { v -> onUpdateSettings { it.copy(longPressDelayMs = v.roundToInt().coerceIn(250, 900)) } },
+                        valueRange = 250f..900f,
+                        modifier = Modifier.testTag("settings_long_press_delay_slider"),
+                    )
+                    Text("Swipe Gesture Sensitivity: ${"%.2f".format(s.swipeGestureSensitivity)}x")
+                    Slider(
+                        value = s.swipeGestureSensitivity,
+                        onValueChange = { v -> onUpdateSettings { it.copy(swipeGestureSensitivity = v.coerceIn(0.5f, 1.8f)) } },
+                        valueRange = 0.5f..1.8f,
+                        modifier = Modifier.testTag("settings_swipe_sensitivity_slider"),
+                    )
+                    Text("Press Feedback Scale: ${"%.2f".format(s.pressFeedbackScale)}x")
+                    Slider(
+                        value = s.pressFeedbackScale,
+                        onValueChange = { v -> onUpdateSettings { it.copy(pressFeedbackScale = v.coerceIn(0.86f, 1.0f)) } },
+                        valueRange = 0.86f..1.0f,
+                        modifier = Modifier.testTag("settings_press_scale_slider"),
+                    )
                     }
                 }
             }
@@ -2572,14 +2748,19 @@ internal fun SettingsCard(
 }
 
 @Composable
-internal fun ToggleRow(label: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
+internal fun ToggleRow(
+    label: String,
+    checked: Boolean,
+    switchModifier: Modifier = Modifier,
+    onChanged: (Boolean) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChanged)
+        Switch(checked = checked, onCheckedChange = onChanged, modifier = switchModifier)
     }
 }
 

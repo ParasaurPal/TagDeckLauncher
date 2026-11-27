@@ -63,6 +63,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +73,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -143,6 +146,12 @@ fun AppDrawerOverlay(
         var showT9Search by remember { mutableStateOf(false) }
         var t9Query by remember { mutableStateOf("") }
         var selectedT9Package by remember { mutableStateOf<String?>(null) }
+        val searchFocusRequester = remember { FocusRequester() }
+        LaunchedEffect(visible, state.settings.autoFocusDrawerSearch, state.settings.drawerSearchBarVisible) {
+            if (visible && state.settings.autoFocusDrawerSearch && state.settings.drawerSearchBarVisible) {
+                runCatching { searchFocusRequester.requestFocus() }
+            }
+        }
 
         val allCategory = remember(state.categories) {
             state.categories.find { it.categoryId == FILTER_ALL }
@@ -419,6 +428,7 @@ fun AppDrawerOverlay(
                                     onQueryChange = { query = it },
                                     cornerRadiusDp = state.settings.drawerCornerRadiusDp,
                                     onOpenGlobalSearch = onOpenGlobalSearch,
+                                    focusRequester = searchFocusRequester,
                                 )
                             }
                         }
@@ -477,7 +487,7 @@ fun AppDrawerOverlay(
                                                     app = item.app,
                                                     onClick = {
                                                         onLaunchApp(item.app)
-                                                        onClose()
+                                                        if (state.settings.closeDrawerOnLaunch) onClose()
                                                     },
                                                     onLongPress = { onAppLongPress(item.app) },
                                                 )
@@ -548,7 +558,7 @@ fun AppDrawerOverlay(
                                                     app = item.app,
                                                     onClick = {
                                                         onLaunchApp(item.app)
-                                                        onClose()
+                                                        if (state.settings.closeDrawerOnLaunch) onClose()
                                                     },
                                                     onLongPress = { onAppLongPress(item.app) },
                                                 )
@@ -706,7 +716,12 @@ fun AppDrawerOverlay(
                                                 }
                                             }
                                             Button(
-                                                onClick = { selectedT9App?.let { onLaunchApp(it.app); onClose() } },
+                                                onClick = {
+                                                    selectedT9App?.let {
+                                                        onLaunchApp(it.app)
+                                                        if (state.settings.closeDrawerOnLaunch) onClose()
+                                                    }
+                                                },
                                                 enabled = selectedT9App != null,
                                                 modifier = Modifier.fillMaxWidth().height(46.dp).testTag("drawer_t9_launch_button"),
                                                 shape = RoundedCornerShape(8.dp),
@@ -731,6 +746,7 @@ fun AppDrawerOverlay(
                                     onQueryChange = { query = it },
                                     cornerRadiusDp = state.settings.drawerCornerRadiusDp,
                                     onOpenGlobalSearch = onOpenGlobalSearch,
+                                    focusRequester = searchFocusRequester,
                                 )
                             }
                         }
@@ -876,6 +892,7 @@ private fun DrawerSearchBarBox(
     onQueryChange: (String) -> Unit,
     cornerRadiusDp: Float,
     onOpenGlobalSearch: (String) -> Unit,
+    focusRequester: FocusRequester,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         OutlinedTextField(
@@ -883,6 +900,7 @@ private fun DrawerSearchBarBox(
             onValueChange = onQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(focusRequester)
                 .testTag("drawer_search_input"),
             placeholder = { Text("Search apps, categories, tags...") },
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },

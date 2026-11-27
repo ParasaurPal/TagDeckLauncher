@@ -159,20 +159,22 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_WALLPAPER,
             title = "Wallpaper & Atmosphere",
-            keywords = listOf("background", "prism", "topo", "gradient", "parallax", "vignette", "aurora", "bokeh"),
+            keywords = listOf("background", "prism", "topo", "gradient", "parallax", "vignette", "aurora", "bokeh", "scrolling"),
             entries = listOf(
                 entry("wallpaper_type", SECTION_WALLPAPER, "Wallpaper Style", "Choose Android system/live wallpaper, Prism, Topo, Gradient, Solid, or Custom Image", listOf("wallpaper", "live wallpaper", "system wallpaper", "prism", "topo", "gradient", "solid", "custom image")),
+                entry("wallpaper_scrolling", SECTION_WALLPAPER, "Wallpaper Scrolling", "Scroll wallpaper horizontally across home pages", listOf("wallpaper", "scroll", "parallax", "paging")),
                 entry("wallpaper_effects", SECTION_WALLPAPER, "Wallpaper Blur, Dim, Parallax & Color Grading", "Adjust background blur, dim tint, parallax depth, vignette, saturation, contrast, brightness, and ambient effects", listOf("blur", "dim", "darken", "tint", "parallax", "vignette", "saturation", "contrast", "brightness", "aurora", "bokeh", "ambient")),
             ),
         ),
         section(
             id = SECTION_DRAWER,
             title = "Universal All-Apps Drawer",
-            keywords = listOf("all apps", "drawer", "grid", "list", "sort", "search position"),
+            keywords = listOf("all apps", "drawer", "grid", "list", "sort", "search position", "auto focus"),
             entries = listOf(
                 entry("drawer_edge_size", SECTION_DRAWER, "Drawer Opening Side & Width", "Open from Right, Left, or Bottom and adjust drawer width", listOf("edge", "side", "width", "drawer")),
                 entry("drawer_layout_sort", SECTION_DRAWER, "Drawer Layout Mode & App Sort", "Switch Grid vs List and sort A-Z, Most Used, Recent, Manual", listOf("grid", "list", "sort", "alphabetical", "most used", "recent", "manual")),
                 entry("drawer_search_toggle", SECTION_DRAWER, "Drawer Search Bar & Position", "Toggle the search bar and place it at Top or Bottom", listOf("drawer search", "search bar", "top", "bottom")),
+                entry("drawer_behavior", SECTION_DRAWER, "Drawer Launch & Auto-Focus Behavior", "Close drawer automatically on app launch and auto-focus drawer search", listOf("close on launch", "auto focus", "keyboard", "search")),
                 entry("drawer_appearance", SECTION_DRAWER, "Drawer Background, Columns, Icon & Label Size", "Customize drawer background, blur, card opacity, columns, icon size", listOf("columns", "icon size", "label size", "card opacity", "corner radius", "blur")),
             ),
         ),
@@ -188,9 +190,10 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_HOME_CANVAS,
             title = "Home Canvas, Grid & Folders",
-            keywords = listOf("home screen", "dock", "grid", "snap", "lock", "folder", "status strip"),
+            keywords = listOf("home screen", "dock", "grid", "snap", "lock", "folder", "status strip", "margins", "overlap", "landscape", "double tap"),
             entries = listOf(
                 entry("home_dock_strip", SECTION_HOME_CANVAS, "Dock Bar, Tag Strip, Status Strip & Folder Cover Style", "Toggle dock, tag strip, custom HUD status strip, shortcut labels, and folder cover layout", listOf("dock", "search bar", "tag strip", "labels", "status strip", "hud", "folder", "fan", "stack", "grid")),
+                entry("canvas_total_layout", SECTION_HOME_CANVAS, "Layout Behavior, Margins, Overlap & Dock Size", "Close folders on launch, return to default page on Home, separate landscape layout, prevent overlap, canvas padding, default shortcut dimensions, dock height/alpha, and double-tap page action", listOf("margins", "padding", "overlap", "landscape", "folder", "home button", "default page", "dock height", "dock alpha", "shortcut size", "double tap")),
                 entry("layout_lock", SECTION_HOME_CANVAS, "Lock Entire Home Layout", "Prevent accidental moves or edits across all home pages", listOf("lock", "freeze", "protect")),
                 entry("grid_snap", SECTION_HOME_CANVAS, "Grid Snap, Edit Grid Lines & Alignment Guides", "Toggle grid snap, snap step (dp), edit grid overlay, magnetic guides", listOf("grid", "snap", "step", "guidelines", "magnetic", "alignment")),
             ),
@@ -207,9 +210,10 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_SYSTEM_UI,
             title = "System UI & Feedback",
-            keywords = listOf("status bar", "navigation bar", "vibration", "notifications"),
+            keywords = listOf("status bar", "navigation bar", "vibration", "notifications", "orientation", "keep screen on"),
             entries = listOf(
                 entry("system_bars", SECTION_SYSTEM_UI, "Show Status Bar & Navigation Bar", "Toggle Android status bar and system navigation bar visibility", listOf("status bar", "nav bar", "immersive", "fullscreen")),
+                entry("system_display_touch", SECTION_SYSTEM_UI, "Screen Orientation, Keep Screen On & Bar Icon Style", "Set System/Portrait/Landscape/Sensor orientation, keep screen awake, and force auto/light/dark status & navigation bar icons", listOf("orientation", "portrait", "landscape", "sensor", "keep screen on", "status bar icons", "nav bar icons", "light", "dark")),
                 entry("feedback_notifs", SECTION_SYSTEM_UI, "Haptic Feedback & Notification Badges", "Toggle haptics and access Android notification counts", listOf("haptic", "vibrate", "notification", "badge")),
                 entry("usage_access", SECTION_SYSTEM_UI, "App Usage Access", "Grant Android Usage Access for the screen-time widget", listOf("usage", "screen time", "app time", "statistics", "privacy")),
                 entry("calendar_access", SECTION_SYSTEM_UI, "Calendar Event Access", "Allow the at-a-glance widget to show upcoming events", listOf("calendar", "events", "agenda", "at a glance", "permission")),
@@ -218,9 +222,10 @@ object LauncherSettingsCatalog {
         section(
             id = SECTION_GESTURES,
             title = "Gestures & Shortcuts",
-            keywords = listOf("swipe", "tap", "double tap", "long press", "pinch", "macro", "custom gesture"),
+            keywords = listOf("swipe", "tap", "double tap", "long press", "pinch", "macro", "custom gesture", "sensitivity"),
             entries = listOf(
                 entry("gesture_bindings", SECTION_GESTURES, "Home Screen Gestures", "Configure Swipe Up/Down/Left/Right, Pinch In/Out, Two-Finger Tap, Double Tap, Torch, Ringer, and Launcher actions", listOf("gesture", "custom swipe", "pinch", "two finger", "double tap", "torch", "ringer", "macro", "app action", "launcher function")),
+                entry("gesture_touch_tuning", SECTION_GESTURES, "Touch Sensitivity, Long-Press Delay & Press Scale", "Tune swipe sensitivity, long-press hold delay (ms), and shortcut press animation scale", listOf("sensitivity", "long press delay", "press scale", "touch", "feedback")),
             ),
         ),
         section(

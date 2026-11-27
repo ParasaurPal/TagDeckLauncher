@@ -3,6 +3,7 @@ package com.example
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
 import android.view.WindowManager
@@ -127,10 +128,46 @@ class MainActivity : ComponentActivity() {
                     activityWindow.setBackgroundDrawable(null)
                 }
             }
-            LaunchedEffect(state.settings.showStatusBar, state.settings.showNavBar) {
+            val systemDarkNow = androidx.compose.foundation.isSystemInDarkTheme()
+            val resolvedDarkNow = when (state.settings.themeMode) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> systemDarkNow
+            }
+            LaunchedEffect(state.settings.screenOrientationMode, state.settings.keepScreenOn) {
+                val activity = (view.context as? Activity) ?: return@LaunchedEffect
+                activity.requestedOrientation = when (state.settings.screenOrientationMode) {
+                    "PORTRAIT" -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    "LANDSCAPE" -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    "SENSOR" -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+                    else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                }
+                if (state.settings.keepScreenOn) {
+                    activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+            LaunchedEffect(
+                state.settings.showStatusBar,
+                state.settings.showNavBar,
+                state.settings.statusBarIconStyle,
+                state.settings.navBarIconStyle,
+                resolvedDarkNow,
+            ) {
                 val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
                 val controller = WindowCompat.getInsetsController(window, view)
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.isAppearanceLightStatusBars = when (state.settings.statusBarIconStyle) {
+                    "DARK" -> true
+                    "LIGHT" -> false
+                    else -> !resolvedDarkNow
+                }
+                controller.isAppearanceLightNavigationBars = when (state.settings.navBarIconStyle) {
+                    "DARK" -> true
+                    "LIGHT" -> false
+                    else -> !resolvedDarkNow
+                }
                 if (state.settings.showStatusBar) {
                     controller.show(WindowInsetsCompat.Type.statusBars())
                 } else {
@@ -189,6 +226,9 @@ class MainActivity : ComponentActivity() {
             viewModel.setDrawerOpen(false)
             viewModel.setUniversalSearchOpen(false)
             viewModel.setEditMode(false)
+            if (viewModel.uiState.value.settings.returnToDefaultPageOnHome) {
+                viewModel.returnToDefaultHomePage()
+            }
             navControllerRef?.popBackStack(LauncherRoute.Home.route, inclusive = false)
         }
     }
@@ -458,6 +498,7 @@ private fun TagDeckRoot(
                     onDeleteRule = { viewModel.deleteRule(it) },
                     onSaveCategory = { viewModel.saveCategory(it) },
                     onDeleteCustomCategory = { viewModel.deleteCustomCategory(it) },
+                    onPinTagSidebar = { viewModel.createOrUpdateTagSidebar(it) },
                     onImportImage = { uri, folder, name -> viewModel.importImagePreservingOriginal(uri, folder, name) },
                 )
             }

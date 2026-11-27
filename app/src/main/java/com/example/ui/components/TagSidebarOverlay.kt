@@ -71,6 +71,8 @@ import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.ZoomOut
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -222,7 +224,7 @@ fun ActiveOverlayHost(
                         onOpenNestedFolder = onOpenNestedFolder,
                         onLaunchApp = {
                             onLaunchApp(it)
-                            onDismiss()
+                            if (state.settings.closeFolderOnLaunch) onDismiss()
                         },
                         onAppLongPress = onAppLongPress,
                         onDismiss = onDismiss,
@@ -1333,6 +1335,29 @@ fun TagTriggeredSidebarContent(
                 )
             }
 
+            if (allTags.size > 1) {
+                Spacer(Modifier.height(8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().testTag("tag_sidebar_switcher_row"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(allTags, key = { "switch_${it.tagId}" }) { item ->
+                        val isCurrent = item.tagId == tag.tagId
+                        val itemColor = Color(item.colorHex)
+                        FilterChip(
+                            selected = isCurrent,
+                            onClick = { onSwitchToTag(item.tagId) },
+                            label = { Text(item.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = itemColor.copy(alpha = 0.25f),
+                                selectedLabelColor = sidebarTextColor,
+                            ),
+                            modifier = Modifier.testTag("sidebar_switch_tag_${item.tagId}"),
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(10.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(10.dp))
@@ -1372,7 +1397,7 @@ fun TagTriggeredSidebarContent(
                             Text("Assign Apps")
                         }
                     }
-                } else if (true) {
+                } else if (tag.sidebarLayoutMode == "LIST") {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1580,7 +1605,7 @@ fun GenericSidebarContent(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
-    var layoutMode by remember(title) { mutableStateOf("LIST") }
+    var layoutMode by remember(title, initialLayoutMode) { mutableStateOf(initialLayoutMode) }
     var iconSize by remember(title, initialIconSizeDp) { mutableStateOf(initialIconSizeDp) }
     val radius = cornerRadiusDp.coerceIn(0f, 36f).dp
     val shape = when (side) {
@@ -1698,7 +1723,7 @@ fun GenericSidebarContent(
                                 textAlign = TextAlign.Center,
                             )
                         }
-                    } else if (true) {
+                    } else if (layoutMode == "LIST") {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 12.dp),

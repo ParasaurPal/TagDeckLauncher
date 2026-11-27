@@ -78,7 +78,7 @@ fun WallpaperBackground(
         }
     }
 
-    val parallaxMod = if (settings.wallpaperParallax > 0.01f && settings.wallpaperType != "SYSTEM_LIVE") {
+    val parallaxMod = if (settings.wallpaperScrollingEnabled && settings.wallpaperParallax > 0.01f && settings.wallpaperType != "SYSTEM_LIVE") {
         Modifier.graphicsLayer {
             val strength = settings.wallpaperParallax.coerceIn(0f, 1f)
             scaleX = 1f + strength * 0.12f

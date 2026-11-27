@@ -16,6 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AlignHorizontalCenter
+import androidx.compose.material.icons.rounded.AlignHorizontalLeft
+import androidx.compose.material.icons.rounded.AlignHorizontalRight
+import androidx.compose.material.icons.rounded.AlignVerticalBottom
+import androidx.compose.material.icons.rounded.AlignVerticalCenter
+import androidx.compose.material.icons.rounded.AlignVerticalTop
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Bolt
@@ -85,11 +91,77 @@ internal fun StepperSliderRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun InspectorLayoutTab(
     edited: HomeElementEntity,
     onUpdateEdited: (HomeElementEntity) -> Unit,
 ) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth().testTag("inspector_coordinates_summary"),
+    ) {
+        Text(
+            text = "Coords: X ${(edited.xFraction * 100f).roundToInt()}% · Y ${(edited.yFraction * 100f).roundToInt()}%  |  Size: ${edited.widthDp.roundToInt()} × ${edited.heightDp.roundToInt()} dp",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+    Text("Quick Align on Canvas", style = MaterialTheme.typography.labelLarge)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(xFraction = 0f)) },
+            modifier = Modifier.testTag("inspector_align_left"),
+        ) {
+            Icon(Icons.Rounded.AlignHorizontalLeft, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Left")
+        }
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(xFraction = 0.42f)) },
+            modifier = Modifier.testTag("inspector_align_center_x"),
+        ) {
+            Icon(Icons.Rounded.AlignHorizontalCenter, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Center X")
+        }
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(xFraction = 0.80f)) },
+            modifier = Modifier.testTag("inspector_align_right"),
+        ) {
+            Icon(Icons.Rounded.AlignHorizontalRight, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Right")
+        }
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(yFraction = 0f)) },
+            modifier = Modifier.testTag("inspector_align_top"),
+        ) {
+            Icon(Icons.Rounded.AlignVerticalTop, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Top")
+        }
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(yFraction = 0.42f)) },
+            modifier = Modifier.testTag("inspector_align_center_y"),
+        ) {
+            Icon(Icons.Rounded.AlignVerticalCenter, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Middle Y")
+        }
+        OutlinedButton(
+            onClick = { onUpdateEdited(edited.copy(yFraction = 0.80f)) },
+            modifier = Modifier.testTag("inspector_align_bottom"),
+        ) {
+            Icon(Icons.Rounded.AlignVerticalBottom, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Bottom")
+        }
+    }
     StepperSliderRow(
         label = "Width",
         valueText = "${edited.widthDp.roundToInt()}dp",

@@ -158,6 +158,28 @@ data class LauncherSettings(
     val pageIndicatorPlacement: String = "BOTTOM", // BOTTOM, TOP
     val folderCoverStyle: String = "GRID_2X2", // GRID_2X2, GRID_3X3, STACK, FAN
     val drawerSearchPosition: String = "TOP", // TOP, BOTTOM
+    // Total Launcher Display, Behavior, Layout & Dock Settings
+    val screenOrientationMode: String = "SYSTEM", // SYSTEM, PORTRAIT, LANDSCAPE, SENSOR
+    val keepScreenOn: Boolean = false,
+    val statusBarIconStyle: String = "AUTO", // AUTO, LIGHT, DARK
+    val navBarIconStyle: String = "AUTO", // AUTO, LIGHT, DARK
+    val closeFolderOnLaunch: Boolean = true,
+    val closeDrawerOnLaunch: Boolean = true,
+    val autoFocusDrawerSearch: Boolean = false,
+    val returnToDefaultPageOnHome: Boolean = true,
+    val longPressDelayMs: Int = 450, // 250..900
+    val swipeGestureSensitivity: Float = 1.0f, // 0.5f..1.8f
+    val pressFeedbackScale: Float = 0.94f, // 0.86f..1.0f
+    val wallpaperScrollingEnabled: Boolean = true,
+    val landscapeSeparateLayout: Boolean = true,
+    val allowOverlappingElements: Boolean = true,
+    val homePaddingHorizontalDp: Float = 0f, // 0..32
+    val homePaddingVerticalDp: Float = 0f, // 0..32
+    val defaultShortcutWidthDp: Float = 84f, // 56..140
+    val defaultShortcutHeightDp: Float = 92f, // 56..160
+    val dockHeightDp: Float = 48f, // 40..80
+    val dockBackgroundAlpha: Float = 0.86f, // 0..1
+    val doubleTapPageBehavior: String = "GESTURE", // GESTURE, NONE, EDIT_MODE, OPEN_DRAWER, OPEN_SEARCH
     val seededDefaults: Boolean = false,
 ) {
     fun defaultLineIconProfile(): LineIconProfile = LineIconProfile(
@@ -335,6 +357,27 @@ class LauncherPreferencesRepository(private val context: Context) {
         val PAGE_INDICATOR_PLACEMENT = stringPreferencesKey("page_indicator_placement")
         val FOLDER_COVER_STYLE = stringPreferencesKey("folder_cover_style")
         val DRAWER_SEARCH_POSITION = stringPreferencesKey("drawer_search_position")
+        val SCREEN_ORIENTATION_MODE = stringPreferencesKey("screen_orientation_mode")
+        val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        val STATUS_BAR_ICON_STYLE = stringPreferencesKey("status_bar_icon_style")
+        val NAV_BAR_ICON_STYLE = stringPreferencesKey("nav_bar_icon_style")
+        val CLOSE_FOLDER_ON_LAUNCH = booleanPreferencesKey("close_folder_on_launch")
+        val CLOSE_DRAWER_ON_LAUNCH = booleanPreferencesKey("close_drawer_on_launch")
+        val AUTO_FOCUS_DRAWER_SEARCH = booleanPreferencesKey("auto_focus_drawer_search")
+        val RETURN_DEFAULT_PAGE_ON_HOME = booleanPreferencesKey("return_default_page_on_home")
+        val LONG_PRESS_DELAY_MS = intPreferencesKey("long_press_delay_ms")
+        val SWIPE_GESTURE_SENSITIVITY = floatPreferencesKey("swipe_gesture_sensitivity")
+        val PRESS_FEEDBACK_SCALE = floatPreferencesKey("press_feedback_scale")
+        val WALLPAPER_SCROLLING_ENABLED = booleanPreferencesKey("wallpaper_scrolling_enabled")
+        val LANDSCAPE_SEPARATE_LAYOUT = booleanPreferencesKey("landscape_separate_layout")
+        val ALLOW_OVERLAPPING_ELEMENTS = booleanPreferencesKey("allow_overlapping_elements")
+        val HOME_PADDING_H_DP = floatPreferencesKey("home_padding_h_dp")
+        val HOME_PADDING_V_DP = floatPreferencesKey("home_padding_v_dp")
+        val DEFAULT_SHORTCUT_WIDTH_DP = floatPreferencesKey("default_shortcut_width_dp")
+        val DEFAULT_SHORTCUT_HEIGHT_DP = floatPreferencesKey("default_shortcut_height_dp")
+        val DOCK_HEIGHT_DP = floatPreferencesKey("dock_height_dp")
+        val DOCK_BACKGROUND_ALPHA = floatPreferencesKey("dock_background_alpha")
+        val DOUBLE_TAP_PAGE_BEHAVIOR = stringPreferencesKey("double_tap_page_behavior")
         val SEEDED_DEFAULTS = booleanPreferencesKey("seeded_defaults")
     }
 
@@ -470,6 +513,27 @@ class LauncherPreferencesRepository(private val context: Context) {
         pageIndicatorPlacement = prefs[Keys.PAGE_INDICATOR_PLACEMENT] ?: "BOTTOM",
         folderCoverStyle = prefs[Keys.FOLDER_COVER_STYLE] ?: "GRID_2X2",
         drawerSearchPosition = prefs[Keys.DRAWER_SEARCH_POSITION] ?: "TOP",
+        screenOrientationMode = prefs[Keys.SCREEN_ORIENTATION_MODE] ?: "SYSTEM",
+        keepScreenOn = prefs[Keys.KEEP_SCREEN_ON] ?: false,
+        statusBarIconStyle = prefs[Keys.STATUS_BAR_ICON_STYLE] ?: "AUTO",
+        navBarIconStyle = prefs[Keys.NAV_BAR_ICON_STYLE] ?: "AUTO",
+        closeFolderOnLaunch = prefs[Keys.CLOSE_FOLDER_ON_LAUNCH] ?: true,
+        closeDrawerOnLaunch = prefs[Keys.CLOSE_DRAWER_ON_LAUNCH] ?: true,
+        autoFocusDrawerSearch = prefs[Keys.AUTO_FOCUS_DRAWER_SEARCH] ?: false,
+        returnToDefaultPageOnHome = prefs[Keys.RETURN_DEFAULT_PAGE_ON_HOME] ?: true,
+        longPressDelayMs = prefs[Keys.LONG_PRESS_DELAY_MS] ?: 450,
+        swipeGestureSensitivity = prefs[Keys.SWIPE_GESTURE_SENSITIVITY] ?: 1.0f,
+        pressFeedbackScale = prefs[Keys.PRESS_FEEDBACK_SCALE] ?: 0.94f,
+        wallpaperScrollingEnabled = prefs[Keys.WALLPAPER_SCROLLING_ENABLED] ?: true,
+        landscapeSeparateLayout = prefs[Keys.LANDSCAPE_SEPARATE_LAYOUT] ?: true,
+        allowOverlappingElements = prefs[Keys.ALLOW_OVERLAPPING_ELEMENTS] ?: true,
+        homePaddingHorizontalDp = prefs[Keys.HOME_PADDING_H_DP] ?: 0f,
+        homePaddingVerticalDp = prefs[Keys.HOME_PADDING_V_DP] ?: 0f,
+        defaultShortcutWidthDp = prefs[Keys.DEFAULT_SHORTCUT_WIDTH_DP] ?: 84f,
+        defaultShortcutHeightDp = prefs[Keys.DEFAULT_SHORTCUT_HEIGHT_DP] ?: 92f,
+        dockHeightDp = prefs[Keys.DOCK_HEIGHT_DP] ?: 48f,
+        dockBackgroundAlpha = prefs[Keys.DOCK_BACKGROUND_ALPHA] ?: 0.86f,
+        doubleTapPageBehavior = prefs[Keys.DOUBLE_TAP_PAGE_BEHAVIOR] ?: "GESTURE",
         seededDefaults = prefs[Keys.SEEDED_DEFAULTS] ?: false,
     )
 
@@ -626,6 +690,27 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.PAGE_INDICATOR_PLACEMENT] = updated.pageIndicatorPlacement
             prefs[Keys.FOLDER_COVER_STYLE] = updated.folderCoverStyle
             prefs[Keys.DRAWER_SEARCH_POSITION] = updated.drawerSearchPosition
+            prefs[Keys.SCREEN_ORIENTATION_MODE] = updated.screenOrientationMode
+            prefs[Keys.KEEP_SCREEN_ON] = updated.keepScreenOn
+            prefs[Keys.STATUS_BAR_ICON_STYLE] = updated.statusBarIconStyle
+            prefs[Keys.NAV_BAR_ICON_STYLE] = updated.navBarIconStyle
+            prefs[Keys.CLOSE_FOLDER_ON_LAUNCH] = updated.closeFolderOnLaunch
+            prefs[Keys.CLOSE_DRAWER_ON_LAUNCH] = updated.closeDrawerOnLaunch
+            prefs[Keys.AUTO_FOCUS_DRAWER_SEARCH] = updated.autoFocusDrawerSearch
+            prefs[Keys.RETURN_DEFAULT_PAGE_ON_HOME] = updated.returnToDefaultPageOnHome
+            prefs[Keys.LONG_PRESS_DELAY_MS] = updated.longPressDelayMs.coerceIn(250, 900)
+            prefs[Keys.SWIPE_GESTURE_SENSITIVITY] = updated.swipeGestureSensitivity.coerceIn(0.5f, 1.8f)
+            prefs[Keys.PRESS_FEEDBACK_SCALE] = updated.pressFeedbackScale.coerceIn(0.86f, 1.0f)
+            prefs[Keys.WALLPAPER_SCROLLING_ENABLED] = updated.wallpaperScrollingEnabled
+            prefs[Keys.LANDSCAPE_SEPARATE_LAYOUT] = updated.landscapeSeparateLayout
+            prefs[Keys.ALLOW_OVERLAPPING_ELEMENTS] = updated.allowOverlappingElements
+            prefs[Keys.HOME_PADDING_H_DP] = updated.homePaddingHorizontalDp.coerceIn(0f, 32f)
+            prefs[Keys.HOME_PADDING_V_DP] = updated.homePaddingVerticalDp.coerceIn(0f, 32f)
+            prefs[Keys.DEFAULT_SHORTCUT_WIDTH_DP] = updated.defaultShortcutWidthDp.coerceIn(56f, 140f)
+            prefs[Keys.DEFAULT_SHORTCUT_HEIGHT_DP] = updated.defaultShortcutHeightDp.coerceIn(56f, 160f)
+            prefs[Keys.DOCK_HEIGHT_DP] = updated.dockHeightDp.coerceIn(40f, 80f)
+            prefs[Keys.DOCK_BACKGROUND_ALPHA] = updated.dockBackgroundAlpha.coerceIn(0f, 1f)
+            prefs[Keys.DOUBLE_TAP_PAGE_BEHAVIOR] = updated.doubleTapPageBehavior
             prefs[Keys.SEEDED_DEFAULTS] = updated.seededDefaults
         }
     }

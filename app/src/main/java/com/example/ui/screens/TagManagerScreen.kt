@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.CallMerge
+import androidx.compose.material.icons.automirrored.rounded.ViewSidebar
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.ArrowDownward
@@ -115,6 +116,7 @@ fun TagManagerScreen(
     onSaveCategory: (CategoryEntity) -> Unit,
     onDeleteCustomCategory: (Long) -> Unit,
     onImportImage: suspend (Uri, String, String?) -> String?,
+    onPinTagSidebar: (Long) -> Unit = {},
 ) {
     BackHandler { onBack() }
 
@@ -288,6 +290,12 @@ fun TagManagerScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
+                                    }
+                                    IconButton(
+                                        onClick = { onPinTagSidebar(tag.tagId) },
+                                        modifier = Modifier.testTag("pin_tag_sidebar_${tag.tagId}"),
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Rounded.ViewSidebar, contentDescription = "Pin edge sidebar")
                                     }
                                     IconButton(
                                         onClick = { assigningAppsTag = tag },

@@ -755,6 +755,9 @@ class LauncherViewModel(
             recordUndoCheckpoint()
             val fx = xFraction.coerceIn(0f, 0.90f)
             val fy = yFraction.coerceIn(0f, 0.90f)
+            val useLandscape = isLandscape && state.settings.landscapeSeparateLayout
+            val defaultW = state.settings.defaultShortcutWidthDp.coerceIn(56f, 140f)
+            val defaultH = state.settings.defaultShortcutHeightDp.coerceIn(56f, 160f)
             val nextZ = (state.homeElements.maxOfOrNull { it.zIndex } ?: 0) + 1
             repository.saveHomeElement(
                 HomeElementEntity(
@@ -765,10 +768,12 @@ class LauncherViewModel(
                     label = app.displayName,
                     xFraction = fx,
                     yFraction = fy,
-                    landscapeXFraction = if (isLandscape) fx else null,
-                    landscapeYFraction = if (isLandscape) fy else null,
-                    widthDp = 84f,
-                    heightDp = 92f,
+                    landscapeXFraction = if (useLandscape) fx else null,
+                    landscapeYFraction = if (useLandscape) fy else null,
+                    widthDp = defaultW,
+                    heightDp = defaultH,
+                    landscapeWidthDp = if (useLandscape) defaultW else null,
+                    landscapeHeightDp = if (useLandscape) defaultH else null,
                     zIndex = nextZ,
                     backgroundColorHex = 0x00000000L,
                     borderWidthDp = 0f,
@@ -1219,6 +1224,29 @@ class LauncherViewModel(
 
     fun deleteSidebar(sidebarId: Long) {
         viewModelScope.launch { repository.deleteSidebar(sidebarId) }
+    }
+
+    fun observeTagWithApps(tagId: Long) = repository.observeTagWithApps(tagId)
+
+    fun observeAppsForTag(tagId: Long) = repository.observeAppsForTag(tagId)
+
+    fun observeTagsForApp(packageName: String) = repository.observeTagsForApp(packageName)
+
+    fun createOrUpdateTagSidebar(tagId: Long, side: String = "RIGHT", openAfter: Boolean = true) {
+        viewModelScope.launch {
+            val sidebarId = repository.createOrUpdateTagTriggeredSidebar(tagId, side)
+            if (openAfter) {
+                openConfiguredSidebar(sidebarId)
+            }
+            val tagName = uiState.value.allTags.find { it.tagId == tagId }?.name ?: "Tag"
+            showMessage("$tagName pinned to $side edge sidebar")
+        }
+    }
+
+    fun returnToDefaultHomePage() {
+        val visiblePages = uiState.value.homePages.filter { !it.isHidden }
+        val defIdx = visiblePages.indexOfFirst { it.isDefaultHome }.takeIf { it >= 0 } ?: 0
+        setCurrentPageIndex(defIdx)
     }
 
     // --- GESTURES & ACTION MACROS ---

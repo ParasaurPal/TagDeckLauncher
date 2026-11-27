@@ -411,6 +411,33 @@ object BackupManager {
         put("pageIndicatorPlacement", s.pageIndicatorPlacement)
         put("folderCoverStyle", s.folderCoverStyle)
         put("drawerSearchPosition", s.drawerSearchPosition)
+        put("sidebarTextColorMode", s.sidebarTextColorMode)
+        put("sidebarCategoryIconStyle", s.sidebarCategoryIconStyle)
+        put("appLabelOutlineEnabled", s.appLabelOutlineEnabled)
+        put("widgetFeedEnabled", s.widgetFeedEnabled)
+        put("widgetFeedTitleColor", s.widgetFeedTitleColor)
+        put("cloudBackupEnabled", s.cloudBackupEnabled)
+        put("screenOrientationMode", s.screenOrientationMode)
+        put("keepScreenOn", s.keepScreenOn)
+        put("statusBarIconStyle", s.statusBarIconStyle)
+        put("navBarIconStyle", s.navBarIconStyle)
+        put("closeFolderOnLaunch", s.closeFolderOnLaunch)
+        put("closeDrawerOnLaunch", s.closeDrawerOnLaunch)
+        put("autoFocusDrawerSearch", s.autoFocusDrawerSearch)
+        put("returnToDefaultPageOnHome", s.returnToDefaultPageOnHome)
+        put("longPressDelayMs", s.longPressDelayMs)
+        put("swipeGestureSensitivity", s.swipeGestureSensitivity.toDouble())
+        put("pressFeedbackScale", s.pressFeedbackScale.toDouble())
+        put("wallpaperScrollingEnabled", s.wallpaperScrollingEnabled)
+        put("landscapeSeparateLayout", s.landscapeSeparateLayout)
+        put("allowOverlappingElements", s.allowOverlappingElements)
+        put("homePaddingHorizontalDp", s.homePaddingHorizontalDp.toDouble())
+        put("homePaddingVerticalDp", s.homePaddingVerticalDp.toDouble())
+        put("defaultShortcutWidthDp", s.defaultShortcutWidthDp.toDouble())
+        put("defaultShortcutHeightDp", s.defaultShortcutHeightDp.toDouble())
+        put("dockHeightDp", s.dockHeightDp.toDouble())
+        put("dockBackgroundAlpha", s.dockBackgroundAlpha.toDouble())
+        put("doubleTapPageBehavior", s.doubleTapPageBehavior)
     }
 
     fun decodeFullBackup(json: String): FullBackupPayload {
@@ -838,6 +865,33 @@ object BackupManager {
         pageIndicatorPlacement = so.optString("pageIndicatorPlacement", "BOTTOM"),
         folderCoverStyle = so.optString("folderCoverStyle", "GRID_2X2"),
         drawerSearchPosition = so.optString("drawerSearchPosition", "TOP"),
+        sidebarTextColorMode = so.optString("sidebarTextColorMode", "AUTO"),
+        sidebarCategoryIconStyle = so.optString("sidebarCategoryIconStyle", "BLACK_WHITE"),
+        appLabelOutlineEnabled = so.optBoolean("appLabelOutlineEnabled", false),
+        widgetFeedEnabled = so.optBoolean("widgetFeedEnabled", true),
+        widgetFeedTitleColor = so.optString("widgetFeedTitleColor", "WHITE"),
+        cloudBackupEnabled = so.optBoolean("cloudBackupEnabled", false),
+        screenOrientationMode = so.optString("screenOrientationMode", "SYSTEM"),
+        keepScreenOn = so.optBoolean("keepScreenOn", false),
+        statusBarIconStyle = so.optString("statusBarIconStyle", "AUTO"),
+        navBarIconStyle = so.optString("navBarIconStyle", "AUTO"),
+        closeFolderOnLaunch = so.optBoolean("closeFolderOnLaunch", true),
+        closeDrawerOnLaunch = so.optBoolean("closeDrawerOnLaunch", true),
+        autoFocusDrawerSearch = so.optBoolean("autoFocusDrawerSearch", false),
+        returnToDefaultPageOnHome = so.optBoolean("returnToDefaultPageOnHome", true),
+        longPressDelayMs = so.optInt("longPressDelayMs", 450),
+        swipeGestureSensitivity = so.optDouble("swipeGestureSensitivity", 1.0).toFloat(),
+        pressFeedbackScale = so.optDouble("pressFeedbackScale", 0.94).toFloat(),
+        wallpaperScrollingEnabled = so.optBoolean("wallpaperScrollingEnabled", true),
+        landscapeSeparateLayout = so.optBoolean("landscapeSeparateLayout", true),
+        allowOverlappingElements = so.optBoolean("allowOverlappingElements", true),
+        homePaddingHorizontalDp = so.optDouble("homePaddingHorizontalDp", 0.0).toFloat(),
+        homePaddingVerticalDp = so.optDouble("homePaddingVerticalDp", 0.0).toFloat(),
+        defaultShortcutWidthDp = so.optDouble("defaultShortcutWidthDp", 84.0).toFloat(),
+        defaultShortcutHeightDp = so.optDouble("defaultShortcutHeightDp", 92.0).toFloat(),
+        dockHeightDp = so.optDouble("dockHeightDp", 48.0).toFloat(),
+        dockBackgroundAlpha = so.optDouble("dockBackgroundAlpha", 0.86).toFloat(),
+        doubleTapPageBehavior = so.optString("doubleTapPageBehavior", "GESTURE"),
         seededDefaults = true,
     )
 

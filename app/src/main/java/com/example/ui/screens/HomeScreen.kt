@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -697,12 +699,23 @@ fun HomeScreen(
                                     },
                                     onCanvasDoubleTap = {
                                         if (!state.isEditMode) {
-                                            onTriggerGesture("DOUBLE_TAP") { target -> scrollToRealPage(target) }
+                                            when (state.settings.doubleTapPageBehavior) {
+                                                "NONE" -> Unit
+                                                "EDIT_MODE" -> onToggleEditMode(true)
+                                                "OPEN_DRAWER" -> onOpenDrawer()
+                                                "OPEN_SEARCH" -> onOpenSearch()
+                                                else -> onTriggerGesture("DOUBLE_TAP") { target -> scrollToRealPage(target) }
+                                            }
                                         }
                                     },
                                     onCanvasLongPress = {
                                         if (!state.isEditMode) {
-                                            onToggleEditMode(true)
+                                            val lpBinding = state.gestures["LONG_PRESS"]
+                                            if (lpBinding != null && lpBinding.actionType != "NONE" && lpBinding.actionType != "TOGGLE_EDIT_MODE") {
+                                                onTriggerGesture("LONG_PRESS") { target -> scrollToRealPage(target) }
+                                            } else {
+                                                onToggleEditMode(true)
+                                            }
                                         }
                                     },
                                     onVerticalSwipe = { isUp ->
@@ -931,7 +944,8 @@ fun HomeScreen(
                 val effectiveShowDock = currentPage.showDockOverride ?: state.settings.showDockBar
                 if (!state.isEditMode && effectiveShowDock) {
                     val dockRadius = state.settings.globalCornerRadiusDp.coerceIn(12f, 32f).dp
-                    val dockAlpha = state.settings.surfaceOpacity.coerceIn(0.42f, 0.96f)
+                    val dockAlpha = state.settings.dockBackgroundAlpha.coerceIn(0f, 1f)
+                    val dockHeight = state.settings.dockHeightDp.coerceIn(40f, 80f).dp
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -947,7 +961,7 @@ fun HomeScreen(
                             tonalElevation = 6.dp,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp)
+                                .height(dockHeight)
                                 .testTag("home_global_search_bar"),
                         ) {
                             Row(
@@ -978,7 +992,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = dockAlpha),
                             tonalElevation = 6.dp,
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(dockHeight)
                                 .testTag("home_open_drawer_button"),
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -1417,11 +1431,10 @@ private fun StudioEditToolbar(
                     )
                 }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically,
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 IconButton(
@@ -1620,9 +1633,14 @@ private fun FreeformPageCanvas(
     val density = LocalDensity.current
     val dragCoordinator = LocalAppDragCoordinator.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val useLandscapeCoords = isLandscape && state.settings.landscapeSeparateLayout
     val latestIsEditMode by rememberUpdatedState(state.isEditMode)
     val latestElements by rememberUpdatedState(elements)
-    val latestIsLandscape by rememberUpdatedState(isLandscape)
+    val latestUseLandscape by rememberUpdatedState(useLandscapeCoords)
+    val latestLongPressMs by rememberUpdatedState(state.settings.longPressDelayMs.toLong().coerceIn(250L, 900L))
+    val latestSensitivity by rememberUpdatedState(state.settings.swipeGestureSensitivity.coerceIn(0.5f, 1.8f))
+    val latestAllowHorizontalSwipe by rememberUpdatedState(allowHorizontalSwipe)
+    val latestVertScrollable by rememberUpdatedState(page.verticallyScrollable)
 
     var activeGuideX by remember { mutableStateOf<Float?>(null) }
     var activeGuideY by remember { mutableStateOf<Float?>(null) }
@@ -1630,7 +1648,10 @@ private fun FreeformPageCanvas(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(page.paddingDp.coerceIn(0f, 40f).dp),
+            .padding(
+                horizontal = (page.paddingDp + state.settings.homePaddingHorizontalDp).coerceIn(0f, 64f).dp,
+                vertical = (page.paddingDp + state.settings.homePaddingVerticalDp).coerceIn(0f, 64f).dp,
+            ),
     ) {
         val viewportWidthDp = maxWidth
         val viewportHeightDp = maxHeight
@@ -1643,8 +1664,8 @@ private fun FreeformPageCanvas(
         } else Modifier
         val contentHeightDp = if (page.verticallyScrollable && !state.isEditMode) {
             val maxElemBottomDp = elements.maxOfOrNull { el ->
-                val yf = if (isLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
-                val eh = if (isLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
+                val yf = if (useLandscapeCoords && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
+                val eh = if (useLandscapeCoords && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
                 (yf * viewportHeightDp.value) + eh + 32f
             }?.dp ?: viewportHeightDp
             maxOf(viewportHeightDp, maxElemBottomDp)
@@ -1668,63 +1689,110 @@ private fun FreeformPageCanvas(
                     }
                 }
                 .pointerInput(page.pageId, canvasWidthPx, canvasHeightPx) {
-                    detectTapGestures(
-                        onTap = { onCanvasTap() },
-                        onDoubleTap = { onCanvasDoubleTap() },
-                        onLongPress = { pressOffset ->
-                            val hitElement = latestElements.any { el ->
-                                val xf = if (latestIsLandscape && el.landscapeXFraction != null) el.landscapeXFraction else el.xFraction
-                                val yf = if (latestIsLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
-                                val ew = if (latestIsLandscape && el.landscapeWidthDp != null) el.landscapeWidthDp else el.widthDp
-                                val eh = if (latestIsLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
-                                val left = xf * canvasWidthPx
-                                val top = yf * canvasHeightPx
-                                val wPx = with(density) { ew.dp.toPx() }
-                                val hPx = with(density) { eh.dp.toPx() }
-                                pressOffset.x in left..(left + wPx) && pressOffset.y in top..(top + hPx)
-                            }
-                            if (!hitElement) {
-                                if (!latestIsEditMode) {
-                                    onEnterEditMode()
-                                } else {
-                                    onCanvasLongPress()
-                                }
-                            }
-                        },
-                    )
-                }
-                .pointerInput(state.isEditMode, page.verticallyScrollable) {
-                    if (!state.isEditMode && !page.verticallyScrollable) {
-                        var totalDy = 0f
-                        var triggered = false
-                        detectVerticalDragGestures(
-                            onDragStart = { totalDy = 0f; triggered = false },
-                            onVerticalDrag = { change, dragAmount ->
-                                change.consume()
-                                totalDy += dragAmount
-                                if (!triggered && abs(totalDy) > 95f) {
-                                    triggered = true
-                                    onVerticalSwipe(totalDy < 0f)
-                                }
-                            },
-                        )
+                    val touchSlopPx = viewConfiguration.touchSlop
+                    fun hitsAnyElement(offset: Offset): Boolean = latestElements.any { el ->
+                        val xf = if (latestUseLandscape && el.landscapeXFraction != null) el.landscapeXFraction else el.xFraction
+                        val yf = if (latestUseLandscape && el.landscapeYFraction != null) el.landscapeYFraction else el.yFraction
+                        val ew = if (latestUseLandscape && el.landscapeWidthDp != null) el.landscapeWidthDp else el.widthDp
+                        val eh = if (latestUseLandscape && el.landscapeHeightDp != null) el.landscapeHeightDp else el.heightDp
+                        val left = xf * canvasWidthPx
+                        val top = yf * canvasHeightPx
+                        val wPx = with(density) { ew.dp.toPx() }
+                        val hPx = with(density) { eh.dp.toPx() }
+                        offset.x in left..(left + wPx) && offset.y in top..(top + hPx)
                     }
-                }
-                .pointerInput(state.isEditMode, allowHorizontalSwipe) {
-                    if (!state.isEditMode && allowHorizontalSwipe) {
-                        var totalDx = 0f
-                        var triggered = false
-                        detectHorizontalDragGestures(
-                            onDragStart = { totalDx = 0f; triggered = false },
-                            onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
-                                totalDx += dragAmount
-                                if (!triggered && abs(totalDx) > 95f) {
-                                    triggered = true
-                                    onHorizontalSwipe(totalDx < 0f)
+
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val downPos = down.position
+                        var currentTimeMs = down.uptimeMillis
+                        val hitElem = hitsAnyElement(downPos)
+                        val swipeThresholdPx = (48f / latestSensitivity).dp.toPx().coerceAtLeast(24f)
+                        var completed = false
+                        var isTapUp = false
+
+                        while (true) {
+                            val elapsed = (currentTimeMs - down.uptimeMillis).coerceAtLeast(0L)
+                            val remainingMs = (latestLongPressMs - elapsed).coerceAtLeast(1L)
+                            val event = withTimeoutOrNull(remainingMs) { awaitPointerEvent() }
+                            if (event == null) {
+                                if (!hitElem) {
+                                    if (!latestIsEditMode) {
+                                        onCanvasLongPress()
+                                    }
+                                    completed = true
                                 }
-                            },
-                        )
+                                break
+                            }
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull()
+                            if (change != null) {
+                                currentTimeMs = change.uptimeMillis
+                            }
+                            if (change == null || !change.pressed) {
+                                val upPos = change?.position ?: downPos
+                                val dx = upPos.x - downPos.x
+                                val dy = upPos.y - downPos.y
+                                isTapUp = kotlin.math.hypot(dx, dy) <= touchSlopPx
+                                break
+                            }
+                            if (!latestIsEditMode) {
+                                val dx = change.position.x - downPos.x
+                                val dy = change.position.y - downPos.y
+                                val isVertDominant = abs(dy) >= abs(dx)
+                                if (isVertDominant && !latestVertScrollable && abs(dy) >= swipeThresholdPx) {
+                                    change.consume()
+                                    onVerticalSwipe(dy < 0f)
+                                    while (true) {
+                                        val next = awaitPointerEvent()
+                                        next.changes.forEach { it.consume() }
+                                        if (next.changes.none { it.pressed }) break
+                                    }
+                                    completed = true
+                                    break
+                                } else if (!isVertDominant && latestAllowHorizontalSwipe && abs(dx) >= swipeThresholdPx) {
+                                    change.consume()
+                                    onHorizontalSwipe(dx < 0f)
+                                    while (true) {
+                                        val next = awaitPointerEvent()
+                                        next.changes.forEach { it.consume() }
+                                        if (next.changes.none { it.pressed }) break
+                                    }
+                                    completed = true
+                                    break
+                                }
+                            }
+                        }
+
+                        if (!completed && isTapUp && !hitElem) {
+                            if (latestIsEditMode) {
+                                onCanvasTap()
+                            } else {
+                                val secondDown = withTimeoutOrNull(viewConfiguration.doubleTapTimeoutMillis) {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                }
+                                if (secondDown != null) {
+                                    var isSecondTap = false
+                                    while (true) {
+                                        val ev2 = awaitPointerEvent()
+                                        val ch2 = ev2.changes.firstOrNull { it.id == secondDown.id } ?: ev2.changes.firstOrNull()
+                                        if (ch2 == null || !ch2.pressed) {
+                                            val d2 = ch2?.let {
+                                                kotlin.math.hypot(it.position.x - secondDown.position.x, it.position.y - secondDown.position.y)
+                                            } ?: 0f
+                                            if (d2 <= touchSlopPx) isSecondTap = true
+                                            break
+                                        }
+                                    }
+                                    if (isSecondTap) onCanvasDoubleTap() else onCanvasTap()
+                                } else {
+                                    onCanvasTap()
+                                }
+                            }
+                        } else if (completed) {
+                            while (currentEvent.changes.any { it.pressed }) {
+                                awaitPointerEvent()
+                            }
+                        }
                     }
                 },
         ) {
@@ -1911,25 +1979,34 @@ private fun EditableCanvasElementBox(
     val density = LocalDensity.current
     val latestElem by rememberUpdatedState(elem)
     val latestElements by rememberUpdatedState(allPageElements)
-    val latestIsLandscape by rememberUpdatedState(isLandscape)
+    val useLandscapeCoords = isLandscape && state.settings.landscapeSeparateLayout
+    val latestUseLandscape by rememberUpdatedState(useLandscapeCoords)
 
     val selected = state.isEditMode &&
         (state.selectedElementId == elem.elementId || elem.elementId in state.multiSelectedIds)
-    val baseXFrac = if (isLandscape && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
-    val baseYFrac = if (isLandscape && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
-    val baseWidthDp = if (isLandscape && elem.landscapeWidthDp != null) elem.landscapeWidthDp else elem.widthDp
-    val baseHeightDp = if (isLandscape && elem.landscapeHeightDp != null) elem.landscapeHeightDp else elem.heightDp
+    val baseXFrac = if (useLandscapeCoords && elem.landscapeXFraction != null) elem.landscapeXFraction else elem.xFraction
+    val baseYFrac = if (useLandscapeCoords && elem.landscapeYFraction != null) elem.landscapeYFraction else elem.yFraction
+    val baseWidthDp = if (useLandscapeCoords && elem.landscapeWidthDp != null) elem.landscapeWidthDp else elem.widthDp
+    val baseHeightDp = if (useLandscapeCoords && elem.landscapeHeightDp != null) elem.landscapeHeightDp else elem.heightDp
 
     var dragX by remember(elem.elementId, baseXFrac, canvasWidthPx) { mutableFloatStateOf(baseXFrac * canvasWidthPx) }
     var dragY by remember(elem.elementId, baseYFrac, canvasHeightPx) { mutableFloatStateOf(baseYFrac * canvasHeightPx) }
     var widthDp by remember(elem.elementId, baseWidthDp) { mutableFloatStateOf(baseWidthDp) }
     var heightDp by remember(elem.elementId, baseHeightDp) { mutableFloatStateOf(baseHeightDp) }
+    var isDraggingOrResizing by remember { mutableStateOf(false) }
 
     val canMove = state.isEditMode && !page.isLocked && !elem.locked && !state.settings.layoutLocked
     val dragModifier = if (canMove) {
-        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled) {
+        Modifier.pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.alignmentGuidesEnabled, state.settings.allowOverlappingElements) {
             detectDragGestures(
-                onDragStart = { onSelectElement(latestElem.elementId) },
+                onDragStart = {
+                    isDraggingOrResizing = true
+                    onSelectElement(latestElem.elementId)
+                },
+                onDragCancel = {
+                    isDraggingOrResizing = false
+                    onGuideChanged(null, null)
+                },
                 onDrag = { change, dragAmount ->
                     change.consume()
                     var nextX = (dragX + dragAmount.x).coerceIn(0f, (canvasWidthPx - 40f).coerceAtLeast(0f))
@@ -1946,7 +2023,7 @@ private fun EditableCanvasElementBox(
                         val centerCanvasX = canvasWidthPx / 2f
                         val elemW = widthDp.dp.toPx()
                         val matchX = latestElements.filter { it.elementId != latestElem.elementId }
-                            .map { (if (latestIsLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
+                            .map { (if (latestUseLandscape && it.landscapeXFraction != null) it.landscapeXFraction else it.xFraction) * canvasWidthPx }
                             .plus(centerCanvasX - elemW / 2f)
                             .firstOrNull { abs(it - nextX) < 12f }
                         if (matchX != null) {
@@ -1955,7 +2032,7 @@ private fun EditableCanvasElementBox(
                         }
 
                         val matchY = latestElements.filter { it.elementId != latestElem.elementId }
-                            .map { (if (latestIsLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
+                            .map { (if (latestUseLandscape && it.landscapeYFraction != null) it.landscapeYFraction else it.yFraction) * canvasHeightPx }
                             .firstOrNull { abs(it - nextY) < 12f }
                         if (matchY != null) {
                             nextY = matchY
@@ -1967,11 +2044,37 @@ private fun EditableCanvasElementBox(
                     dragY = nextY
                 },
                 onDragEnd = {
+                    isDraggingOrResizing = false
                     onGuideChanged(null, null)
+                    if (!state.settings.allowOverlappingElements) {
+                        val myW = with(density) { widthDp.dp.toPx() }
+                        val myH = with(density) { heightDp.dp.toPx() }
+                        val maxX = (canvasWidthPx - myW).coerceAtLeast(0f)
+                        val maxY = (canvasHeightPx - myH).coerceAtLeast(0f)
+                        latestElements.filter { it.elementId != latestElem.elementId }.forEach { other ->
+                            val ox = (if (latestUseLandscape && other.landscapeXFraction != null) other.landscapeXFraction else other.xFraction) * canvasWidthPx
+                            val oy = (if (latestUseLandscape && other.landscapeYFraction != null) other.landscapeYFraction else other.yFraction) * canvasHeightPx
+                            val ow = with(density) { (if (latestUseLandscape && other.landscapeWidthDp != null) other.landscapeWidthDp else other.widthDp).dp.toPx() }
+                            val oh = with(density) { (if (latestUseLandscape && other.landscapeHeightDp != null) other.landscapeHeightDp else other.heightDp).dp.toPx() }
+                            val overlapX = dragX < ox + ow && dragX + myW > ox
+                            val overlapY = dragY < oy + oh && dragY + myH > oy
+                            if (overlapX && overlapY) {
+                                val shiftedRight = (ox + ow + 8f)
+                                val shiftedDown = (oy + oh + 8f)
+                                if (shiftedRight <= maxX) {
+                                    dragX = shiftedRight
+                                } else if (shiftedDown <= maxY) {
+                                    dragY = shiftedDown
+                                } else {
+                                    dragY = (oy - myH - 8f).coerceIn(0f, maxY)
+                                }
+                            }
+                        }
+                    }
                     val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
                     val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
                     val cur = latestElem
-                    val updated = if (latestIsLandscape) {
+                    val updated = if (latestUseLandscape) {
                         cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
                     } else {
                         cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)
@@ -2042,6 +2145,26 @@ private fun EditableCanvasElementBox(
                     modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(16.dp),
                 )
             }
+            if (selected || isDraggingOrResizing) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color.Black.copy(alpha = 0.82f),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(3.dp)
+                        .testTag("element_coordinate_hud_${elem.elementId}"),
+                ) {
+                    val xPct = ((dragX / canvasWidthPx) * 100f).roundToInt().coerceIn(0, 100)
+                    val yPct = ((dragY / canvasHeightPx) * 100f).roundToInt().coerceIn(0, 100)
+                    Text(
+                        text = "${xPct}%,${yPct}% · ${widthDp.roundToInt()}×${heightDp.roundToInt()}",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                    )
+                }
+            }
             if (selected) {
                 Surface(
                     shape = CircleShape,
@@ -2078,20 +2201,30 @@ private fun EditableCanvasElementBox(
                             .align(Alignment.BottomEnd)
                             .offset(x = 6.dp, y = 6.dp)
                             .size(28.dp)
-                            .pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx) {
+                            .pointerInput(elem.elementId, canvasWidthPx, canvasHeightPx, state.settings.gridSnapEnabled, state.settings.gridSnapStepDp) {
                                 detectDragGestures(
+                                    onDragStart = { isDraggingOrResizing = true },
+                                    onDragCancel = { isDraggingOrResizing = false },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
                                         val dxDp = with(density) { dragAmount.x.toDp().value }
                                         val dyDp = with(density) { dragAmount.y.toDp().value }
-                                        widthDp = (widthDp + dxDp).coerceIn(48f, 380f)
-                                        heightDp = (heightDp + dyDp).coerceIn(48f, 440f)
+                                        var nextW = (widthDp + dxDp).coerceIn(48f, 380f)
+                                        var nextH = (heightDp + dyDp).coerceIn(48f, 440f)
+                                        if (state.settings.gridSnapEnabled) {
+                                            val stepDp = state.settings.gridSnapStepDp.toFloat().coerceAtLeast(8f)
+                                            nextW = ((nextW / stepDp).roundToInt() * stepDp).coerceIn(48f, 380f)
+                                            nextH = ((nextH / stepDp).roundToInt() * stepDp).coerceIn(48f, 440f)
+                                        }
+                                        widthDp = nextW
+                                        heightDp = nextH
                                     },
                                     onDragEnd = {
+                                        isDraggingOrResizing = false
                                         val fx = (dragX / canvasWidthPx).coerceIn(0f, 0.92f)
                                         val fy = (dragY / canvasHeightPx).coerceIn(0f, 0.92f)
                                         val cur = latestElem
-                                        val updated = if (latestIsLandscape) {
+                                        val updated = if (latestUseLandscape) {
                                             cur.copy(landscapeXFraction = fx, landscapeYFraction = fy, landscapeWidthDp = widthDp, landscapeHeightDp = heightDp)
                                         } else {
                                             cur.copy(xFraction = fx, yFraction = fy, widthDp = widthDp, heightDp = heightDp)

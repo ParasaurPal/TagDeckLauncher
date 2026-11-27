@@ -25,7 +25,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -114,6 +115,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,6 +133,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -166,7 +172,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -358,6 +366,7 @@ fun HomeElementBody(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    var pointerPressed by remember { mutableStateOf(false) }
 
     // Entrance animation
     val entranceProgress = remember(element.elementId, extras.entranceAnim) {
@@ -388,12 +397,14 @@ fun HomeElementBody(
 
     var tapSpinTarget by remember { mutableStateOf(0f) }
     val tapSpinDeg by animateFloatAsState(tapSpinTarget, tween(360), label = "tap_spin")
-    val pressScaleTarget = if (isPressed && !state.isEditMode && extras.tapAnim != "NONE") extras.pressedScale.coerceIn(0.75f, 1.15f) else 1f
+    val effectivePressed = isPressed || pointerPressed
+    val basePressedScale = if (extras.pressedScale != 0.94f) extras.pressedScale else state.settings.pressFeedbackScale
+    val pressScaleTarget = if (effectivePressed && !state.isEditMode && extras.tapAnim != "NONE") basePressedScale.coerceIn(0.75f, 1.15f) else 1f
     val animPressScale by animateFloatAsState(pressScaleTarget, tween(110), label = "press_scale")
 
     val isPlainAppShortcut = element.type == "APP_SHORTCUT"
-    val effectiveBgHex = if (isPressed && !state.isEditMode && extras.pressedBgColorHex != null) extras.pressedBgColorHex else element.backgroundColorHex
-    val effectiveTextHex = if (isPressed && !state.isEditMode && extras.pressedTextColorHex != null) extras.pressedTextColorHex else element.textColorHex
+    val effectiveBgHex = if (effectivePressed && !state.isEditMode && extras.pressedBgColorHex != null) extras.pressedBgColorHex else element.backgroundColorHex
+    val effectiveTextHex = if (effectivePressed && !state.isEditMode && extras.pressedTextColorHex != null) extras.pressedTextColorHex else element.textColorHex
 
     val bgGradEnd = if (!isPlainAppShortcut) element.backgroundGradientEndHex else null
     val bg = if (element.type == "APP_SHORTCUT" || element.type == "APP_WIDGET" || bgGradEnd != null) Color.Transparent else Color(effectiveBgHex)
@@ -447,16 +458,164 @@ fun HomeElementBody(
         }
     }
 
-    val gestureMod = if (!state.isEditMode && element.actionsConfigJson.isNotBlank()) {
-        Modifier.pointerInput(element.elementId, element.actionsConfigJson) {
-            detectTapGestures(
-                onDoubleTap = { onElementTrigger(element, "DOUBLE_TAP") },
-                onLongPress = { onElementTrigger(element, "LONG_PRESS") },
-                onTap = {
-                    if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
-                    onElementTrigger(element, "TAP")
-                },
-            )
+    val configuredTriggers = remember(element.actionsConfigJson) {
+        if (element.actionsConfigJson.isBlank()) emptySet()
+        else try {
+            val obj = JSONObject(element.actionsConfigJson)
+            obj.keys().asSequence().filter { key ->
+                obj.optJSONObject(key)?.optString("actionType", "NONE") != "NONE"
+            }.toSet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    val firePrimaryTap: () -> Unit = {
+        if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
+        when (element.type) {
+            "APP_SHORTCUT" -> {
+                if (!onElementTrigger(element, "TAP")) {
+                    val targetApp = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
+                    targetApp?.let { app ->
+                        val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
+                        val isLocked = app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
+                        if (shortcutId != null && !isLocked) {
+                            if (!appDiscovery.launchAppShortcut(app.packageName, shortcutId, app.componentName)) {
+                                onLaunchApp(app)
+                            }
+                        } else {
+                            onLaunchApp(app)
+                        }
+                    }
+                }
+            }
+            "CUSTOM_BUTTON" -> {
+                onElementTrigger(element, "TAP")
+            }
+            "TAG_SHORTCUT" -> {
+                if (!onElementTrigger(element, "TAP")) {
+                    element.targetTagId?.let { onOpenTagSidebar(it) }
+                }
+            }
+            else -> {
+                onElementTrigger(element, "TAP")
+            }
+        }
+    }
+
+    val latestTriggers by rememberUpdatedState(configuredTriggers)
+    val latestPrimaryTap by rememberUpdatedState(firePrimaryTap)
+    val latestOnTrigger by rememberUpdatedState(onElementTrigger)
+    val latestElement by rememberUpdatedState(element)
+    val latestLongPressMs by rememberUpdatedState(state.settings.longPressDelayMs.toLong().coerceIn(250L, 900L))
+    val latestSensitivity by rememberUpdatedState(state.settings.swipeGestureSensitivity.coerceIn(0.5f, 1.8f))
+
+    val handlesPointerGestures = !state.isEditMode &&
+        (element.type == "APP_SHORTCUT" || element.type == "CUSTOM_BUTTON" || configuredTriggers.isNotEmpty())
+
+    val gestureMod = if (handlesPointerGestures) {
+        Modifier.pointerInput(element.elementId, element.type, element.actionsConfigJson) {
+            val swipeThresholdPx = (36f / latestSensitivity).dp.toPx().coerceAtLeast(16f)
+            val touchSlopPx = viewConfiguration.touchSlop
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                val downPos = down.position
+                var currentTimeMs = down.uptimeMillis
+                pointerPressed = true
+                var finishedBySwipeOrLongPress = false
+                var isTapUp = false
+
+                try {
+                    while (true) {
+                        val elapsed = (currentTimeMs - down.uptimeMillis).coerceAtLeast(0L)
+                        val remainingMs = (latestLongPressMs - elapsed).coerceAtLeast(1L)
+                        val event = withTimeoutOrNull(remainingMs) { awaitPointerEvent() }
+                        if (event == null) {
+                            pointerPressed = false
+                            if ("LONG_PRESS" in latestTriggers) {
+                                latestOnTrigger(latestElement, "LONG_PRESS")
+                                finishedBySwipeOrLongPress = true
+                            }
+                            break
+                        }
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull()
+                        if (change != null) {
+                            currentTimeMs = change.uptimeMillis
+                        }
+                        if (change == null || !change.pressed) {
+                            val upPos = change?.position ?: downPos
+                            val moveDist = hypot(upPos.x - downPos.x, upPos.y - downPos.y)
+                            isTapUp = moveDist <= maxOf(touchSlopPx, swipeThresholdPx * 0.5f)
+                            if (isTapUp && (latestElement.type == "APP_SHORTCUT" || latestElement.type == "CUSTOM_BUTTON" || "TAP" in latestTriggers || "DOUBLE_TAP" in latestTriggers)) {
+                                change?.consume()
+                            }
+                            break
+                        }
+                        val dx = change.position.x - downPos.x
+                        val dy = change.position.y - downPos.y
+                        val dist = hypot(dx, dy)
+                        if (dist >= swipeThresholdPx) {
+                            val swipeTrigger = if (abs(dx) > abs(dy)) {
+                                if (dx < 0f) "SWIPE_LEFT" else "SWIPE_RIGHT"
+                            } else {
+                                if (dy < 0f) "SWIPE_UP" else "SWIPE_DOWN"
+                            }
+                            pointerPressed = false
+                            if (swipeTrigger in latestTriggers) {
+                                change.consume()
+                                latestOnTrigger(latestElement, swipeTrigger)
+                                while (true) {
+                                    val next = awaitPointerEvent()
+                                    next.changes.forEach { it.consume() }
+                                    if (next.changes.none { it.pressed }) break
+                                }
+                            }
+                            finishedBySwipeOrLongPress = true
+                            break
+                        }
+                    }
+                } finally {
+                    pointerPressed = false
+                }
+
+                if (!finishedBySwipeOrLongPress && isTapUp) {
+                    if ("DOUBLE_TAP" in latestTriggers) {
+                        val secondDown = withTimeoutOrNull(viewConfiguration.doubleTapTimeoutMillis) {
+                            awaitFirstDown(requireUnconsumed = false)
+                        }
+                        if (secondDown != null) {
+                            var secondTapped = false
+                            val secondDownPos = secondDown.position
+                            while (true) {
+                                val ev2 = awaitPointerEvent()
+                                val ch2 = ev2.changes.firstOrNull { it.id == secondDown.id } ?: ev2.changes.firstOrNull()
+                                if (ch2 == null || !ch2.pressed) {
+                                    val d2 = ch2?.let { hypot(it.position.x - secondDownPos.x, it.position.y - secondDownPos.y) } ?: 0f
+                                    if (d2 <= maxOf(touchSlopPx, swipeThresholdPx * 0.5f)) {
+                                        ch2?.consume()
+                                        secondTapped = true
+                                    }
+                                    break
+                                }
+                            }
+                            if (secondTapped) {
+                                latestOnTrigger(latestElement, "DOUBLE_TAP")
+                            } else {
+                                latestPrimaryTap()
+                            }
+                        } else {
+                            latestPrimaryTap()
+                        }
+                    } else {
+                        latestPrimaryTap()
+                    }
+                } else if (finishedBySwipeOrLongPress) {
+                    while (currentEvent.changes.any { it.pressed }) {
+                        val next = awaitPointerEvent()
+                        if ("LONG_PRESS" in latestTriggers) next.changes.forEach { it.consume() }
+                    }
+                }
+            }
         }
     } else Modifier
 
@@ -640,13 +799,12 @@ fun HomeElementBody(
                             placement = extras.iconPlacement.takeIf { it != "TOP" } ?: "LEFT",
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clickable(
-                                    interactionSource = interactionSource,
-                                    indication = null,
-                                    enabled = !state.isEditMode,
-                                ) {
-                                    if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
-                                    onElementTrigger(element, "TAP")
+                                .semantics {
+                                    role = Role.Button
+                                    onClick {
+                                        if (!state.isEditMode) firePrimaryTap()
+                                        true
+                                    }
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             showLabel = element.showLabel,
@@ -691,30 +849,19 @@ fun HomeElementBody(
 
                     "APP_SHORTCUT" -> {
                         val app = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
-                        val clickMod = Modifier.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            enabled = !state.isEditMode && app != null,
-                        ) {
-                            if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
-                            if (!onElementTrigger(element, "TAP")) {
-                                app?.let { targetApp ->
-                                    val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
-                                    val isLocked = targetApp.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
-                                    if (shortcutId != null && !isLocked) {
-                                        if (!appDiscovery.launchAppShortcut(targetApp.packageName, shortcutId, targetApp.componentName)) {
-                                            onLaunchApp(targetApp)
-                                        }
-                                    } else {
-                                        onLaunchApp(targetApp)
-                                    }
+                        val shortcutSemanticsMod = if (!state.isEditMode && app != null) {
+                            Modifier.semantics {
+                                role = Role.Button
+                                onClick {
+                                    firePrimaryTap()
+                                    true
                                 }
                             }
-                        }
+                        } else Modifier
                         if (app != null) {
                             ShortcutLayoutSlot(
                                 placement = extras.iconPlacement,
-                                modifier = Modifier.fillMaxSize().then(clickMod).padding(element.paddingDp.dp),
+                                modifier = Modifier.fillMaxSize().then(shortcutSemanticsMod).padding(element.paddingDp.dp),
                                 showLabel = element.showLabel && state.settings.showHomeAppLabels,
                                 icon = {
                                     AppIconView(
@@ -753,11 +900,22 @@ fun HomeElementBody(
                         val count = state.tagsWithApps.find { it.tag.tagId == element.targetTagId }
                             ?.apps?.count { it.isInstalled && !it.hidden } ?: 0
                         if (tag != null) {
+                            val tagInteractMod = if (configuredTriggers.isEmpty()) {
+                                Modifier.clickable(enabled = !state.isEditMode) { onOpenTagSidebar(tag.tagId) }
+                            } else {
+                                Modifier.semantics {
+                                    role = Role.Button
+                                    onClick {
+                                        if (!state.isEditMode) firePrimaryTap()
+                                        true
+                                    }
+                                }
+                            }
                             ShortcutLayoutSlot(
                                 placement = extras.iconPlacement,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clickable(enabled = !state.isEditMode) { onOpenTagSidebar(tag.tagId) }
+                                    .then(tagInteractMod)
                                     .padding(element.paddingDp.coerceIn(0f, 32f).dp)
                                     .testTag("home_tag_shortcut_${element.targetTagId}"),
                                 showLabel = element.showLabel && state.settings.showHomeAppLabels,

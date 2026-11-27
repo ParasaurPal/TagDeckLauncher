@@ -105,6 +105,7 @@ class LauncherRepository(
     val homeElementsFlow: Flow<List<HomeElementEntity>> = dao.observeHomeElements()
     val snapshotsFlow: Flow<List<LayoutSnapshotEntity>> = dao.observeSnapshots()
     val sidebarsFlow: Flow<List<SidebarConfigEntity>> = dao.observeSidebars()
+    val tagTriggeredSidebarsFlow: Flow<List<SidebarConfigEntity>> = dao.observeTagTriggeredSidebars()
     val gesturesFlow: Flow<List<GestureBindingEntity>> = dao.observeGestures()
     val imageResourcesFlow: Flow<List<ImageResourceEntity>> = dao.observeImageResources()
     val backgroundPresetsFlow: Flow<List<BackgroundPresetEntity>> = dao.observeBackgroundPresets()
@@ -610,9 +611,45 @@ class LauncherRepository(
 
     suspend fun deleteSnapshot(snapshotId: Long) = dao.deleteSnapshot(snapshotId)
 
+    // --- M:N TAG <-> APP QUERIES & TAG-TRIGGERED SIDEBARS ---
+    fun observeTagWithApps(tagId: Long): Flow<TagWithApps?> = dao.observeTagWithApps(tagId)
+    fun observeAppsForTag(tagId: Long): Flow<List<AppEntity>> = dao.observeAppsForTag(tagId)
+    fun observeTagsForApp(packageName: String): Flow<List<TagEntity>> = dao.observeTagsForApp(packageName)
+
     // --- SIDEBARS ---
     suspend fun saveSidebar(sidebar: SidebarConfigEntity): Long = dao.upsertSidebar(sidebar)
     suspend fun deleteSidebar(sidebarId: Long) = dao.deleteSidebar(sidebarId)
+
+    suspend fun createOrUpdateTagTriggeredSidebar(tagId: Long, side: String = "RIGHT"): Long {
+        val tag = dao.getAllTagsOnce().find { it.tagId == tagId }
+        val existing = dao.getSidebarForTag(tagId)
+        val existingAll = dao.getSidebarsOnce()
+        val updated = if (existing != null) {
+            existing.copy(
+                title = tag?.name ?: existing.title,
+                side = side,
+                edgeZoneEnabled = true,
+                showHandle = true,
+                layoutMode = tag?.sidebarLayoutMode ?: existing.layoutMode,
+                iconSizeDp = tag?.sidebarIconSizeDp ?: existing.iconSizeDp,
+                columns = tag?.sidebarColumns ?: existing.columns,
+            )
+        } else {
+            SidebarConfigEntity(
+                title = tag?.name ?: "Tag Sidebar",
+                side = side,
+                sourceType = "TAG",
+                targetTagId = tagId,
+                layoutMode = tag?.sidebarLayoutMode ?: "GRID",
+                iconSizeDp = tag?.sidebarIconSizeDp ?: 52,
+                columns = tag?.sidebarColumns ?: 3,
+                edgeZoneEnabled = true,
+                showHandle = true,
+                sortOrder = existingAll.size,
+            )
+        }
+        return dao.upsertSidebar(updated)
+    }
 
     // --- GESTURES ---
     suspend fun saveGestureBinding(binding: GestureBindingEntity) = dao.upsertGesture(binding)

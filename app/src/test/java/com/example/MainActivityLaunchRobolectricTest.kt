@@ -19,11 +19,10 @@ class MainActivityLaunchRobolectricTest {
     @Test
     fun `main activity cold starts cleanly as standard app and renders dock and seeded tags`() {
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("dock_drawer_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("dock_search_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("dock_tags_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("dock_builder_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("dock_settings_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("home_tag_chip_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_dock_bar").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_global_search_bar").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_open_drawer_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_canvas_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_tag_shortcut_1").assertIsDisplayed()
     }
 }

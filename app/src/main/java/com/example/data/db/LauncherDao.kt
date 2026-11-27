@@ -171,6 +171,30 @@ interface LauncherDao {
     }
 
     @Transaction
+    @Query("SELECT * FROM tags WHERE tagId = :tagId")
+    fun observeTagWithApps(tagId: Long): Flow<TagWithApps?>
+
+    @Query(
+        """
+        SELECT a.* FROM apps a
+        INNER JOIN app_tags at ON a.packageName = at.packageName
+        WHERE at.tagId = :tagId AND a.isInstalled = 1
+        ORDER BY a.appName COLLATE NOCASE ASC
+        """
+    )
+    fun observeAppsForTag(tagId: Long): Flow<List<AppEntity>>
+
+    @Query(
+        """
+        SELECT t.* FROM tags t
+        INNER JOIN app_tags at ON t.tagId = at.tagId
+        WHERE at.packageName = :packageName
+        ORDER BY t.sortOrder ASC, t.name COLLATE NOCASE ASC
+        """
+    )
+    fun observeTagsForApp(packageName: String): Flow<List<TagEntity>>
+
+    @Transaction
     suspend fun mergeTags(sourceTagId: Long, targetTagId: Long) {
         val refs = getAllCrossRefsOnce().filter { it.tagId == sourceTagId }
         insertAppTagCrossRefs(refs.map { AppTagCrossRef(it.packageName, targetTagId) })
@@ -298,6 +322,12 @@ interface LauncherDao {
 
     @Query("DELETE FROM sidebar_configs WHERE sidebarId = :sidebarId")
     suspend fun deleteSidebar(sidebarId: Long)
+
+    @Query("SELECT * FROM sidebar_configs WHERE sourceType = 'TAG' ORDER BY sortOrder ASC, sidebarId ASC")
+    fun observeTagTriggeredSidebars(): Flow<List<SidebarConfigEntity>>
+
+    @Query("SELECT * FROM sidebar_configs WHERE sourceType = 'TAG' AND targetTagId = :tagId LIMIT 1")
+    suspend fun getSidebarForTag(tagId: Long): SidebarConfigEntity?
 
     @Query("DELETE FROM sidebar_configs")
     suspend fun deleteAllSidebars()
