@@ -3,6 +3,7 @@ package com.example
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,6 +24,9 @@ class MainActivityLaunchRobolectricTest {
         composeRule.onNodeWithTag("home_global_search_bar").assertIsDisplayed()
         composeRule.onNodeWithTag("home_open_drawer_button").assertIsDisplayed()
         composeRule.onNodeWithTag("home_canvas_1").assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag("home_tag_shortcut_1").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithTag("home_tag_shortcut_1").assertIsDisplayed()
     }
 }
