@@ -113,7 +113,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             val navController = rememberNavController()
-            var showNotificationCenter by remember { mutableStateOf(false) }
             navControllerRef = navController
 
             val view = LocalView.current
@@ -242,6 +241,7 @@ private fun TagDeckRoot(
     navController: NavHostController,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showNotificationCenter by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.snackbarMessage) {
