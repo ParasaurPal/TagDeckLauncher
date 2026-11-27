@@ -129,9 +129,8 @@ fun AppIconView(
     val customLineSource: ImageBitmap? by produceState(
         initialValue = null,
         customFile,
-        lineProfile,
     ) {
-        value = if (customFile == null || lineProfile == null) {
+        value = if (customFile == null) {
             null
         } else {
             withContext(Dispatchers.IO) {
@@ -185,7 +184,7 @@ fun AppIconView(
                 ?: IconOutlineProcessor.processImageBitmap(bitmapKey, rawBitmap, iconStyle)
         }
     }
-    val anyconsSource = lineDisplayedBitmap ?: displayedBitmap
+    val anyconsSource = lineDisplayedBitmap ?: customLineSource ?: displayedBitmap
     val anyconsBitmap: ImageBitmap? by produceState(
         initialValue = null,
         anyconsSource,
