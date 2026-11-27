@@ -413,6 +413,8 @@ fun UniversalSearchOverlay(
                         "SETTINGS" to "Settings",
                         "TAGS" to "Tags",
                         "LAYOUT" to "Pages & Panels",
+                        "CONTACTS" to "Contacts",
+                        "FILES" to "Files",
                     )
                     items(scopes, key = { it.first }) { (scopeKey, label) ->
                         FilterChip(
@@ -786,7 +788,11 @@ fun UniversalSearchOverlay(
                         }
                     }
 
-                    if (!hasAnyResults && q.isNotEmpty()) {
+                    item {
+                        DeviceContentSearchSection(query = q, scope = activeScope)
+                    }
+
+                    if (!hasAnyResults && q.isNotEmpty() && activeScope !in listOf("CONTACTS", "FILES")) {
                         item {
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
