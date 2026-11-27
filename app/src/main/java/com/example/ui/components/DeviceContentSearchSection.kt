@@ -165,7 +165,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
                     context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.ContactPage, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Rounded.ContactPage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
                         Text(contact.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         if (contact.phones.isNotEmpty()) Text(contact.phones.first(), style = MaterialTheme.typography.bodySmall,
@@ -193,7 +193,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
                     runCatching { context.startActivity(intent) }
                 }) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Description, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Rounded.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(file.name, modifier = Modifier.weight(1f).padding(start = 10.dp),
                         fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
