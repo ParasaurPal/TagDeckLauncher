@@ -175,7 +175,9 @@ class LauncherRepository(
         }
 
         val settings = prefsRepo.getSettingsOnce()
-        if (!settings.seededDefaults) {
+        // Preferences can outlive a cleared/restored Room database. Re-seed the starter
+        // workspace when its tag catalog is missing, even if the preference flag survived.
+        if (!settings.seededDefaults || dao.getAllTagsOnce().isEmpty()) {
             seedInitialWorkspace(merged)
             prefsRepo.updateSettings { it.copy(seededDefaults = true) }
         }
