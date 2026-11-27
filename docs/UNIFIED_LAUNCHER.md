@@ -56,6 +56,6 @@ There is one launcher, one Android application ID (`com.tagdeck.launcher`), one 
 5. Keep all core launcher functionality usable without accounts, API keys, or subscriptions.
 6. Test on the existing minimum SDK and the current Pixel/Android target before merging to `main`.
 
-## Licensing and provenance
+## Source ownership and exclusions
 
-Stario's repository declares GNU GPL-3.0. This branch uses Stario as a feature/UX reference and does not copy its implementation or assets. Any future decision to port Stario source code must first preserve its license notices and satisfy GPL-3.0 obligations for the resulting distribution. The Cascade prototype's repository did not expose a clear license file during inspection; do not copy its source or assets unless its license is clarified. Implement the desired behavior independently or obtain permission before source reuse.
+The user owns the companion launcher repositories used by this project and has authorized reuse of their code and assets. Keep the source history and attribution clear while consolidating compatible implementations into TagDeck. Stario is explicitly excluded: do not clone it into the workspace or reuse any of its code, assets, or features.
