@@ -54,15 +54,28 @@ object AnyconsRenderer {
         val stroke = config.strokeWidth.coerceIn(0.7f, 5f)
         val alphaMask = IntArray(w * h) { (pixels[it] ushr 24) and 255 }
         val edge = IntArray(w * h)
+        val detailEdge = IntArray(w * h)
         for (y in 0 until h) for (x in 0 until w) {
             val i = y * w + x
             val a = alphaMask[i]
             var neighbor = 0
+            var contrast = 0
+            val center = pixels[i]
             for (dy in -1..1) for (dx in -1..1) {
                 val nx = x + dx; val ny = y + dy
-                if (nx in 0 until w && ny in 0 until h) neighbor = max(neighbor, alphaMask[ny * w + nx])
+                if (nx in 0 until w && ny in 0 until h) {
+                    val ni = ny * w + nx
+                    neighbor = max(neighbor, alphaMask[ni])
+                    val other = pixels[ni]
+                    val diff = max(
+                        abs(channel(center,16)-channel(other,16)),
+                        max(abs(channel(center,8)-channel(other,8)), abs(channel(center,0)-channel(other,0)))
+                    )
+                    contrast = max(contrast, diff)
+                }
             }
             edge[i] = (neighbor - a).coerceIn(0, 255)
+            detailEdge[i] = ((contrast - 22) * 3).coerceIn(0, 255)
         }
         fun channel(c: Int, shift: Int) = (c ushr shift) and 255
         fun blend(a: Int, b: Int, t: Float): Int {
@@ -81,7 +94,7 @@ object AnyconsRenderer {
             val grain = ((x*17 + y*31 + (x*y)%23)%19)/19f
             val vein = abs(sin((x*0.12 + y*0.08) + sin(y*0.09)*2.2)).toFloat()
             val color = when(config.style) {
-                "OUTLINE" -> if (config.filled) blend(primary, secondary, 0.08f) else primary
+                "OUTLINE" -> primary
                 "MATERIAL" -> blend(primary, accent, (0.18f + 0.38f*ny).coerceIn(0f,0.7f))
                 "STICKER" -> blend(primary, 0xFFFFFFFF.toInt(), 0.18f)
                 "MARBLE" -> blend(primary, accent, (vein*0.48f).coerceIn(0f,0.55f))
@@ -98,6 +111,7 @@ object AnyconsRenderer {
                 else -> p
             }
             val insideAlpha = when(config.style) {
+                "OUTLINE", "OUTLINE_CHROMA" -> max(edge[i], detailEdge[i])
                 "WATERCOLOR" -> (a * (0.62f + grain*0.34f)).toInt()
                 "DOODLE" -> if ((x*5+y*3)%37 < 2) (a*0.45f).toInt() else a
                 else -> a
