@@ -11,7 +11,6 @@ REPOS=(
   "tagdecktomerge2"
   "tagdecktomerge3"
   "my-niagara-clone"
-  "Stario"
 )
 
 for repo in "${REPOS[@]}"; do
