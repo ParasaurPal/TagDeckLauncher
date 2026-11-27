@@ -55,7 +55,8 @@ fun NotificationCenterOverlay(
 
     Box(
         modifier = Modifier
-            .padding(top = 54.dp, end = 14.dp)
+            .padding(top = 54.dp, end = 14.dp),
+        contentAlignment = Alignment.TopEnd,
     ) {
         Surface(
             onClick = { onVisibleChange(true) },
