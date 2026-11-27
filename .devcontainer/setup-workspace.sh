@@ -31,7 +31,6 @@ cat > "$WORKSPACE_ROOT/TagDeck-Unified.code-workspace" <<'WORKSPACE'
     { "name": "tagdecktomerge2", "path": "tagdecktomerge2" },
     { "name": "tagdecktomerge3 (Cascade reference)", "path": "tagdecktomerge3" },
     { "name": "my-niagara-clone", "path": "my-niagara-clone" },
-    { "name": "Stario (GPL-3.0 reference)", "path": "Stario" }
   ],
   "settings": {
     "search.exclude": {
@@ -45,5 +44,5 @@ WORKSPACE
 
 echo
 echo "Workspace prepared: $WORKSPACE_ROOT/TagDeck-Unified.code-workspace"
-echo "Open that workspace file in VS Code to work across all six repositories."
+echo "Open that workspace file in VS Code to work across all five repositories."
 echo "The TagDeckLauncher folder is the active unified application."
