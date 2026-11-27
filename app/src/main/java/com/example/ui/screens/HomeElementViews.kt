@@ -642,7 +642,15 @@ fun HomeElementBody(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .then(gestureMod),
+                .then(gestureMod)
+                .semantics {
+                    if (handlesPointerGestures) {
+                        onClick {
+                            latestPrimaryTap()
+                            true
+                        }
+                    }
+                },
             shape = shape,
             color = bg,
             shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
