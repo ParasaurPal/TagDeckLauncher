@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.hasTestTag
@@ -360,9 +361,12 @@ class TotalLauncherFeaturesAndGesturesTest {
         assertTrue("77:LONG_PRESS" in triggeredElementEvents)
 
         // Single tap falls back to primary shortcut launch
-        composeRule.onNodeWithTag("home_element_content_77").performClick()
+        val shortcutNode = composeRule.onNodeWithTag("home_element_content_77")
+        shortcutNode.assertHasClickAction()
+        shortcutNode.performClick()
         composeRule.waitForIdle()
-        assertTrue("com.spotify.music" in launchedPkgs)
+        assertTrue("Expected Spotify launch; launched=$launchedPkgs, events=$triggeredElementEvents",
+            "com.spotify.music" in launchedPkgs)
 
         // Empty-canvas long-press dispatches configured LONG_PRESS gesture
         composeRule.onNodeWithTag("home_canvas_1").performTouchInput { longClick(Offset(centerX, centerY)) }
