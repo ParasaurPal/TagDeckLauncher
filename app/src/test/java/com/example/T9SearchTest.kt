@@ -9,7 +9,7 @@ import org.junit.Test
 class T9SearchTest {
     @Test fun encodesClassicKeypadLetters() {
         assertEquals("843", T9Search.encode("THE"))
-        assertEquals("5663", T9Search.encode("MNO"))
+        assertEquals("666", T9Search.encode("MNO"))
         assertEquals("43556", T9Search.encode("Hello"))
     }
 
