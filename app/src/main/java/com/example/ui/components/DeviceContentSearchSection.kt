@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,6 +57,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
     }
     var contacts by remember { mutableStateOf<List<DeviceContactResult>>(emptyList()) }
     var files by remember { mutableStateOf<List<DeviceFileResult>>(emptyList()) }
+    var fileRefresh by remember { mutableIntStateOf(0) }
 
     val requestContacts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         contactsAllowed.value = it
@@ -68,6 +70,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
             val existing = prefs.getStringSet("saved_uris", emptySet()).orEmpty().toMutableSet()
             existing.add(uri.toString())
             prefs.edit().putStringSet("saved_uris", existing).apply()
+            fileRefresh++
         }
     }
 
@@ -120,7 +123,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
         }
     }
 
-    LaunchedEffect(query, scope, prefs) {
+    LaunchedEffect(query, scope, prefs, fileRefresh) {
         if (scope !in listOf("ALL", "FILES")) {
             files = emptyList()
         } else {
