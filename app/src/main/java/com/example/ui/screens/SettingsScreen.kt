@@ -1095,6 +1095,52 @@ fun SettingsScreen(
                 }
             }
 
+            // Niagara Anycons-inspired icon collection
+            item(key = "anycons_icon_styles") {
+                SettingsCard(
+                    title = "Anycons Icon Styles",
+                    icon = Icons.Rounded.Contrast,
+                ) {
+                    Text(
+                        "Apply a unified visual treatment to app icons. Choose a style to preview it across the launcher.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        listOf(
+                            "NONE" to "Original",
+                            "OUTLINE" to "Outline",
+                            "MATERIAL" to "Material",
+                            "STICKER" to "Sticker",
+                            "MARBLE" to "Marble",
+                            "WATERCOLOR" to "Watercolor",
+                            "BRIGHT" to "Bright",
+                            "STELLAR" to "Stellar",
+                            "OUTLINE_CHROMA" to "Outline Chroma",
+                            "DOTS" to "Dots",
+                            "DOODLE" to "Doodle",
+                            "CLICKS" to "Clicks",
+                        ).forEach { (key, label) ->
+                            FilterChip(
+                                selected = s.anyconsStyle == key,
+                                onClick = { onUpdateSettings { it.copy(anyconsStyle = key) } },
+                                label = { Text(label) },
+                                modifier = Modifier.testTag("anycons_style_$key"),
+                            )
+                        }
+                    }
+                    Text(
+                        "Styles are rendered from the selected app or icon-pack artwork. Original artwork and custom icon assignments remain available.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             // Black Launcher Icon Contrast & Outline Styling
             if (LauncherSettingsCatalog.SECTION_BLACK_ICONS in matchingSections ||
                 (!s.blackIconStyleEnabled && LauncherSettingsCatalog.SECTION_BLACK_ICON_COLORS in matchingSections)
