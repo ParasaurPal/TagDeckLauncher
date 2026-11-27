@@ -106,6 +106,7 @@ object AnyconsRenderer {
         }
         val out = Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888)
         out.setPixels(output,0,w,0,0,w,h)
+        var rendered = out
         val canvas = Canvas(out)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         when(config.style) {
@@ -122,8 +123,11 @@ object AnyconsRenderer {
                     ep[y*w+x]=((m*(if(config.style=="OUTLINE_CHROMA") 210 else 255)/255) shl 24) or (secondary and 0x00FFFFFF)
                 }
                 expanded.setPixels(ep,0,w,0,0,w,h)
-                canvas.drawBitmap(expanded,0f,0f,paint)
-                canvas.drawBitmap(out,0f,0f,paint)
+                val layer = Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888)
+                val layerCanvas = Canvas(layer)
+                layerCanvas.drawBitmap(expanded,0f,0f,paint)
+                layerCanvas.drawBitmap(out,0f,0f,paint)
+                rendered = layer
                 expanded.recycle()
             }
             "STICKER" -> {
@@ -139,8 +143,11 @@ object AnyconsRenderer {
                     bp[y*w+x]=((m*255/255) shl 24) or 0x00FFFFFF
                 }
                 border.setPixels(bp,0,w,0,0,w,h)
-                canvas.drawBitmap(border,0f,0f,paint)
-                canvas.drawBitmap(out,0f,0f,paint)
+                val layer = Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888)
+                val layerCanvas = Canvas(layer)
+                layerCanvas.drawBitmap(border,0f,0f,paint)
+                layerCanvas.drawBitmap(out,0f,0f,paint)
+                rendered = layer
                 border.recycle()
             }
             "STELLAR" -> {
@@ -155,8 +162,9 @@ object AnyconsRenderer {
             }
         }
         input.recycle()
-        synchronized(cache) { cache.put(key,out) }
-        return out
+        if (rendered !== out) out.recycle()
+        synchronized(cache) { cache.put(key,rendered) }
+        return rendered
     }
 
     fun clearCache() = synchronized(cache) { cache.evictAll() }
