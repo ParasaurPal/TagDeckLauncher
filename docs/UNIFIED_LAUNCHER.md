@@ -9,9 +9,9 @@ There is one launcher, one Android application ID (`com.tagdeck.launcher`), one 
 | Source | Role in the unified launcher | Integration approach |
 |---|---|---|
 | TagDeckLauncher | Primary product and architecture | Keep as the base; preserve its tag graph, freeform home studio, sidebars, widgets, icon tooling, backup, and settings. |
-| tagdecktomerge3 | Cascade/Niagara-style launcher prototype | Reuse feature ideas and compatible behavior: wave alphabet navigation, compact app rows, category icon suggestions, notification center, favorites editor, and quick math search. Avoid duplicate application entry points and duplicate data stores. |
-| Stario | Mature launcher feature reference | Implement compatible concepts natively: pinned app groups, configurable pages, news/briefing feeds, media controls, weather/calendar panels, notification sheet, widget configurator, and richer search. |
-| tagdecktomerge, tagdecktomerge2, my-niagara-clone | Empty/placeholder repositories at inspection time | No source files to merge. |
+| tagdecktomerge3 | User-owned Cascade/Niagara-style launcher prototype | Source and assets may be directly ported and adapted: wave alphabet navigation, compact app rows, category icon suggestions, notification center, favorites editor, quick math, wallpaper palette extraction, and icon catalog. Consolidate into TagDeck's architecture. |
+| Stario | Excluded by user request | Do not merge Stario source, assets, or feature set unless the user later asks. |
+| tagdecktomerge, tagdecktomerge2, my-niagara-clone | User-owned repositories with README-only content on their current default branches | Keep as part of the project inventory; there is no implementation content to import from their current default branches. |
 
 ## Feature inventory
 
@@ -31,6 +31,8 @@ There is one launcher, one Android application ID (`com.tagdeck.launcher`), one 
 - Opt-in contacts search, including matching contact names and phone numbers with T9; permission is requested only when the user enables it.
 - User-selected file search using Android's document picker and persisted read grants; TagDeck does not scan shared storage.
 - Unit tests for keypad encoding, separator handling, and matching.
+- In-search calculator with operator precedence, parentheses, division/modulo, and Unicode math operators; expression evaluation is covered by unit tests.
+- Notification center overlay with user-controlled Android notification access, live in-memory notification summaries, open/dismiss actions, clear-all, and a privacy note. Notification contents are not written to launcher storage or backups.
 
 ### Planned native integrations
 
