@@ -91,11 +91,11 @@ class TagDeckNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         instance = this
-        NotificationBadgeStore.replace(activeNotifications)
+        NotificationBadgeStore.replace(activeNotifications?.filterNot { it.packageName == packageName }?.toTypedArray())
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        NotificationBadgeStore.posted(sbn)
+        if (sbn.packageName != packageName) NotificationBadgeStore.posted(sbn)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
