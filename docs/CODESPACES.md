@@ -2,20 +2,19 @@
 
 Create the Codespace from the `merge/unified-launcher` branch of this repository.
 
-The dev container uses Java 21 and GitHub CLI. On first creation, its setup script checks out the five companion repositories beside TagDeckLauncher and creates:
+The dev container uses Java 21 and GitHub CLI. On first creation, its setup script checks out the four companion repositories beside TagDeckLauncher and creates:
 
 `/workspaces/TagDeck-Unified.code-workspace`
 
-Open that workspace file in the Codespace editor to work across all six repositories at once.
+Open that workspace file in the Codespace editor to work across all five repositories at once.
 
 ## Repository roles
 
 - **TagDeckLauncher** — active unified Android launcher. Make product changes here.
 - **tagdecktomerge**, **tagdecktomerge2**, **my-niagara-clone** — placeholder/reference repositories.
 - **tagdecktomerge3** — Cascade/Niagara-style implementation reference.
-- **Stario** — GPL-3.0 feature reference. Do not copy its code or assets into TagDeck unless the distribution is deliberately made GPL-compliant.
 
-The companion repositories are cloned as separate folders; their Git histories and remotes remain independent. This setup does not merge or modify their default branches.
+The four companion repositories are cloned as separate folders; their Git histories and remotes remain independent. Stario is excluded. This setup does not merge or modify their default branches.
 
 ## Build
 
