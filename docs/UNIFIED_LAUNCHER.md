@@ -27,13 +27,15 @@ There is one launcher, one Android application ID (`com.tagdeck.launcher`), one 
 
 ### Added on the unified branch
 
-- Reusable T9 keypad encoder and numeric app-search matching in the universal search overlay.
+- Reusable T9 keypad encoder with numeric matching in both the universal search overlay and app drawer.
+- Opt-in contacts search, including matching contact names and phone numbers with T9; permission is requested only when the user enables it.
+- User-selected file search using Android's document picker and persisted read grants; TagDeck does not scan shared storage.
 - Unit tests for keypad encoding, separator handling, and matching.
 
 ### Planned native integrations
 
 - Full notification center with per-app grouping, notification opening and dismissal, and a clear permission/retention explanation.
-- Search providers for contacts and user-selected files, with explicit Android permissions and privacy controls.
+- Expand file search with optional user-selected folders and removable saved sources.
 - Optional compact Niagara home mode alongside the existing freeform home studio.
 - Pinned/favorite app groups and configurable app collections.
 - RSS/news briefing panel with user-managed feeds.
