@@ -105,7 +105,7 @@ data class LauncherSettings(
     val recentSearchesCsv: String = "",
     val iconPackOrderCsv: String = "",
     // Niagara Anycons & Black Icon Styling
-    val anyconsStyle: String = "NONE",
+    val anyconsStyle: String = "OUTLINE",
     val anyconsSourceMode: String = AnyconsConfig.SOURCE_GLYPHS,
     val anyconsColorMode: String = AnyconsConfig.COLOR_AUTO,
     val anyconsStrokeScale: Float = 1.0f,
@@ -462,7 +462,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: false,
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
         iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
-        anyconsStyle = prefs[Keys.ANYCONS_STYLE] ?: "NONE",
+        anyconsStyle = prefs[Keys.ANYCONS_STYLE] ?: "OUTLINE",
         anyconsSourceMode = prefs[Keys.ANYCONS_SOURCE_MODE] ?: AnyconsConfig.SOURCE_GLYPHS,
         anyconsColorMode = prefs[Keys.ANYCONS_COLOR_MODE] ?: AnyconsConfig.COLOR_AUTO,
         anyconsStrokeScale = prefs[Keys.ANYCONS_STROKE_SCALE] ?: 1.0f,
