@@ -30,7 +30,7 @@ cat > "$WORKSPACE_ROOT/TagDeck-Unified.code-workspace" <<'WORKSPACE'
     { "name": "tagdecktomerge", "path": "tagdecktomerge" },
     { "name": "tagdecktomerge2", "path": "tagdecktomerge2" },
     { "name": "tagdecktomerge3 (Cascade reference)", "path": "tagdecktomerge3" },
-    { "name": "my-niagara-clone", "path": "my-niagara-clone" },
+    { "name": "my-niagara-clone", "path": "my-niagara-clone" }
   ],
   "settings": {
     "search.exclude": {
