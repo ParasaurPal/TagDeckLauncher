@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import android.graphics.BitmapFactory
@@ -81,6 +82,7 @@ fun AppIconView(
     val context = LocalContext.current
     val shape = resolveIconShape(iconShapeKey, size)
     val lineProfile = LocalLineIconProfiles.current[app.packageName] ?: LocalDefaultLineIconProfile.current
+    val anyconsConfig = LocalAnyconsConfig.current
     val showNotificationBadges = LocalNotificationBadgesEnabled.current
     val notificationCounts by NotificationBadgeStore.counts.collectAsState()
     val notificationCount = if (showNotificationBadges) notificationCounts[app.packageName] ?: 0 else 0
@@ -155,6 +157,23 @@ fun AppIconView(
             }
         }
     }
+    val anyconsSource = lineDisplayedBitmap ?: displayedBitmap
+    val anyconsBitmap: ImageBitmap? by produceState(
+        initialValue = null,
+        anyconsSource,
+        anyconsConfig,
+    ) {
+        value = if (anyconsSource == null || anyconsConfig.style == "NONE") {
+            null
+        } else {
+            withContext(Dispatchers.Default) {
+                runCatching {
+                    AnyconsRenderer.render(anyconsSource.asAndroidBitmap(), anyconsConfig).asImageBitmap()
+                }.getOrNull()
+            }
+        }
+    }
+
     val bitmapKey = remember(app.packageName, app.componentName, iconPackOrder, packIcon != null, app.isInstalled) {
         if (packIcon != null) {
             "pack:${app.packageName}:${app.componentName}:${iconPackOrder.joinToString(",")}"
@@ -191,6 +210,19 @@ fun AppIconView(
         contentAlignment = Alignment.Center,
     ) {
         when {
+            anyconsBitmap != null -> {
+                Image(
+                    bitmap = anyconsBitmap!!,
+                    contentDescription = app.displayName,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = app.iconScale
+                            scaleY = app.iconScale
+                        },
+                )
+            }
             lineProfile != null && lineDisplayedBitmap != null -> {
                 Image(
                     bitmap = lineDisplayedBitmap!!,
