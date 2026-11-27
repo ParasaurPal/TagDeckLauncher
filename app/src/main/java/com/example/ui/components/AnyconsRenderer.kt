@@ -175,7 +175,7 @@ object AnyconsRenderer {
                 }
             }
         }
-        input.recycle()
+        if (input !== source) input.recycle()
         if (rendered !== out) out.recycle()
         synchronized(cache) { cache.put(key,rendered) }
         return rendered
