@@ -2154,7 +2154,8 @@ private fun EditableCanvasElementBox(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(3.dp)
-                        .testTag("element_coordinate_hud_${elem.elementId}"),
+                        .testTag("element_coordinate_hud_${elem.elementId}")
+                        .semantics(mergeDescendants = true) {},
                 ) {
                     val xPct = ((dragX / canvasWidthPx) * 100f).roundToInt().coerceIn(0, 100)
                     val yPct = ((dragY / canvasHeightPx) * 100f).roundToInt().coerceIn(0, 100)
