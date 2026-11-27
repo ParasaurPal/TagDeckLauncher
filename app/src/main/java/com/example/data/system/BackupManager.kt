@@ -362,6 +362,10 @@ object BackupManager {
         put("showNavBar", s.showNavBar)
         put("hapticFeedbackEnabled", s.hapticFeedbackEnabled)
         put("iconPackOrderCsv", s.iconPackOrderCsv)
+        put("anyconsStyle", s.anyconsStyle)
+        put("anyconsSourceMode", s.anyconsSourceMode)
+        put("anyconsColorMode", s.anyconsColorMode)
+        put("anyconsStrokeScale", s.anyconsStrokeScale.toDouble())
         put("blackIconStyleEnabled", s.blackIconStyleEnabled)
         put("blackIconMode", s.blackIconMode)
         put("blackIconFillColorHex", s.blackIconFillColorHex)
@@ -785,6 +789,10 @@ object BackupManager {
         showNavBar = so.optBoolean("showNavBar", true),
         hapticFeedbackEnabled = so.optBoolean("hapticFeedbackEnabled", true),
         iconPackOrderCsv = so.optString("iconPackOrderCsv", ""),
+        anyconsStyle = so.optString("anyconsStyle", "NONE"),
+        anyconsSourceMode = so.optString("anyconsSourceMode", com.example.ui.components.AnyconsConfig.SOURCE_GLYPHS),
+        anyconsColorMode = so.optString("anyconsColorMode", com.example.ui.components.AnyconsConfig.COLOR_AUTO),
+        anyconsStrokeScale = so.optDouble("anyconsStrokeScale", 1.0).toFloat(),
         blackIconStyleEnabled = so.optBoolean("blackIconStyleEnabled", true),
         blackIconMode = so.optString("blackIconMode", IconStyleConfig.MODE_BLACK_ICONS),
         blackIconFillColorHex = so.optLong("blackIconFillColorHex", IconStyleConfig.DEFAULT_FILL_COLOR_HEX),

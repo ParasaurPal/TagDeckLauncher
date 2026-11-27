@@ -104,8 +104,11 @@ data class LauncherSettings(
     val notificationsBadgeHint: Boolean = false,
     val recentSearchesCsv: String = "",
     val iconPackOrderCsv: String = "",
-    // Black Icon Styling (Default: white fill with crisp black outline)
+    // Niagara Anycons & Black Icon Styling
     val anyconsStyle: String = "NONE",
+    val anyconsSourceMode: String = AnyconsConfig.SOURCE_GLYPHS,
+    val anyconsColorMode: String = AnyconsConfig.COLOR_AUTO,
+    val anyconsStrokeScale: Float = 1.0f,
     val blackIconStyleEnabled: Boolean = true,
     val blackIconMode: String = IconStyleConfig.MODE_BLACK_ICONS, // BLACK_ICONS, ALL_MONOCHROME, ALL_ICONS_OUTLINE
     val blackIconFillColorHex: Long = IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
@@ -178,6 +181,18 @@ data class LauncherSettings(
         outlineColorHex = blackIconOutlineColorHex,
         outlineWidthDp = blackIconOutlineWidthDp,
         darknessThreshold = blackIconDarknessThreshold,
+    )
+
+    fun anyconsConfig(isDarkTheme: Boolean = themeMode != "LIGHT"): AnyconsConfig = AnyconsConfig(
+        style = anyconsStyle,
+        primaryColor = globalTextColorHex,
+        secondaryColor = secondaryColorHex,
+        accentColor = accentColorHex,
+        tertiaryColor = tertiaryColorHex,
+        isDarkTheme = isDarkTheme,
+        sourceMode = anyconsSourceMode,
+        colorMode = anyconsColorMode,
+        strokeScale = anyconsStrokeScale,
     )
 }
 
@@ -270,6 +285,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
         val ICON_PACK_ORDER_CSV = stringPreferencesKey("icon_pack_order_csv")
         val ANYCONS_STYLE = stringPreferencesKey("anycons_style")
+        val ANYCONS_SOURCE_MODE = stringPreferencesKey("anycons_source_mode")
+        val ANYCONS_COLOR_MODE = stringPreferencesKey("anycons_color_mode")
+        val ANYCONS_STROKE_SCALE = floatPreferencesKey("anycons_stroke_scale")
         val BLACK_ICON_STYLE_ENABLED = booleanPreferencesKey("black_icon_style_enabled")
         val BLACK_ICON_MODE = stringPreferencesKey("black_icon_mode")
         val BLACK_ICON_FILL_COLOR = longPreferencesKey("black_icon_fill_color")
@@ -402,6 +420,9 @@ class LauncherPreferencesRepository(private val context: Context) {
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
         iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
         anyconsStyle = prefs[Keys.ANYCONS_STYLE] ?: "NONE",
+        anyconsSourceMode = prefs[Keys.ANYCONS_SOURCE_MODE] ?: AnyconsConfig.SOURCE_GLYPHS,
+        anyconsColorMode = prefs[Keys.ANYCONS_COLOR_MODE] ?: AnyconsConfig.COLOR_AUTO,
+        anyconsStrokeScale = prefs[Keys.ANYCONS_STROKE_SCALE] ?: 1.0f,
         blackIconStyleEnabled = prefs[Keys.BLACK_ICON_STYLE_ENABLED] ?: true,
         blackIconMode = prefs[Keys.BLACK_ICON_MODE] ?: IconStyleConfig.MODE_BLACK_ICONS,
         blackIconFillColorHex = prefs[Keys.BLACK_ICON_FILL_COLOR] ?: IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
@@ -547,6 +568,9 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.RECENT_SEARCHES] = updated.recentSearchesCsv
             prefs[Keys.ICON_PACK_ORDER_CSV] = updated.iconPackOrderCsv
             prefs[Keys.ANYCONS_STYLE] = updated.anyconsStyle
+            prefs[Keys.ANYCONS_SOURCE_MODE] = updated.anyconsSourceMode
+            prefs[Keys.ANYCONS_COLOR_MODE] = updated.anyconsColorMode
+            prefs[Keys.ANYCONS_STROKE_SCALE] = updated.anyconsStrokeScale.coerceIn(0.65f, 1.6f)
             prefs[Keys.BLACK_ICON_STYLE_ENABLED] = updated.blackIconStyleEnabled
             prefs[Keys.BLACK_ICON_MODE] = updated.blackIconMode
             prefs[Keys.BLACK_ICON_FILL_COLOR] = updated.blackIconFillColorHex

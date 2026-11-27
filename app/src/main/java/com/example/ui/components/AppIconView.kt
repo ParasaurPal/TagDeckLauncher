@@ -184,28 +184,58 @@ fun AppIconView(
                 ?: IconOutlineProcessor.processImageBitmap(bitmapKey, rawBitmap, iconStyle)
         }
     }
-    val anyconsSource = lineDisplayedBitmap ?: customLineSource ?: displayedBitmap
+    val adaptiveForeground: ImageBitmap? by produceState(
+        initialValue = null,
+        app.packageName,
+        anyconsConfig.style,
+        anyconsConfig.sourceMode,
+    ) {
+        value = if (anyconsConfig.style == "NONE" || anyconsConfig.sourceMode == AnyconsConfig.SOURCE_GLYPHS) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                appDiscovery.getAdaptiveForegroundBitmap(app.packageName)
+            }
+        }
+    }
+    val rawAnyconsSource = lineDisplayedBitmap ?: customLineSource ?: rawBitmap
     val anyconsBitmap: ImageBitmap? by produceState(
         initialValue = null,
-        anyconsSource,
+        app.packageName,
+        app.displayName,
+        app.primaryCategoryId,
+        rawAnyconsSource,
+        adaptiveForeground,
         anyconsConfig,
     ) {
-        value = if (anyconsSource == null || anyconsConfig.style == "NONE") {
+        value = if (anyconsConfig.style == "NONE") {
             null
         } else {
             withContext(Dispatchers.Default) {
                 runCatching {
-                    AnyconsRenderer.render(anyconsSource.asAndroidBitmap(), anyconsConfig).asImageBitmap()
+                    AnyconsRenderer.renderForApp(
+                        packageName = app.packageName,
+                        appName = app.displayName,
+                        categoryId = app.primaryCategoryId,
+                        sourceBitmap = rawAnyconsSource?.asAndroidBitmap(),
+                        foregroundBitmap = adaptiveForeground?.asAndroidBitmap(),
+                        config = anyconsConfig,
+                    )?.asImageBitmap()
                 }.getOrNull()
             }
         }
     }
 
+    val appliedShape = if (anyconsBitmap != null && AnyconsRenderer.isFreeformStyle(anyconsConfig.style)) {
+        androidx.compose.ui.graphics.RectangleShape
+    } else {
+        shape
+    }
 
     Box(
         modifier = modifier
             .size(size)
-            .clip(shape)
+            .clip(appliedShape)
             .alpha(app.iconAlpha.coerceIn(0.1f, 1f)),
         contentAlignment = Alignment.Center,
     ) {

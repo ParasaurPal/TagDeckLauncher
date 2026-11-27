@@ -26,6 +26,7 @@ object LauncherSettingsCatalog {
     const val SECTION_CUSTOM_FONTS_READABILITY = "custom_fonts_readability"
     const val SECTION_PALETTE_SURFACES = "palette_surfaces"
     const val SECTION_ICON_PACKS = "icon_packs"
+    const val SECTION_ANYCONS = "anycons"
     const val SECTION_LINE_ICONS = "line_icons"
     const val SECTION_BLACK_ICONS = "black_icons"
     const val SECTION_BLACK_ICON_COLORS = "black_icon_colors"
@@ -116,6 +117,15 @@ object LauncherSettingsCatalog {
             keywords = listOf("icons", "packs", "priority", "theme", "line icons", "monochrome"),
             entries = listOf(
                 entry("icon_pack_order", SECTION_ICON_PACKS, "Active Icon Pack Hierarchy", "Reorder installed icon packs or rescan ADW/Nova packs; line-icon editing also works on pack artwork", listOf("icon pack", "apk", "priority", "order", "rescan", "adw", "nova", "line icon", "monochrome")),
+            ),
+        ),
+        section(
+            id = SECTION_ANYCONS,
+            title = "Anycons Icon Styles",
+            keywords = listOf("anycons", "niagara", "outline", "material", "sticker", "marble", "watercolor", "bright", "stellar", "chroma", "dots", "doodle", "clicks", "minimalist", "glyphs"),
+            entries = listOf(
+                entry("anycons_style", SECTION_ANYCONS, "Niagara-Style Anycons Collections", "Apply Outline, Material, Sticker, Marble, Watercolor, Bright, Stellar, Outline Chroma, Dots, Doodle, or Clicks icons", listOf("anycons", "niagara", "outline", "material", "sticker", "marble", "watercolor", "bright", "stellar", "chroma", "dots", "doodle", "clicks")),
+                entry("anycons_customization", SECTION_ANYCONS, "Anycons Glyph Source, Color & Stroke", "Switch between minimalist glyphs, hybrid, or app artwork and tune color mode and stroke weight", listOf("glyphs", "app artwork", "hybrid", "stroke", "tint", "color")),
             ),
         ),
         section(

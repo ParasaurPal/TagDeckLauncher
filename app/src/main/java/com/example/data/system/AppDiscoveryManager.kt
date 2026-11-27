@@ -11,6 +11,9 @@ import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -21,6 +24,9 @@ import android.os.UserManager
 import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +48,7 @@ class AppDiscoveryManager(val context: Context) {
         context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
 
     private val iconCache = ConcurrentHashMap<String, ImageBitmap>()
+    private val foregroundCache = ConcurrentHashMap<String, ImageBitmap>()
     val iconPackManager: IconPackManager = IconPackManager(context)
 
     suspend fun discoverLaunchableApps(): List<DiscoveredApp> = withContext(Dispatchers.IO) {
@@ -147,12 +154,24 @@ class AppDiscoveryManager(val context: Context) {
         }
     }
 
+    fun getAdaptiveForegroundBitmap(packageName: String): ImageBitmap? {
+        foregroundCache[packageName]?.let { return it }
+        return try {
+            val drawable = packageManager.getApplicationIcon(packageName)
+            extractForegroundBitmap(drawable)?.asImageBitmap()?.also { foregroundCache[packageName] = it }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun invalidatePackageIcon(packageName: String) {
         if (packageName == "batch") {
             iconCache.clear()
+            foregroundCache.clear()
             iconPackManager.clearAllCaches()
         } else {
             iconCache.remove(packageName)
+            foregroundCache.remove(packageName)
             iconPackManager.invalidatePackage(packageName)
         }
     }
@@ -386,5 +405,64 @@ class AppDiscoveryManager(val context: Context) {
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun extractForegroundBitmap(drawable: Drawable): Bitmap? {
+        val size = 192
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && drawable is AdaptiveIconDrawable) {
+                val fg = drawable.foreground
+                if (fg != null) {
+                    val raw = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(raw)
+                    // Adaptive foregrounds place the artwork inside the central 72/108 safe zone.
+                    val inset = -(size * 0.22f).toInt()
+                    fg.setBounds(inset, inset, size - inset, size - inset)
+                    fg.draw(canvas)
+                    return trimAndCenterTransparentBitmap(raw, size)
+                }
+            }
+            val base = drawableToBitmap(drawable) ?: return null
+            val soft = if (base.config != Bitmap.Config.ARGB_8888) {
+                base.copy(Bitmap.Config.ARGB_8888, false) ?: base
+            } else base
+            return trimAndCenterTransparentBitmap(soft, size)
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    private fun trimAndCenterTransparentBitmap(src: Bitmap, targetSize: Int): Bitmap {
+        val w = src.width
+        val h = src.height
+        val pixels = IntArray(w * h)
+        src.getPixels(pixels, 0, w, 0, 0, w, h)
+        var minX = w; var minY = h; var maxX = -1; var maxY = -1
+        for (y in 0 until h) {
+            val row = y * w
+            for (x in 0 until w) {
+                if (((pixels[row + x] ushr 24) and 0xFF) >= 18) {
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                    if (y < minY) minY = y
+                    if (y > maxY) maxY = y
+                }
+            }
+        }
+        if (maxX < minX || maxY < minY) return src
+        val contentW = (maxX - minX + 1).coerceAtLeast(1)
+        val contentH = (maxY - minY + 1).coerceAtLeast(1)
+        val out = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val pad = (targetSize * 0.12f).toInt()
+        val avail = (targetSize - pad * 2).coerceAtLeast(1)
+        val scale = min(avail.toFloat() / contentW, avail.toFloat() / contentH)
+        val dstW = (contentW * scale).toInt().coerceAtLeast(1)
+        val dstH = (contentH * scale).toInt().coerceAtLeast(1)
+        val left = (targetSize - dstW) / 2
+        val top = (targetSize - dstH) / 2
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        canvas.drawBitmap(src, Rect(minX, minY, maxX + 1, maxY + 1), Rect(left, top, left + dstW, top + dstH), paint)
+        return out
     }
 }

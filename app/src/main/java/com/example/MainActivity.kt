@@ -336,10 +336,16 @@ private fun TagDeckRoot(
         },
     )
 
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val resolvedDarkTheme = when (state.settings.themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> systemDark
+    }
     CompositionLocalProvider(
         LocalIconPackOrder provides state.settings.iconPackOrder(),
         LocalIconStyleConfig provides state.settings.iconStyleConfig(),
-        LocalAnyconsConfig provides AnyconsConfig(style = state.settings.anyconsStyle),
+        LocalAnyconsConfig provides state.settings.anyconsConfig(isDarkTheme = resolvedDarkTheme),
         LocalNotificationBadgesEnabled provides state.settings.notificationsBadgeHint,
         LocalLineIconProfiles provides remember(state.settings.lineIconProfilesJson) { LineIconProfile.decodeMap(state.settings.lineIconProfilesJson) },
         LocalDefaultLineIconProfile provides if (state.settings.lineIconsEnabled) state.settings.defaultLineIconProfile() else null,

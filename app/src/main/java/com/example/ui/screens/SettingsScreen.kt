@@ -117,6 +117,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -130,6 +131,8 @@ import com.example.data.prefs.LauncherSettings
 import com.example.data.system.AppDiscoveryManager
 import com.example.data.system.NotificationAccess
 import com.example.data.system.CloudBackupScheduler
+import com.example.ui.components.AnyconsConfig
+import com.example.ui.components.AnyconsRenderer
 import com.example.ui.components.BackgroundPresetDialog
 import com.example.ui.components.CategoryEditorDialog
 import com.example.ui.components.ColorSwatchRow
@@ -411,8 +414,19 @@ fun SettingsScreen(
         gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet {
+                val drawerClosed = settingsDrawerState.isClosed && !settingsDrawerState.isAnimationRunning
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 18.dp)
+                        .then(
+                            if (drawerClosed) {
+                                Modifier.clearAndSetSemantics {}
+                            } else {
+                                Modifier
+                            }
+                        ),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text("SETTINGS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
@@ -1095,22 +1109,32 @@ fun SettingsScreen(
                 }
             }
 
-            // Niagara Anycons-inspired icon collection
-            item(key = "anycons_icon_styles") {
-                SettingsCard(
-                    title = "Anycons Icon Styles",
-                    icon = Icons.Rounded.Contrast,
-                ) {
-                    Text(
-                        "Apply a unified visual treatment to app icons. Choose a style to preview it across the launcher.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    @OptIn(ExperimentalLayoutApi::class)
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+            // Niagara Anycons icon collection
+            if (LauncherSettingsCatalog.SECTION_ANYCONS in matchingSections) {
+                item(key = "anycons_icon_styles") {
+                    val sampleApps = remember {
+                        listOf(
+                            Triple("com.google.android.dialer", "Phone", 7L),
+                            Triple("com.google.android.apps.messaging", "Messages", 7L),
+                            Triple("com.android.camera", "Camera", 24L),
+                            Triple("com.spotify.music", "Music", 20L),
+                            Triple("com.android.chrome", "Browser", 29L),
+                        )
+                    }
+                    val currentAnyconsCfg = remember(
+                        s.anyconsStyle,
+                        s.anyconsSourceMode,
+                        s.anyconsColorMode,
+                        s.anyconsStrokeScale,
+                        s.accentColorHex,
+                        s.secondaryColorHex,
+                        s.tertiaryColorHex,
+                        s.globalTextColorHex,
+                        s.themeMode,
                     ) {
+                        s.anyconsConfig(isDarkTheme = s.themeMode != "LIGHT")
+                    }
+                    val anyconsStyleSpecs = remember {
                         listOf(
                             "NONE" to "Original",
                             "OUTLINE" to "Outline",
@@ -1124,20 +1148,196 @@ fun SettingsScreen(
                             "DOTS" to "Dots",
                             "DOODLE" to "Doodle",
                             "CLICKS" to "Clicks",
-                        ).forEach { (key, label) ->
-                            FilterChip(
-                                selected = s.anyconsStyle == key,
-                                onClick = { onUpdateSettings { it.copy(anyconsStyle = key) } },
-                                label = { Text(label) },
-                                modifier = Modifier.testTag("anycons_style_$key"),
-                            )
+                        )
+                    }
+                    val liveStripBitmaps by produceState<List<androidx.compose.ui.graphics.ImageBitmap?>>(
+                        initialValue = List(sampleApps.size) { null },
+                        currentAnyconsCfg,
+                    ) {
+                        value = if (currentAnyconsCfg.style == "NONE") {
+                            List(sampleApps.size) { null }
+                        } else {
+                            withContext(Dispatchers.Default) {
+                                sampleApps.map { (pkg, label, catId) ->
+                                    AnyconsRenderer.renderForApp(
+                                        packageName = pkg,
+                                        appName = label,
+                                        categoryId = catId,
+                                        sourceBitmap = null,
+                                        foregroundBitmap = null,
+                                        config = currentAnyconsCfg.copy(sourceMode = AnyconsConfig.SOURCE_GLYPHS),
+                                    )?.asImageBitmap()
+                                }
+                            }
                         }
                     }
-                    Text(
-                        "Styles are rendered from the selected app or icon-pack artwork. Original artwork and custom icon assignments remain available.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+
+                    SettingsCard(
+                        title = "Anycons Icon Styles",
+                        icon = Icons.Rounded.Contrast,
+                        matchedEntries = if (searchQuery.isNotBlank()) {
+                            matchingSections[LauncherSettingsCatalog.SECTION_ANYCONS].orEmpty()
+                        } else emptyList(),
+                    ) {
+                        Text(
+                            "Niagara-inspired minimalist icon collections with unified glyphs, borders, textures, and color treatments.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        if (s.anyconsStyle != "NONE") {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (s.themeMode == "LIGHT") Color(0xFFE2E8F0) else Color(0xFF0F172A),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    sampleApps.forEachIndexed { idx, (_, label, _) ->
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        ) {
+                                            val bmp = liveStripBitmaps.getOrNull(idx)
+                                            if (bmp != null) {
+                                                Image(
+                                                    bitmap = bmp,
+                                                    contentDescription = "$label preview",
+                                                    modifier = Modifier.size(40.dp),
+                                                )
+                                            } else {
+                                                Box(modifier = Modifier.size(40.dp))
+                                            }
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (s.themeMode == "LIGHT") Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                                                maxLines = 1,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            anyconsStyleSpecs.forEach { (key, label) ->
+                                val chipPreview by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                                    initialValue = null,
+                                    key,
+                                    s.themeMode,
+                                    s.accentColorHex,
+                                ) {
+                                    value = if (key == "NONE") {
+                                        null
+                                    } else {
+                                        withContext(Dispatchers.Default) {
+                                            AnyconsRenderer.renderForApp(
+                                                packageName = "com.android.camera",
+                                                appName = "Camera",
+                                                categoryId = 24L,
+                                                sourceBitmap = null,
+                                                foregroundBitmap = null,
+                                                config = currentAnyconsCfg.copy(
+                                                    style = key,
+                                                    sourceMode = AnyconsConfig.SOURCE_GLYPHS,
+                                                ),
+                                            )?.asImageBitmap()
+                                        }
+                                    }
+                                }
+                                FilterChip(
+                                    selected = s.anyconsStyle == key,
+                                    onClick = { onUpdateSettings { it.copy(anyconsStyle = key) } },
+                                    leadingIcon = chipPreview?.let { bmp ->
+                                        {
+                                            Image(
+                                                bitmap = bmp,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    },
+                                    label = { Text(label) },
+                                    modifier = Modifier.testTag("anycons_style_$key"),
+                                )
+                            }
+                        }
+
+                        if (s.anyconsStyle != "NONE") {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Text("Icon Source", style = MaterialTheme.typography.labelLarge)
+                            @OptIn(ExperimentalLayoutApi::class)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                listOf(
+                                    AnyconsConfig.SOURCE_GLYPHS to "Minimalist Glyphs",
+                                    AnyconsConfig.SOURCE_HYBRID to "Hybrid",
+                                    AnyconsConfig.SOURCE_APP_ARTWORK to "App Artwork",
+                                ).forEach { (srcKey, srcLabel) ->
+                                    FilterChip(
+                                        selected = s.anyconsSourceMode == srcKey,
+                                        onClick = { onUpdateSettings { it.copy(anyconsSourceMode = srcKey) } },
+                                        label = { Text(srcLabel) },
+                                        modifier = Modifier.testTag("anycons_source_$srcKey"),
+                                    )
+                                }
+                            }
+
+                            Text("Color Treatment", style = MaterialTheme.typography.labelLarge)
+                            @OptIn(ExperimentalLayoutApi::class)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                listOf(
+                                    AnyconsConfig.COLOR_AUTO to "Auto",
+                                    AnyconsConfig.COLOR_WHITE to "White",
+                                    AnyconsConfig.COLOR_BLACK to "Black",
+                                    AnyconsConfig.COLOR_ACCENT to "Accent",
+                                    AnyconsConfig.COLOR_VIBRANT to "Vibrant",
+                                ).forEach { (colKey, colLabel) ->
+                                    FilterChip(
+                                        selected = s.anyconsColorMode == colKey,
+                                        onClick = { onUpdateSettings { it.copy(anyconsColorMode = colKey) } },
+                                        label = { Text(colLabel) },
+                                        modifier = Modifier.testTag("anycons_color_$colKey"),
+                                    )
+                                }
+                            }
+
+                            Text(
+                                "Stroke & Border Weight: ${"%.2f".format(s.anyconsStrokeScale)}x",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            Slider(
+                                value = s.anyconsStrokeScale,
+                                onValueChange = { value ->
+                                    onUpdateSettings { it.copy(anyconsStrokeScale = value.coerceIn(0.65f, 1.6f)) }
+                                },
+                                valueRange = 0.65f..1.6f,
+                            )
+                        }
+
+                        Text(
+                            "Minimalist Glyphs match Niagara's uniform vector style across apps and Play categories; switch to Hybrid or App Artwork to style adaptive foregrounds directly.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
