@@ -645,6 +645,7 @@ fun HomeElementBody(
             modifier = Modifier
                 .fillMaxSize()
                 .then(gestureMod)
+                .testTag("home_element_content_${element.elementId}")
                 .semantics {
                     if (handlesPointerGestures) {
                         onClick {
