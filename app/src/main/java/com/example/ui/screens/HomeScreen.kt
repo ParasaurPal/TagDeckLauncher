@@ -2105,8 +2105,7 @@ private fun EditableCanvasElementBox(
                     )
                 } else Modifier
             )
-            .testTag("home_element_${elem.elementId}")
-            .then(if (!state.isEditMode) Modifier.semantics(mergeDescendants = true) {} else Modifier),
+            .testTag("home_element_${elem.elementId}"),
     ) {
         HomeElementBody(
             element = elem,
