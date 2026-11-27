@@ -474,7 +474,8 @@ fun HomeElementBody(
         if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
         when (element.type) {
             "APP_SHORTCUT" -> {
-                if (!onElementTrigger(element, "TAP")) {
+                val tapActionHandled = "TAP" in configuredTriggers && onElementTrigger(element, "TAP")
+                if (!tapActionHandled) {
                     val targetApp = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
                     targetApp?.let { app ->
                         val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
@@ -493,7 +494,8 @@ fun HomeElementBody(
                 onElementTrigger(element, "TAP")
             }
             "TAG_SHORTCUT" -> {
-                if (!onElementTrigger(element, "TAP")) {
+                val tapActionHandled = "TAP" in configuredTriggers && onElementTrigger(element, "TAP")
+                if (!tapActionHandled) {
                     element.targetTagId?.let { onOpenTagSidebar(it) }
                 }
             }
