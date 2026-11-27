@@ -360,7 +360,7 @@ class TotalLauncherFeaturesAndGesturesTest {
         assertTrue("77:LONG_PRESS" in triggeredElementEvents)
 
         // Single tap falls back to primary shortcut launch
-        composeRule.onNodeWithTag("home_element_77").performTouchInput { click() }
+        composeRule.onNodeWithTag("home_element_77").performTouchInput { down(center); up() }
         composeRule.waitForIdle()
         assertTrue("com.spotify.music" in launchedPkgs)
 
