@@ -93,8 +93,8 @@ class TotalLauncherFeaturesAndGesturesTest {
             prefsRepo = LauncherPreferencesRepository(context),
         )
 
-        val focusTagId = dao.upsertTag(TagEntity(name = "Focus", colorHex = 0xFF38BDF8L))
-        val socialTagId = dao.upsertTag(TagEntity(name = "Social", colorHex = 0xFFFB7185L))
+        val focusTagId = dao.insertTag(TagEntity(name = "Focus", colorHex = 0xFF38BDF8L))
+        val socialTagId = dao.insertTag(TagEntity(name = "Social", colorHex = 0xFFFB7185L))
         dao.upsertApps(
             listOf(
                 AppEntity(packageName = "com.notes.app", appName = "Notes"),
@@ -129,7 +129,7 @@ class TotalLauncherFeaturesAndGesturesTest {
         val tagSidebars = repo.tagTriggeredSidebarsFlow.first()
         assertEquals(1, tagSidebars.size)
         assertEquals("TAG", tagSidebars.first().sourceType)
-        assertEquals(focusTagId, tagSidebars.first().sourceId)
+        assertEquals(focusTagId, tagSidebars.first().targetTagId)
         assertEquals("RIGHT", tagSidebars.first().side)
     }
 
