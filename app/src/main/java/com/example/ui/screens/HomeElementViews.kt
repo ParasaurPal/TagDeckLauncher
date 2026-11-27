@@ -650,7 +650,7 @@ fun HomeElementBody(
                     testTag = "home_element_content_${element.elementId}"
                     if (handlesPointerGestures) {
                         onClick {
-                            latestPrimaryTap()
+                            firePrimaryTap()
                             true
                         }
                     }
