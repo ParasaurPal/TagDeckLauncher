@@ -478,6 +478,14 @@ fun HomeElementBody(
                 val tapActionHandled = "TAP" in configuredTriggers && onElementTrigger(element, "TAP")
                 if (!tapActionHandled) {
                     val targetApp = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
+                        ?: element.targetPackageName
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { packageName ->
+                                AppEntity(
+                                    packageName = packageName,
+                                    appName = element.label.ifBlank { packageName.substringAfterLast('.') },
+                                )
+                            }
                     targetApp?.let { app ->
                         val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
                         val isLocked = app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
