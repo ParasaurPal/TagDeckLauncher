@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.data.system.QuickMathEvaluator
 import com.example.data.db.AppEntity
 import com.example.data.system.AppDiscoveryManager
 import com.example.ui.screens.LauncherSettingsCatalog
@@ -128,6 +129,7 @@ fun UniversalSearchOverlay(
         }
 
         val q = query.trim().lowercase()
+        val mathResult = remember(query) { QuickMathEvaluator.evaluate(query) }
         val tokens = remember(q) { LauncherSettingsCatalog.tokenize(q) }
 
         val recentSearches = remember(state.settings.recentSearchesCsv) {
@@ -432,6 +434,20 @@ fun UniversalSearchOverlay(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f).testTag("universal_search_results"),
                 ) {
+                    if (mathResult != null && activeScope in setOf("ALL", "APPS")) {
+                        item(key = "quick_math_result") {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("Calculator", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    Text("$query = $mathResult", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                }
+                            }
+                        }
+                    }
                     if (q.isEmpty() && activeScope == "ALL" && recentSearches.isNotEmpty()) {
                         item {
                             Row(
