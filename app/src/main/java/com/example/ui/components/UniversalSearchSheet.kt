@@ -216,9 +216,18 @@ fun UniversalSearchOverlay(
                     append(item.app.packageName.lowercase()).append(' ')
                     item.tags.forEach { append(it.name.lowercase()).append(' ') }
                 }
-                tokens.all { hay.contains(it) }
-            }.sortedBy { !it.app.displayName.lowercase().startsWith(q) }
-                .take(18)
+                if (q.isNotEmpty() && q.all(Char::isDigit)) {
+                    T9Search.matches(q, item.app.displayName, item.app.appName, item.app.packageName) ||
+                        item.tags.any { T9Search.matches(q, it.name) }
+                } else {
+                    tokens.all { hay.contains(it) }
+                }
+            }.sortedWith(
+                compareBy< com.example.data.db.AppWithTags > { item ->
+                    if (q.isNotEmpty() && q.all(Char::isDigit) &&
+                        T9Search.encode(item.app.displayName).startsWith(q)) 0 else 1
+                }.thenBy { !it.app.displayName.lowercase().startsWith(q) }
+            ).take(18)
         }
 
         val matchingSettings = remember(q, activeScope) {
