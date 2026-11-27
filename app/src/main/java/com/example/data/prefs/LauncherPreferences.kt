@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.ui.components.IconStyleConfig
+import com.example.ui.components.AnyconsConfig
 import com.example.data.system.LineIconProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -104,6 +105,7 @@ data class LauncherSettings(
     val recentSearchesCsv: String = "",
     val iconPackOrderCsv: String = "",
     // Black Icon Styling (Default: white fill with crisp black outline)
+    val anyconsStyle: String = "NONE",
     val blackIconStyleEnabled: Boolean = true,
     val blackIconMode: String = IconStyleConfig.MODE_BLACK_ICONS, // BLACK_ICONS, ALL_MONOCHROME, ALL_ICONS_OUTLINE
     val blackIconFillColorHex: Long = IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
@@ -267,6 +269,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         val NOTIFICATIONS_BADGE = booleanPreferencesKey("notifications_badge")
         val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
         val ICON_PACK_ORDER_CSV = stringPreferencesKey("icon_pack_order_csv")
+        val ANYCONS_STYLE = stringPreferencesKey("anycons_style")
         val BLACK_ICON_STYLE_ENABLED = booleanPreferencesKey("black_icon_style_enabled")
         val BLACK_ICON_MODE = stringPreferencesKey("black_icon_mode")
         val BLACK_ICON_FILL_COLOR = longPreferencesKey("black_icon_fill_color")
@@ -398,6 +401,7 @@ class LauncherPreferencesRepository(private val context: Context) {
         notificationsBadgeHint = prefs[Keys.NOTIFICATIONS_BADGE] ?: false,
         recentSearchesCsv = prefs[Keys.RECENT_SEARCHES] ?: "",
         iconPackOrderCsv = prefs[Keys.ICON_PACK_ORDER_CSV] ?: "",
+        anyconsStyle = prefs[Keys.ANYCONS_STYLE] ?: "NONE",
         blackIconStyleEnabled = prefs[Keys.BLACK_ICON_STYLE_ENABLED] ?: true,
         blackIconMode = prefs[Keys.BLACK_ICON_MODE] ?: IconStyleConfig.MODE_BLACK_ICONS,
         blackIconFillColorHex = prefs[Keys.BLACK_ICON_FILL_COLOR] ?: IconStyleConfig.DEFAULT_FILL_COLOR_HEX,
@@ -542,6 +546,7 @@ class LauncherPreferencesRepository(private val context: Context) {
             prefs[Keys.NOTIFICATIONS_BADGE] = updated.notificationsBadgeHint
             prefs[Keys.RECENT_SEARCHES] = updated.recentSearchesCsv
             prefs[Keys.ICON_PACK_ORDER_CSV] = updated.iconPackOrderCsv
+            prefs[Keys.ANYCONS_STYLE] = updated.anyconsStyle
             prefs[Keys.BLACK_ICON_STYLE_ENABLED] = updated.blackIconStyleEnabled
             prefs[Keys.BLACK_ICON_MODE] = updated.blackIconMode
             prefs[Keys.BLACK_ICON_FILL_COLOR] = updated.blackIconFillColorHex
