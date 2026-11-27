@@ -296,7 +296,10 @@ class TotalLauncherFeaturesAndGesturesTest {
                     appDiscovery = appDiscovery,
                     widgetHost = widgetHost,
                     onImportImage = { _, _, _ -> null },
-                    onLaunchApp = { launchedPkgs += it.packageName },
+                    onLaunchApp = {
+                        println("SHORTCUT_LAUNCH_CALLBACK=${it.packageName}")
+                        launchedPkgs += it.packageName
+                    },
                     onOpenTagSidebar = {},
                     onOpenCategorySidebar = {},
                     onOpenConfiguredSidebar = {},
@@ -323,6 +326,7 @@ class TotalLauncherFeaturesAndGesturesTest {
                     onSendBackward = {},
                     onDeleteElement = {},
                     onExecuteElementAction = { el, trig, _ ->
+                        println("ELEMENT_TRIGGER=${el.elementId}:$trig")
                         triggeredElementEvents += "${el.elementId}:$trig"
                         true
                     },
