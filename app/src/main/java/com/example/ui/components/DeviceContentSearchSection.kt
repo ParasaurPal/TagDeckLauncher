@@ -82,6 +82,24 @@ fun DeviceContentSearchSection(query: String, scope: String) {
                 runCatching {
                     val result = mutableListOf<DeviceContactResult>()
                     val resolver = context.contentResolver
+                    // Read phone rows once, rather than issuing one provider query per contact.
+                    val phonesByContact = mutableMapOf<Long, MutableList<String>>()
+                    resolver.query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        arrayOf(
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                            ContactsContract.CommonDataKinds.Phone.NUMBER,
+                        ),
+                        null, null, null,
+                    )?.use { phoneCursor ->
+                        val contactIdCol = phoneCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+                        val numberCol = phoneCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                        while (phoneCursor.moveToNext()) {
+                            val contactId = phoneCursor.getLong(contactIdCol)
+                            val number = phoneCursor.getString(numberCol).orEmpty()
+                            phonesByContact.getOrPut(contactId) { mutableListOf() }.add(number)
+                        }
+                    }
                     resolver.query(
                         ContactsContract.Contacts.CONTENT_URI,
                         arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.LOOKUP_KEY,
@@ -97,15 +115,7 @@ fun DeviceContentSearchSection(query: String, scope: String) {
                             val key = cursor.getString(keyCol) ?: continue
                             val name = cursor.getString(nameCol) ?: continue
                             val phones = if (cursor.getInt(phoneCol) > 0) {
-                                resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                                    arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",
-                                    arrayOf(id.toString()), null)?.use { phoneCursor ->
-                                    buildList {
-                                        val numberCol = phoneCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                                        while (phoneCursor.moveToNext()) add(phoneCursor.getString(numberCol).orEmpty())
-                                    }
-                                }.orEmpty()
+                                phonesByContact[id].orEmpty()
                             } else emptyList()
                             val matches = if (query.all { it.isDigit() }) {
                                 T9Search.matches(query, name) || phones.any { T9Search.matches(query, it) }
