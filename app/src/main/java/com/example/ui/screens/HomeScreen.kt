@@ -103,6 +103,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -2152,7 +2153,8 @@ private fun EditableCanvasElementBox(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(3.dp)
-                        .testTag("element_coordinate_hud_${elem.elementId}"),
+                        .testTag("element_coordinate_hud_${elem.elementId}")
+                        .semantics(mergeDescendants = true) {},
                 ) {
                     val xPct = ((dragX / canvasWidthPx) * 100f).roundToInt().coerceIn(0, 100)
                     val yPct = ((dragY / canvasHeightPx) * 100f).roundToInt().coerceIn(0, 100)

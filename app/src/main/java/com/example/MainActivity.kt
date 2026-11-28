@@ -71,6 +71,7 @@ import com.example.ui.components.LocalReadabilityConfig
 import com.example.ui.components.ReadabilityConfig
 import com.example.ui.components.TagEditorDialog
 import com.example.ui.components.UniversalSearchOverlay
+import com.example.ui.components.NotificationCenterOverlay
 import com.example.ui.components.rememberAppDragToDesktopController
 import com.example.ui.screens.AppManagerScreen
 import com.example.ui.screens.HomeElementBody
@@ -240,6 +241,7 @@ private fun TagDeckRoot(
     navController: NavHostController,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showNotificationCenter by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.snackbarMessage) {
@@ -681,6 +683,11 @@ private fun TagDeckRoot(
             onOpenDrawer = { viewModel.setDrawerOpen(true) },
             onToggleEditMode = { viewModel.setEditMode(true) },
             onConsumePendingQuery = { viewModel.consumePendingGlobalSearchQuery() },
+        )
+
+        NotificationCenterOverlay(
+            visible = showNotificationCenter,
+            onVisibleChange = { showNotificationCenter = it },
         )
 
         // Tag, Play Category, 4-Edge Configured Sidebars, Nested Folders & Independent Windows

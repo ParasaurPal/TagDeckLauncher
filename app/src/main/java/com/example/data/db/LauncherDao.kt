@@ -178,7 +178,7 @@ interface LauncherDao {
         """
         SELECT a.* FROM apps a
         INNER JOIN app_tags at ON a.packageName = at.packageName
-        WHERE at.tagId = :tagId AND a.isInstalled = 1
+        WHERE at.tagId = :tagId AND a.isInstalled = 1 AND a.hidden = 0
         ORDER BY a.appName COLLATE NOCASE ASC
         """
     )

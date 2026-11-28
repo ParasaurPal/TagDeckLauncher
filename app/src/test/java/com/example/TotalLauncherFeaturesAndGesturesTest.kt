@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.hasTestTag
@@ -93,8 +94,8 @@ class TotalLauncherFeaturesAndGesturesTest {
             prefsRepo = LauncherPreferencesRepository(context),
         )
 
-        val focusTagId = dao.upsertTag(TagEntity(name = "Focus", colorHex = 0xFF38BDF8L))
-        val socialTagId = dao.upsertTag(TagEntity(name = "Social", colorHex = 0xFFFB7185L))
+        val focusTagId = dao.insertTag(TagEntity(name = "Focus", colorHex = 0xFF38BDF8L))
+        val socialTagId = dao.insertTag(TagEntity(name = "Social", colorHex = 0xFFFB7185L))
         dao.upsertApps(
             listOf(
                 AppEntity(packageName = "com.notes.app", appName = "Notes"),
@@ -129,7 +130,7 @@ class TotalLauncherFeaturesAndGesturesTest {
         val tagSidebars = repo.tagTriggeredSidebarsFlow.first()
         assertEquals(1, tagSidebars.size)
         assertEquals("TAG", tagSidebars.first().sourceType)
-        assertEquals(focusTagId, tagSidebars.first().sourceId)
+        assertEquals(focusTagId, tagSidebars.first().targetTagId)
         assertEquals("RIGHT", tagSidebars.first().side)
     }
 
@@ -295,7 +296,10 @@ class TotalLauncherFeaturesAndGesturesTest {
                     appDiscovery = appDiscovery,
                     widgetHost = widgetHost,
                     onImportImage = { _, _, _ -> null },
-                    onLaunchApp = { launchedPkgs += it.packageName },
+                    onLaunchApp = {
+                        println("SHORTCUT_LAUNCH_CALLBACK=${it.packageName}")
+                        launchedPkgs += it.packageName
+                    },
                     onOpenTagSidebar = {},
                     onOpenCategorySidebar = {},
                     onOpenConfiguredSidebar = {},
@@ -322,6 +326,7 @@ class TotalLauncherFeaturesAndGesturesTest {
                     onSendBackward = {},
                     onDeleteElement = {},
                     onExecuteElementAction = { el, trig, _ ->
+                        println("ELEMENT_TRIGGER=${el.elementId}:$trig")
                         triggeredElementEvents += "${el.elementId}:$trig"
                         true
                     },
@@ -360,9 +365,12 @@ class TotalLauncherFeaturesAndGesturesTest {
         assertTrue("77:LONG_PRESS" in triggeredElementEvents)
 
         // Single tap falls back to primary shortcut launch
-        composeRule.onNodeWithTag("home_element_77").performClick()
+        val shortcutNode = composeRule.onNodeWithTag("home_element_content_77")
+        shortcutNode.assertHasClickAction()
+        shortcutNode.performTouchInput { down(center); up() }
         composeRule.waitForIdle()
-        assertTrue("com.spotify.music" in launchedPkgs)
+        assertTrue("Expected Spotify launch; launched=$launchedPkgs, events=$triggeredElementEvents",
+            "com.spotify.music" in launchedPkgs)
 
         // Empty-canvas long-press dispatches configured LONG_PRESS gesture
         composeRule.onNodeWithTag("home_canvas_1").performTouchInput { longClick(Offset(centerX, centerY)) }

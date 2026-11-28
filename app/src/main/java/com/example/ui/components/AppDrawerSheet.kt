@@ -236,10 +236,15 @@ fun AppDrawerOverlay(
                 byCategoryOrTag
             } else {
                 val q = query.trim().lowercase()
-                byCategoryOrTag.filter {
-                    it.app.displayName.lowercase().contains(q) ||
-                        it.app.packageName.lowercase().contains(q) ||
-                        it.tags.any { t -> t.name.lowercase().contains(q) }
+                byCategoryOrTag.filter { item ->
+                    if (q.all { it.isDigit() }) {
+                        T9Search.matches(q, item.app.displayName, item.app.appName, item.app.packageName) ||
+                            item.tags.any { tag -> T9Search.matches(q, tag.name) }
+                    } else {
+                        item.app.displayName.lowercase().contains(q) ||
+                            item.app.packageName.lowercase().contains(q) ||
+                            item.tags.any { tag -> tag.name.lowercase().contains(q) }
+                    }
                 }
             }
             when (state.settings.drawerSortOrder) {
@@ -727,6 +732,19 @@ fun AppDrawerOverlay(
                                                 shape = RoundedCornerShape(8.dp),
                                             ) {
                                                 Text("Launch", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                            }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    showT9Search = false
+                                                    onOpenGlobalSearch(t9Digits)
+                                                },
+                                                enabled = t9Digits.isNotBlank(),
+                                                modifier = Modifier.fillMaxWidth().height(42.dp).testTag("drawer_t9_search_everywhere_button"),
+                                                shape = RoundedCornerShape(8.dp),
+                                            ) {
+                                                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(17.dp))
+                                                Spacer(Modifier.width(7.dp))
+                                                Text("Search contacts & files")
                                             }
                                         }
                                     }

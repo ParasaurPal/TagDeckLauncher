@@ -137,6 +137,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -474,8 +475,17 @@ fun HomeElementBody(
         if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
         when (element.type) {
             "APP_SHORTCUT" -> {
-                if (!onElementTrigger(element, "TAP")) {
+                val tapActionHandled = "TAP" in configuredTriggers && onElementTrigger(element, "TAP")
+                if (!tapActionHandled) {
                     val targetApp = state.appsWithTags.find { it.app.packageName == element.targetPackageName }?.app
+                        ?: element.targetPackageName
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { packageName ->
+                                AppEntity(
+                                    packageName = packageName,
+                                    appName = element.label.ifBlank { packageName.substringAfterLast('.') },
+                                )
+                            }
                     targetApp?.let { app ->
                         val shortcutId = element.folderAppPackagesCsv.takeIf { it.isNotBlank() }
                         val isLocked = app.packageName in state.settings.lockedAppsCsv.split(",").map(String::trim)
@@ -493,7 +503,8 @@ fun HomeElementBody(
                 onElementTrigger(element, "TAP")
             }
             "TAG_SHORTCUT" -> {
-                if (!onElementTrigger(element, "TAP")) {
+                val tapActionHandled = "TAP" in configuredTriggers && onElementTrigger(element, "TAP")
+                if (!tapActionHandled) {
                     element.targetTagId?.let { onOpenTagSidebar(it) }
                 }
             }
@@ -642,7 +653,16 @@ fun HomeElementBody(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .then(gestureMod),
+                .then(gestureMod)
+                .semantics {
+                    testTag = "home_element_content_${element.elementId}"
+                    if (handlesPointerGestures) {
+                        onClick {
+                            firePrimaryTap()
+                            true
+                        }
+                    }
+                },
             shape = shape,
             color = bg,
             shadowElevation = element.shadowElevationDp.coerceIn(0f, 24f).dp,
