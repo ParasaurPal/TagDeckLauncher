@@ -733,6 +733,19 @@ fun AppDrawerOverlay(
                                             ) {
                                                 Text("Launch", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                             }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    showT9Search = false
+                                                    onOpenGlobalSearch(t9Digits)
+                                                },
+                                                enabled = t9Digits.isNotBlank(),
+                                                modifier = Modifier.fillMaxWidth().height(42.dp).testTag("drawer_t9_search_everywhere_button"),
+                                                shape = RoundedCornerShape(8.dp),
+                                            ) {
+                                                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(17.dp))
+                                                Spacer(Modifier.width(7.dp))
+                                                Text("Search contacts & files")
+                                            }
                                         }
                                     }
                                 }
