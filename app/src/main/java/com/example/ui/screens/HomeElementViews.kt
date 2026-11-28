@@ -472,7 +472,6 @@ fun HomeElementBody(
     }
 
     val firePrimaryTap: () -> Unit = {
-        println("PRIMARY_TAP type=${element.type} target=${element.targetPackageName} apps=${state.appsWithTags.map { it.app.packageName }} triggers=$configuredTriggers")
         if (extras.tapAnim == "SPIN") tapSpinTarget += 360f
         when (element.type) {
             "APP_SHORTCUT" -> {
@@ -659,7 +658,6 @@ fun HomeElementBody(
                     testTag = "home_element_content_${element.elementId}"
                     if (handlesPointerGestures) {
                         onClick {
-                            println("SEMANTIC_ELEMENT_CLICK id=${element.elementId}")
                             firePrimaryTap()
                             true
                         }
