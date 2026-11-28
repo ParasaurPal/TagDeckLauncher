@@ -23,4 +23,10 @@ class T9SearchTest {
         assertFalse(T9Search.matches("999", "Hello"))
         assertFalse(T9Search.matches("", "Hello"))
     }
+
+    @Test fun matchesPhoneNumbersAndFormattedNumericQueries() {
+        assertTrue(T9Search.matches("5550199", "+1 (555) 019-9000"))
+        assertTrue(T9Search.matches("43556", "HELLO"))
+        assertFalse(T9Search.matches("5550000", "+1 (555) 019-9000"))
+    }
 }
