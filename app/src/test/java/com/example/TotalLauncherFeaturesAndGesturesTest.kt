@@ -367,7 +367,7 @@ class TotalLauncherFeaturesAndGesturesTest {
         // Single tap falls back to primary shortcut launch
         val shortcutNode = composeRule.onNodeWithTag("home_element_content_77")
         shortcutNode.assertHasClickAction()
-        shortcutNode.performClick()
+        shortcutNode.performTouchInput { down(center); up() }
         composeRule.waitForIdle()
         assertTrue("Expected Spotify launch; launched=$launchedPkgs, events=$triggeredElementEvents",
             "com.spotify.music" in launchedPkgs)
